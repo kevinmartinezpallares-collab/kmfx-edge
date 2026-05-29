@@ -81,6 +81,29 @@ export type SettingsOverview = {
   plan: SettingsPlan;
 };
 
+function profileNameFromEmail(email: string | null | undefined) {
+  const localPart = String(email || "").split("@")[0]?.trim();
+  if (!localPart) return "Usuario KMFX";
+
+  return (
+    localPart
+      .replace(/[._-]+/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase())
+      .trim() || "Usuario KMFX"
+  );
+}
+
+function profileInitials(displayName: string) {
+  const initials = displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+
+  return initials || "KM";
+}
+
 export function getSettingsOverview(workspace: WorkspaceState): SettingsOverview {
   const accountCount = workspace.accounts.length;
   const connectedCount = workspace.accounts.filter(
@@ -118,6 +141,8 @@ export function getSettingsOverview(workspace: WorkspaceState): SettingsOverview
             yearlyLabel: "390 EUR/año",
             includedAccounts: null,
           };
+  const profileEmail = workspace.meta.userEmail ?? null;
+  const profileDisplayName = profileNameFromEmail(profileEmail);
   const includedAccountsLabel =
     plan.includedAccounts === null ? "Ilimitadas" : String(plan.includedAccounts);
   const usedAccountsLabel = String(accountCount);
@@ -165,10 +190,10 @@ export function getSettingsOverview(workspace: WorkspaceState): SettingsOverview
     limitedCount,
     accountCount,
     profile: {
-      displayName: "Usuario KMFX",
-      email: null,
-      role: "Propietario",
-      initials: "KM",
+      displayName: profileDisplayName,
+      email: profileEmail,
+      role: workspace.meta.userRoleLabel ?? "Usuario",
+      initials: profileInitials(profileDisplayName),
       activeAccountLabel: activeAccount?.label ?? "Sin cuenta activa",
       activeAccountMeta: activeAccount
         ? `${activeAccount.broker} / ${activeAccount.server}`

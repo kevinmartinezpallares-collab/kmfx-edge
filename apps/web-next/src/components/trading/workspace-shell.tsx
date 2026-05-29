@@ -291,6 +291,29 @@ function AccountBrandAvatar({
   );
 }
 
+function profileNameFromEmail(email: string | undefined) {
+  const localPart = String(email || "").split("@")[0]?.trim();
+  if (!localPart) return "Usuario KMFX";
+
+  return (
+    localPart
+      .replace(/[._-]+/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase())
+      .trim() || "Usuario KMFX"
+  );
+}
+
+function profileInitials(displayName: string) {
+  const initials = displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+
+  return initials || "KM";
+}
+
 function AccountSwitcher({
   workspace,
   activeAccount,
@@ -384,8 +407,12 @@ function AccountSwitcher({
   );
 }
 
-function SidebarUserMenu() {
+function SidebarUserMenu({ workspace }: { workspace: WorkspaceState }) {
   const { isMobile } = useSidebar();
+  const profileName = profileNameFromEmail(workspace.meta.userEmail);
+  const roleLabel = workspace.meta.userRoleLabel ?? "Usuario";
+  const initials = profileInitials(profileName);
+  const secondaryLabel = workspace.meta.userEmail ?? roleLabel;
 
   return (
     <SidebarMenu>
@@ -400,12 +427,12 @@ function SidebarUserMenu() {
             }
           >
             <Avatar className="size-8">
-              <AvatarFallback>KM</AvatarFallback>
+              <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">Usuario KMFX</span>
+              <span className="truncate font-medium">{profileName}</span>
               <span className="truncate text-xs text-muted-foreground">
-                Propietario
+                {secondaryLabel}
               </span>
             </div>
             <ChevronDown data-icon="inline-end" className="ml-auto" />
@@ -420,14 +447,14 @@ function SidebarUserMenu() {
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="size-9">
-                    <AvatarFallback>KM</AvatarFallback>
+                    <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium text-foreground">
-                      Usuario KMFX
+                      {profileName}
                     </span>
                     <span className="truncate text-xs text-muted-foreground">
-                      Propietario
+                      {secondaryLabel}
                     </span>
                   </div>
                 </div>
@@ -520,7 +547,7 @@ function WorkspaceSidebar({ workspace }: { workspace: WorkspaceState }) {
       </SidebarContent>
 
       <SidebarFooter className="gap-2 border-t border-sidebar-border/70 p-2">
-        <SidebarUserMenu />
+        <SidebarUserMenu workspace={workspace} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

@@ -18,8 +18,26 @@ describe("getSettingsOverview", () => {
     ]);
     expect(overview.profile).toMatchObject({
       displayName: "Usuario KMFX",
-      role: "Propietario",
+      role: "Usuario",
       activeAccountLabel: "KMFX Alpha",
+    });
+  });
+
+  it("uses live auth metadata for the visible profile when present", () => {
+    const overview = getSettingsOverview({
+      ...wave1Workspace,
+      meta: {
+        ...wave1Workspace.meta,
+        userEmail: "kevinmartinezpallares@hotmail.com",
+        userRoleLabel: "Usuario",
+      },
+    });
+
+    expect(overview.profile).toMatchObject({
+      displayName: "Kevinmartinezpallares",
+      email: "kevinmartinezpallares@hotmail.com",
+      role: "Usuario",
+      initials: "K",
     });
   });
 

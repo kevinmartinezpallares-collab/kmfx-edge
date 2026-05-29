@@ -164,6 +164,22 @@ function toNullableFiniteNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function userRoleLabelFromSnapshot(snapshot: RawLiveAccountsSnapshot) {
+  if (snapshot.is_admin) return "Administrador";
+  if (String(snapshot.auth_email || "").trim()) return "Usuario";
+  return undefined;
+}
+
+function userMetaFromSnapshot(snapshot: RawLiveAccountsSnapshot) {
+  const userEmail = String(snapshot.auth_email || "").trim();
+  const userRoleLabel = userRoleLabelFromSnapshot(snapshot);
+
+  return {
+    ...(userEmail ? { userEmail } : {}),
+    ...(userRoleLabel ? { userRoleLabel } : {}),
+  };
+}
+
 function parseDateFromUnixOrIso(
   unixValue: unknown,
   isoValue: unknown,
@@ -966,7 +982,14 @@ export function createWorkspaceFromLiveSnapshot(
 ): WorkspaceState {
   const rawAccounts = Array.isArray(snapshot.accounts) ? snapshot.accounts : [];
   if (!rawAccounts.length) {
-    return emptyWorkspace(sourceMode);
+    const workspace = emptyWorkspace(sourceMode);
+    return {
+      ...workspace,
+      meta: {
+        ...workspace.meta,
+        ...userMetaFromSnapshot(snapshot),
+      },
+    };
   }
 
   const accounts = rawAccounts.map(mapAccount);
@@ -1006,6 +1029,7 @@ export function createWorkspaceFromLiveSnapshot(
     meta: {
       sourceMode,
       sourceLabel: sourceMode === "live" ? "Lectura MT5" : "Lectura preparada",
+      ...userMetaFromSnapshot(snapshot),
     },
   };
 }

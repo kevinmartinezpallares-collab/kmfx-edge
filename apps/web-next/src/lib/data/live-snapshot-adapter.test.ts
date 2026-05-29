@@ -131,6 +131,22 @@ describe("createWorkspaceFromLiveSnapshot", () => {
     ]);
   });
 
+  it("carries live auth identity into workspace metadata", () => {
+    const workspace = createWorkspaceFromLiveSnapshot(
+      {
+        accounts: [],
+        auth_email: "kevinmartinezpallares@hotmail.com",
+        is_admin: false,
+      },
+      "live",
+    );
+
+    expect(workspace.meta).toMatchObject({
+      userEmail: "kevinmartinezpallares@hotmail.com",
+      userRoleLabel: "Usuario",
+    });
+  });
+
   it("groups MT5 partial closes by position_id without duplicating trades", () => {
     const workspace = createWorkspaceFromLiveSnapshot(
       partialCloseSnapshot,

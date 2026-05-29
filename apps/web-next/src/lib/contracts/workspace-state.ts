@@ -88,5 +88,7 @@ export type WorkspaceState = {
   meta: {
     sourceMode: "mock" | "fixture" | "live";
     sourceLabel: string;
+    userEmail?: string;
+    userRoleLabel?: string;
   };
 };

@@ -138,6 +138,7 @@ export type RawLiveSnapshotAccount = {
 
 export type RawLiveAccountsSnapshot = {
   accounts?: RawLiveSnapshotAccount[];
+  auth_email?: string;
   user_id?: string;
   scope_user_id?: string;
   is_admin?: boolean;
