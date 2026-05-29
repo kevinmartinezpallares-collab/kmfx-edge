@@ -23,18 +23,18 @@ describe("getSettingsOverview", () => {
     });
   });
 
-  it("keeps billing and launcher work explicitly deferred", () => {
+  it("keeps billing behind authenticated safe routes", () => {
     const overview = getSettingsOverview(wave1Workspace);
 
     expect(overview.safetyRows).toContainEqual({
       label: "Pagos",
-      value: "Protegidos",
-      note: "La gestión del plan no abre pasarela desde esta pantalla",
-      tone: "locked",
+      value: "Portal seguro",
+      note: "Checkout y portal requieren sesión Supabase activa",
+      tone: "ready",
     });
-    expect(overview.plan.managementReady).toBe(false);
+    expect(overview.plan.managementReady).toBe(true);
     expect(overview.plan.managementNote).toBe(
-      "La gestión de pagos se activará con sesión segura.",
+      "Checkout y portal se abren desde sesión segura.",
     );
   });
 

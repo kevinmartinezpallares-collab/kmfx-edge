@@ -550,11 +550,20 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
 }
 
 export function SubscriptionReferenceSection({ workspace }: { workspace: WorkspaceState }) {
+  const router = useRouter();
   const settingsOverview = getSettingsOverview(workspace);
   const { plan } = settingsOverview;
   const [billingInterval, setBillingInterval] = React.useState<"monthly" | "yearly">(
     "monthly",
   );
+  const [billingAction, setBillingAction] = React.useState<{
+    status: "idle" | "pending" | "success" | "error";
+    message: string;
+    planKey?: (typeof plan.options)[number]["key"];
+  }>({
+    message: "",
+    status: "idle",
+  });
   const statusBadgeVariant = plan.statusTone === "ready" ? "secondary" : "destructive";
   const paymentIconByTone = {
     ready: CheckCircle2,
@@ -643,6 +652,110 @@ export function SubscriptionReferenceSection({ workspace }: { workspace: Workspa
     ...planChartData.map((item) => item.accountCapacity),
     1,
   );
+  const billingPending = billingAction.status === "pending";
+  const billingMessage =
+    billingAction.message ||
+    (billingPending ? "Preparando conexión segura..." : plan.managementNote);
+
+  async function readBillingPayload(response: Response) {
+    const payload = await response.json().catch(() => ({}));
+
+    if (response.status === 401 || payload?.auth_required) {
+      router.push("/login?next=/subscription");
+      return null;
+    }
+
+    if (!response.ok || payload?.ok === false) {
+      throw new Error(payload?.reason || payload?.error || "billing_request_failed");
+    }
+
+    return payload;
+  }
+
+  async function startCheckout(planKey: (typeof plan.options)[number]["key"]) {
+    setBillingAction({
+      message: "Preparando Checkout seguro...",
+      planKey,
+      status: "pending",
+    });
+
+    try {
+      const response = await fetch("/api/kmfx/billing/checkout", {
+        body: JSON.stringify({
+          cancelUrl: "/subscription?checkout=cancelled",
+          interval: billingInterval,
+          plan: planKey,
+          successUrl: "/subscription?checkout=success",
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const payload = await readBillingPayload(response);
+
+      if (!payload) return;
+
+      if (payload.url) {
+        window.location.assign(payload.url);
+        return;
+      }
+
+      setBillingAction({
+        message: payload.message || "Suscripción actualizada correctamente.",
+        planKey,
+        status: "success",
+      });
+      router.refresh();
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "billing_request_failed";
+      setBillingAction({
+        message:
+          reason === "rate_limited"
+            ? "Demasiados intentos seguidos. Espera un momento y vuelve a probar."
+            : "No se pudo abrir Checkout. Revisa sesión y configuración de billing.",
+        planKey,
+        status: "error",
+      });
+    }
+  }
+
+  async function openBillingPortal() {
+    setBillingAction({
+      message: "Abriendo portal de suscripción...",
+      status: "pending",
+    });
+
+    try {
+      const response = await fetch("/api/kmfx/billing/portal", {
+        body: JSON.stringify({
+          returnUrl: "/subscription?billing=portal-return",
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const payload = await readBillingPayload(response);
+
+      if (!payload) return;
+
+      if (!payload.url) {
+        throw new Error(payload.reason || "billing_portal_url_missing");
+      }
+
+      window.location.assign(payload.url);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "billing_portal_failed";
+      setBillingAction({
+        message:
+          reason === "rate_limited"
+            ? "Demasiados intentos seguidos. Espera un momento y vuelve a probar."
+            : "No se pudo abrir el portal seguro.",
+        status: "error",
+      });
+    }
+  }
 
   return (
     <PageMotion>
@@ -690,6 +803,19 @@ export function SubscriptionReferenceSection({ workspace }: { workspace: Workspa
                 </ToggleGroup>
               </CardAction>
             </div>
+            <p
+              aria-live="polite"
+              className={cn(
+                "mt-3 text-sm",
+                billingAction.status === "error"
+                  ? "text-destructive"
+                  : billingAction.status === "success"
+                    ? "text-profit"
+                    : "text-muted-foreground",
+              )}
+            >
+              {billingMessage}
+            </p>
           </CardHeader>
           <CardContent className="grid gap-5 p-4 sm:p-6">
             <div className="grid gap-5 lg:grid-cols-3">
@@ -761,12 +887,24 @@ export function SubscriptionReferenceSection({ workspace }: { workspace: Workspa
                         <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
                           <motion.button
                             className="rounded-full bg-white px-6 py-2 text-sm font-semibold text-black shadow-lg transition-transform duration-200 disabled:cursor-not-allowed disabled:opacity-70"
-                            disabled={!plan.managementReady}
+                            disabled={!plan.managementReady || billingPending}
+                            onClick={() => {
+                              if (current) {
+                                void openBillingPortal();
+                                return;
+                              }
+
+                              void startCheckout(option.key);
+                            }}
                             type="button"
-                            whileHover={{ scale: plan.managementReady ? 1.05 : 1 }}
-                            whileTap={{ scale: plan.managementReady ? 0.95 : 1 }}
+                            whileHover={{ scale: plan.managementReady && !billingPending ? 1.05 : 1 }}
+                            whileTap={{ scale: plan.managementReady && !billingPending ? 0.95 : 1 }}
                           >
-                            {current ? "Plan actual" : "Seleccionar"}
+                            {billingPending && billingAction.planKey === option.key
+                              ? "Abriendo..."
+                              : current
+                                ? "Gestionar"
+                                : "Seleccionar"}
                           </motion.button>
                         </div>
                       </div>
@@ -838,11 +976,23 @@ export function SubscriptionReferenceSection({ workspace }: { workspace: Workspa
                           </div>
                           <Button
                             className="shrink-0"
-                            disabled={!plan.managementReady}
+                            disabled={!plan.managementReady || billingPending}
+                            onClick={() => {
+                              if (current) {
+                                void openBillingPortal();
+                                return;
+                              }
+
+                              void startCheckout(option.key);
+                            }}
                             size="sm"
                             variant={current ? "secondary" : featured ? "default" : "outline"}
                           >
-                            {current ? "Actual" : "Elegir"}
+                            {billingPending && billingAction.planKey === option.key
+                              ? "Abriendo..."
+                              : current
+                                ? "Gestionar"
+                                : "Elegir"}
                           </Button>
                         </div>
                       </div>
@@ -940,9 +1090,14 @@ export function SubscriptionReferenceSection({ workspace }: { workspace: Workspa
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button disabled={!plan.managementReady}>
+                  <Button
+                    disabled={!plan.managementReady || billingPending}
+                    onClick={() => void openBillingPortal()}
+                  >
                     <CreditCard data-icon="inline-start" />
-                    {plan.primaryActionLabel}
+                    {billingPending && !billingAction.planKey
+                      ? "Abriendo..."
+                      : plan.primaryActionLabel}
                   </Button>
                   <Button variant="outline" render={<Link href="/accounts" />} nativeButton={false}>
                     <WalletCards data-icon="inline-start" />

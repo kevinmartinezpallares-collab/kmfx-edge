@@ -272,9 +272,9 @@ export function getSettingsOverview(workspace: WorkspaceState): SettingsOverview
       },
       {
         label: "Pagos",
-        value: "Protegidos",
-        note: "La gestión del plan no abre pasarela desde esta pantalla",
-        tone: "locked",
+        value: "Portal seguro",
+        note: "Checkout y portal requieren sesión Supabase activa",
+        tone: "ready",
       },
       {
         label: "Datos sensibles",
@@ -300,8 +300,8 @@ export function getSettingsOverview(workspace: WorkspaceState): SettingsOverview
         limitedCount > 0
           ? "Reduce cuentas activas o sube de plan."
           : "Renovación mensual preparada.",
-      managementNote: "La gestión de pagos se activará con sesión segura.",
-      managementReady: false,
+      managementNote: "Checkout y portal se abren desde sesión segura.",
+      managementReady: true,
       primaryActionLabel: limitedCount > 0 ? "Revisar plan" : "Gestionar plan",
       metrics: [
         {
@@ -339,7 +339,7 @@ export function getSettingsOverview(workspace: WorkspaceState): SettingsOverview
         {
           label: "Cambios de plan",
           value: "Protegidos",
-          note: "No se abrirán cobros desde esta pantalla.",
+          note: "Se confirman en Checkout o portal seguro.",
           tone: "ready",
         },
       ],
