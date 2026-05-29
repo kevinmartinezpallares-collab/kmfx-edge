@@ -18,7 +18,7 @@
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.89"
+#define KMFX_CONNECTOR_VERSION "2.90"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -663,7 +663,7 @@ string KMFXSanitizeFileToken(string value)
 
 string KMFXHistoryBootstrapPrefix()
   {
-   return "KMFX_HISTORY_BOOTSTRAP_";
+   return "KMFX_HISTORY_BOOTSTRAP_V2_";
   }
 
 string KMFXHistoryBootstrapFileName()
