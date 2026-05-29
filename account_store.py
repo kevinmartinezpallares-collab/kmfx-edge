@@ -611,7 +611,7 @@ class SupabaseAccountStore(AccountStore):
             return []
 
         max_positions = _env_int("KMFX_NORMALIZED_MAX_OPEN_POSITIONS", default=50)
-        max_trades = _env_int("KMFX_NORMALIZED_MAX_TRADES", default=5000)
+        max_trades = max(_env_int("KMFX_NORMALIZED_MAX_TRADES", default=5000), 5000)
         max_equity_points = _env_int("KMFX_NORMALIZED_MAX_EQUITY_POINTS", default=400)
         for account in accounts:
             account_id = str(account.account_id or "").strip()
