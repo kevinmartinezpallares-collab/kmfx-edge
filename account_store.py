@@ -654,6 +654,11 @@ class SupabaseAccountStore(AccountStore):
                             for row in trade_rows
                             if isinstance(row, dict)
                         ]
+                        payload["tradesCount"] = len(payload["trades"])
+                        payload["totalTrades"] = len(payload["trades"])
+                        report_metrics = payload.get("reportMetrics")
+                        if isinstance(report_metrics, dict):
+                            report_metrics["totalTrades"] = len(payload["trades"])
 
                 if max_equity_points > 0:
                     equity_rows = self._request_table(
@@ -672,6 +677,7 @@ class SupabaseAccountStore(AccountStore):
                             for row in reversed(equity_rows)
                             if isinstance(row, dict)
                         ]
+                        payload["historyCount"] = len(payload["history"])
             except OSError as exc:
                 log.warning("Supabase normalized payload hydration skipped | account_id=%s error=%s", account_id, exc)
             account.latest_payload = payload
