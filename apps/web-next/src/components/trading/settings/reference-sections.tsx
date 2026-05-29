@@ -692,7 +692,21 @@ export function SubscriptionReferenceSection({ workspace }: { workspace: Workspa
         },
         method: "POST",
       });
-      const payload = await readBillingPayload(response);
+      const payload = await response.json().catch(() => ({}));
+
+      if (response.status === 401 || payload?.auth_required) {
+        router.push("/login?next=/subscription");
+        return;
+      }
+
+      if (!response.ok || payload?.ok === false) {
+        if (response.status >= 500) {
+          await openBillingPortal("Checkout no disponible. Abriendo portal seguro...");
+          return;
+        }
+
+        throw new Error(payload?.reason || payload?.error || "billing_request_failed");
+      }
 
       if (!payload) return;
 
@@ -720,9 +734,9 @@ export function SubscriptionReferenceSection({ workspace }: { workspace: Workspa
     }
   }
 
-  async function openBillingPortal() {
+  async function openBillingPortal(message = "Abriendo portal de suscripción...") {
     setBillingAction({
-      message: "Abriendo portal de suscripción...",
+      message,
       status: "pending",
     });
 

@@ -193,7 +193,7 @@ export function AccountsReferenceSection({
         </Card>
 
         <Dialog open={isAddAccountOpen} onOpenChange={setIsAddAccountOpen}>
-          <DialogContent className="sm:max-w-2xl">
+          <DialogContent className="max-h-[calc(100svh-1rem)] overflow-y-auto overscroll-contain sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>Añadir cuenta</DialogTitle>
               <DialogDescription>
