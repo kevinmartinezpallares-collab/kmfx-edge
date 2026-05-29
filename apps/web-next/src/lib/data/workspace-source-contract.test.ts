@@ -51,6 +51,7 @@ describe("workspace source contract", () => {
 
     expect(source).toContain("resolveKmfxSnapshotCacheTtlMs");
     expect(source).toContain("liveSnapshotCache");
+    expect(source).toContain("revalidate: Math.max");
     expect(source).toContain('cache: "no-store"');
   });
 

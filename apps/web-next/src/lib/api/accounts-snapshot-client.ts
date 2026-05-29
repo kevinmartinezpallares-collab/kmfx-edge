@@ -50,6 +50,7 @@ function snapshotCacheKey(view: SnapshotView) {
 
 async function requestLiveAccountsSnapshot(view: SnapshotView) {
   const controller = new AbortController();
+  const ttlMs = resolveKmfxSnapshotCacheTtlMs();
   const timeout = setTimeout(
     () => controller.abort(),
     resolveKmfxSnapshotTimeoutMs(),
@@ -60,7 +61,13 @@ async function requestLiveAccountsSnapshot(view: SnapshotView) {
   try {
     response = await fetch(resolveKmfxAccountsSnapshotUrl({ view }), {
       headers: buildPreviewHeaders(),
-      cache: "no-store",
+      ...(ttlMs > 0
+        ? {
+            next: {
+              revalidate: Math.max(1, Math.ceil(ttlMs / 1000)),
+            },
+          }
+        : { cache: "no-store" as const }),
       signal: controller.signal,
     });
   } finally {
