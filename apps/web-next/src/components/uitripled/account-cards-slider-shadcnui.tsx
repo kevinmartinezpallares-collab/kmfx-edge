@@ -271,10 +271,7 @@ function companyLogoUrl(account: AccountRow) {
     .toLowerCase();
 
   if (source.includes("ftmo")) return "/brand-logos/ftmo.png";
-  if (source.includes("darwin") && source.includes("zero")) {
-    return "/brand-logos/darwinex-zero.webp";
-  }
-  if (source.includes("darwin")) return "/brand-logos/darwinex.png";
+  if (source.includes("darwin")) return "/brand-logos/darwinex-zero.webp";
   if (source.includes("orion")) return "/brand-logos/orion-funded.jpeg";
   if (source.includes("funding pips")) {
     return "/brand-logos/the-funding-pips.jpeg";
@@ -295,22 +292,24 @@ function companyLogoUrl(account: AccountRow) {
   )}&background=111111&color=ffffff&bold=true`;
 }
 
-function AccountLogoImage({
+function AccountLogoFrame({
   src,
   alt,
   className,
+  imageClassName,
   size,
 }: {
   src: string;
   alt: string;
   className?: string;
+  imageClassName?: string;
   size: number;
 }) {
   if (src.startsWith("/")) {
     return (
       <span
         className={cn(
-          "flex size-full items-center justify-center overflow-hidden rounded-full",
+          "flex shrink-0 items-center justify-center overflow-hidden rounded-full",
           className,
         )}
       >
@@ -319,13 +318,18 @@ function AccountLogoImage({
           alt={alt}
           width={size}
           height={size}
-          className="size-full rounded-full object-contain"
+          className={cn("size-full rounded-full object-cover", imageClassName)}
         />
       </span>
     );
   }
 
-  return <AvatarImage src={src} alt={alt} className={className} />;
+  return (
+    <Avatar className={className}>
+      <AvatarImage src={src} alt={alt} className={imageClassName} />
+      <AvatarFallback>{alt[0]}</AvatarFallback>
+    </Avatar>
+  );
 }
 
 function AccountDetailMetric({
@@ -364,15 +368,12 @@ function AccountConnectionDetail({ account }: { account: AccountRow }) {
           <div className="relative overflow-hidden border-b border-border/50 bg-background/35 p-6 lg:border-b-0 lg:border-r">
             <div className="absolute -right-12 -top-12 size-40 rounded-full bg-white/10 blur-3xl" />
             <div className="relative flex items-start gap-4">
-              <Avatar className="size-14 border border-border/60 ring-4 ring-background">
-                <AccountLogoImage
-                  src={companyLogoUrl(account)}
-                  alt={`${companyName(account)} logo`}
-                  className="p-2"
-                  size={56}
-                />
-                <AvatarFallback>{companyName(account)[0]}</AvatarFallback>
-              </Avatar>
+              <AccountLogoFrame
+                src={companyLogoUrl(account)}
+                alt={`${companyName(account)} logo`}
+                className="size-14 border border-border/60 bg-background ring-4 ring-background"
+                size={56}
+              />
               <div className="min-w-0">
                 <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground">
                   Detalle de cuenta
@@ -639,14 +640,12 @@ export function AccountCardsSlider({
           </div>
 
           <div className="absolute inset-x-4 bottom-4 z-20 flex items-end justify-between gap-4">
-            <Avatar className="size-16 border border-white/20 bg-background/75 p-2 shadow-xl ring-4 ring-black/20">
-              <AccountLogoImage
-                src={card.author.avatar}
-                alt={`${card.author.name} logo`}
-                size={64}
-              />
-              <AvatarFallback>{card.author.name[0]}</AvatarFallback>
-            </Avatar>
+            <AccountLogoFrame
+              src={card.author.avatar}
+              alt={`${card.author.name} logo`}
+              className="size-16 border border-white/20 bg-background/75 shadow-xl ring-4 ring-black/20"
+              size={64}
+            />
             <div className="min-w-0 rounded-2xl border border-white/10 bg-background/55 px-3 py-2 text-right shadow-lg backdrop-blur-md">
               <p className="truncate text-sm font-semibold text-foreground">
                 {card.author.name}
@@ -772,15 +771,12 @@ export function AccountCardsSlider({
 
           <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-4">
             <div className="flex items-center gap-2">
-              <Avatar className="h-8 w-8 border border-border/50 ring-2 ring-background">
-                <AccountLogoImage
-                  src={card.author.avatar}
-                  alt={`${card.author.name} logo`}
-                  className="p-1"
-                  size={32}
-                />
-                <AvatarFallback>{card.author.name[0]}</AvatarFallback>
-              </Avatar>
+              <AccountLogoFrame
+                src={card.author.avatar}
+                alt={`${card.author.name} logo`}
+                className="size-8 border border-border/50 bg-background ring-2 ring-background"
+                size={32}
+              />
               <div className="flex flex-col">
                 <span className="text-xs font-semibold text-foreground">
                   {card.author.name}

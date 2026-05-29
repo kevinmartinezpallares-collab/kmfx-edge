@@ -240,10 +240,7 @@ function getAccountLogoUrl(
     .toLowerCase();
 
   if (source.includes("ftmo")) return "/brand-logos/ftmo.png";
-  if (source.includes("darwin") && source.includes("zero")) {
-    return "/brand-logos/darwinex-zero.webp";
-  }
-  if (source.includes("darwin")) return "/brand-logos/darwinex.png";
+  if (source.includes("darwin")) return "/brand-logos/darwinex-zero.webp";
   if (source.includes("orion")) return "/brand-logos/orion-funded.jpeg";
   if (source.includes("funding pips")) return "/brand-logos/the-funding-pips.jpeg";
   if (source.includes("wsf")) return "/brand-logos/wsf.png";
