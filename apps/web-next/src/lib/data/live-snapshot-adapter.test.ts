@@ -112,6 +112,25 @@ describe("createWorkspaceFromLiveSnapshot", () => {
     );
   });
 
+  it("keeps authenticated users without accounts on a real empty workspace", () => {
+    const workspace = createWorkspaceFromLiveSnapshot({ accounts: [] }, "live");
+
+    expect(workspace.meta).toEqual({
+      sourceLabel: "Sin cuentas conectadas",
+      sourceMode: "live",
+    });
+    expect(workspace.activeAccountId).toBe("");
+    expect(workspace.accounts).toEqual([]);
+    expect(workspace.trades).toEqual([]);
+    expect(workspace.dashboard.title).toBe("Panel operativo");
+    expect(workspace.dashboard.metrics.map((metric) => metric.id)).toEqual([
+      "equity",
+      "open-pnl",
+      "daily-room",
+      "open-heat",
+    ]);
+  });
+
   it("groups MT5 partial closes by position_id without duplicating trades", () => {
     const workspace = createWorkspaceFromLiveSnapshot(
       partialCloseSnapshot,

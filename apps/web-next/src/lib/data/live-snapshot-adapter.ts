@@ -23,6 +23,137 @@ import {
 
 type WorkspaceSourceMode = WorkspaceState["meta"]["sourceMode"];
 
+function emptyWorkspace(sourceMode: WorkspaceSourceMode): WorkspaceState {
+  const sourceLabel =
+    sourceMode === "live" ? "Sin cuentas conectadas" : "Lectura preparada";
+
+  return {
+    activeAccountId: "",
+    accounts: [],
+    trades: [],
+    dashboard: {
+      title: "Panel operativo",
+      subtitle: "Conecta una cuenta MT5 para activar métricas reales.",
+      metrics: [
+        {
+          id: "equity",
+          label: "Equity",
+          value: formatCurrency(0, "USD"),
+          note: "Sin cuenta conectada",
+          tone: "neutral",
+        },
+        {
+          id: "open-pnl",
+          label: "P&L abierto",
+          value: formatSignedCurrency(0, "USD"),
+          note: "Sin posiciones abiertas",
+          tone: "neutral",
+        },
+        {
+          id: "daily-room",
+          label: "Room diario",
+          value: formatPercent(0),
+          note: "Pendiente de cuenta",
+          tone: "neutral",
+        },
+        {
+          id: "open-heat",
+          label: "Riesgo abierto",
+          value: formatPercent(0),
+          note: "Sin exposición",
+          tone: "neutral",
+        },
+      ],
+      equitySeries: [],
+      pulseItems: [
+        {
+          label: "Origen",
+          value: sourceLabel,
+          tone: "info",
+        },
+        {
+          label: "Cuentas",
+          value: "0 conectadas",
+          tone: "neutral",
+        },
+        {
+          label: "Trades cerrados",
+          value: "0",
+          tone: "neutral",
+        },
+      ],
+    },
+    risk: {
+      status: "safe",
+      severity: "info",
+      actionRequired: "Conecta una cuenta MT5 para calcular riesgo real.",
+      allowNewTrades: false,
+      dailyDrawdownPct: 0,
+      dailyLimitPct: 0,
+      dailyRoomLeftPct: 0,
+      maxDrawdownPct: 0,
+      maxLimitPct: 0,
+      totalOpenRiskPct: 0,
+      heatLimitPct: 0,
+      exposureBySymbol: [],
+    },
+    funding: {
+      profiles: [],
+      ruleSets: [],
+      journeys: [],
+      stageAccounts: [],
+      ledgerEntries: [],
+      timelineEvents: [],
+    },
+    portfolio: {
+      portfolios: [],
+      accounts: [],
+      policies: [],
+    },
+    policies: {
+      riskPolicies: [],
+      evaluations: [],
+      recommendations: [],
+    },
+    analytics: {
+      performance: {
+        netProfit: 0,
+        grossProfit: 0,
+        grossLoss: 0,
+        winRatePct: 0,
+        totalTrades: 0,
+        winCount: 0,
+        lossCount: 0,
+        profitFactor: 0,
+        sortino: null,
+        expectancy: 0,
+        avgWin: 0,
+        avgLoss: 0,
+        bestTrade: null,
+        worstTrade: null,
+        bestWinStreak: 0,
+        bestLossStreak: 0,
+        score: 0,
+      },
+      summary: [
+        {
+          label: "Estado",
+          value: "Sin cuenta",
+          note: "Añade una cuenta MT5 para iniciar la lectura.",
+        },
+      ],
+      daily: [],
+      hourly: [],
+      periodOptions: ["30D", "90D", "YTD"],
+      currentPeriod: "30D",
+    },
+    meta: {
+      sourceMode,
+      sourceLabel,
+    },
+  };
+}
+
 function toFiniteNumber(value: unknown, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -835,7 +966,7 @@ export function createWorkspaceFromLiveSnapshot(
 ): WorkspaceState {
   const rawAccounts = Array.isArray(snapshot.accounts) ? snapshot.accounts : [];
   if (!rawAccounts.length) {
-    throw new Error("Live snapshot did not contain any accounts");
+    return emptyWorkspace(sourceMode);
   }
 
   const accounts = rawAccounts.map(mapAccount);
