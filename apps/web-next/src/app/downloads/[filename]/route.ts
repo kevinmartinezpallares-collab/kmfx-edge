@@ -1,7 +1,6 @@
-import { readFile } from "node:fs/promises";
 import { NextResponse } from "next/server";
 
-import { downloadHeaders, launcherArtifacts } from "@/lib/downloads/artifacts";
+import { launcherArtifacts } from "@/lib/downloads/artifacts";
 
 export const runtime = "nodejs";
 
@@ -16,9 +15,5 @@ export async function GET(
     return new NextResponse(null, { status: 404 });
   }
 
-  const file = await readFile(artifact.path);
-
-  return new NextResponse(new Uint8Array(file), {
-    headers: downloadHeaders(artifact),
-  });
+  return NextResponse.redirect(artifact.url, 302);
 }
