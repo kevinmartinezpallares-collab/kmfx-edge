@@ -25,6 +25,18 @@ function fingerprint(value: string) {
   return createHash("sha256").update(value).digest("hex").slice(0, 16);
 }
 
+function resolveAuthenticatedSnapshotCacheTtlMs() {
+  const raw = Number.parseInt(
+    process.env.KMFX_AUTH_SNAPSHOT_CACHE_TTL_MS ?? "",
+    10,
+  );
+
+  if (!Number.isFinite(raw)) return 4000;
+  if (raw <= 0) return 0;
+
+  return Math.min(raw, 15000);
+}
+
 function buildPreviewHeaders() {
   const headers = new Headers({
     Accept: "application/json",
@@ -72,11 +84,19 @@ async function buildSnapshotHeaders() {
 }
 
 function resolveEffectiveSnapshotCacheTtlMs() {
-  if (isSupabaseAuthEnabled()) return 0;
+  if (isSupabaseAuthEnabled()) return resolveAuthenticatedSnapshotCacheTtlMs();
   return resolveKmfxSnapshotCacheTtlMs();
 }
 
-function snapshotCacheKey(view: SnapshotView) {
+function snapshotCacheKey(view: SnapshotView, headers: Headers) {
+  if (isSupabaseAuthEnabled()) {
+    return [
+      view,
+      "auth",
+      fingerprint(headers.get("Authorization") ?? ""),
+    ].join(":");
+  }
+
   return [
     view,
     fingerprint(process.env.KMFX_PREVIEW_BEARER_TOKEN?.trim() ?? ""),
@@ -85,20 +105,24 @@ function snapshotCacheKey(view: SnapshotView) {
   ].join(":");
 }
 
-async function requestLiveAccountsSnapshot(view: SnapshotView) {
+async function requestLiveAccountsSnapshot(
+  view: SnapshotView,
+  headers: Headers,
+  ttlMs: number,
+) {
   const controller = new AbortController();
-  const ttlMs = resolveEffectiveSnapshotCacheTtlMs();
   const timeout = setTimeout(
     () => controller.abort(),
     resolveKmfxSnapshotTimeoutMs(),
   );
+  const canUseNextRevalidate = ttlMs > 0 && !isSupabaseAuthEnabled();
 
   let response: Response;
 
   try {
     response = await fetch(resolveKmfxAccountsSnapshotUrl({ view }), {
-      headers: await buildSnapshotHeaders(),
-      ...(ttlMs > 0
+      headers,
+      ...(canUseNextRevalidate
         ? {
             next: {
               revalidate: Math.max(1, Math.ceil(ttlMs / 1000)),
@@ -129,21 +153,24 @@ export async function fetchLiveAccountsSnapshot({
 }: {
   view?: SnapshotView;
 } = {}): Promise<RawLiveAccountsSnapshot> {
+  const headers = await buildSnapshotHeaders();
   const ttlMs = resolveEffectiveSnapshotCacheTtlMs();
-  if (ttlMs <= 0) return requestLiveAccountsSnapshot(view);
+  if (ttlMs <= 0) return requestLiveAccountsSnapshot(view, headers, ttlMs);
 
   const now = Date.now();
-  const cacheKey = snapshotCacheKey(view);
+  const cacheKey = snapshotCacheKey(view, headers);
   const cached = liveSnapshotCache.get(cacheKey);
 
   if (cached && cached.expiresAt > now) {
     return cached.promise;
   }
 
-  const promise = requestLiveAccountsSnapshot(view).catch((error: unknown) => {
-    liveSnapshotCache.delete(cacheKey);
-    throw error;
-  });
+  const promise = requestLiveAccountsSnapshot(view, headers, ttlMs).catch(
+    (error: unknown) => {
+      liveSnapshotCache.delete(cacheKey);
+      throw error;
+    },
+  );
   liveSnapshotCache.set(cacheKey, {
     expiresAt: now + ttlMs,
     promise,

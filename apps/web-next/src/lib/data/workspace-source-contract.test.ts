@@ -50,6 +50,8 @@ describe("workspace source contract", () => {
     const source = readAccountsSnapshotClient();
 
     expect(source).toContain("resolveKmfxSnapshotCacheTtlMs");
+    expect(source).toContain("KMFX_AUTH_SNAPSHOT_CACHE_TTL_MS");
+    expect(source).toContain('fingerprint(headers.get("Authorization")');
     expect(source).toContain("liveSnapshotCache");
     expect(source).toContain("revalidate: Math.max");
     expect(source).toContain('cache: "no-store"');
