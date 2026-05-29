@@ -4503,6 +4503,24 @@ def build_live_accounts_snapshot(
         storage_connection_key_hash(connection_key)
         for connection_key in raw_allowed_connection_keys
     }
+
+    def cached_entry_should_replace_persisted(cached_entry: dict[str, Any], persisted_entry: dict[str, Any] | None) -> bool:
+        if not persisted_entry:
+            return True
+        cached_last_sync = _parse_datetime(cached_entry.get("last_sync_at"))
+        persisted_last_sync = _parse_datetime(persisted_entry.get("last_sync_at"))
+        if cached_last_sync is None:
+            return False
+        if persisted_last_sync is not None and cached_last_sync < persisted_last_sync:
+            return False
+        if summary_only:
+            return True
+
+        cached_payload = ensure_dict(cached_entry.get("dashboard_payload"))
+        cached_trades = cached_payload.get("trades") if isinstance(cached_payload.get("trades"), list) else []
+        cached_history = cached_payload.get("history") if isinstance(cached_payload.get("history"), list) else []
+        return bool(cached_trades or cached_history)
+
     persisted_snapshot = account_service.build_accounts_snapshot(user_id, summary_only=summary_only)
     merged_accounts: dict[str, dict[str, Any]] = {}
 
@@ -4567,9 +4585,7 @@ def build_live_accounts_snapshot(
         entry_connection_key_hash = safe_str(entry.get("connection_key_hash"))
         if safe_str(entry.get("user_id"), "local") != user_id and entry_connection_key_hash not in allowed_connection_key_hashes:
             continue
-        cached_last_sync = _parse_datetime(entry.get("last_sync_at"))
-        persisted_last_sync = _parse_datetime((merged_accounts.get(account_id) or {}).get("last_sync_at"))
-        if account_id not in merged_accounts or (cached_last_sync and (persisted_last_sync is None or cached_last_sync >= persisted_last_sync)):
+        if cached_entry_should_replace_persisted(entry, merged_accounts.get(account_id)):
             cached_entry = deepcopy(entry)
             if summary_only and isinstance(cached_entry.get("dashboard_payload"), dict):
                 cached_entry["dashboard_payload"] = compact_dashboard_payload_from_payload(cached_entry.get("dashboard_payload"))

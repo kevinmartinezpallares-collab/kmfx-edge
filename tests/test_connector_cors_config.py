@@ -751,6 +751,64 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
+    def test_full_snapshot_prefers_store_when_recent_cache_is_compact(self) -> None:
+        persisted_entry = {
+            "account_id": "acc-live",
+            "user_id": "owner-live",
+            "source": "store",
+            "status": "active",
+            "last_sync_at": "2026-05-28T18:45:37+00:00",
+            "dashboard_payload": {
+                "payloadShape": "storage-summary",
+                "fullPayloadStored": False,
+                "balance": 105953.55,
+                "equity": 106153.55,
+                "reportMetrics": {"totalTrades": 20},
+                "positions": [{"symbol": "XAUUSD"}],
+                "trades": [{"trade_id": "t-1", "symbol": "XAUUSD", "profit": 25}],
+                "history": [{"timestamp": "2026-05-28T18:45:00Z", "value": 106153.55}],
+            },
+        }
+        cached_entry = {
+            **persisted_entry,
+            "source": "recent_live_cache",
+            "last_sync_at": "2026-05-28T18:46:37+00:00",
+            "dashboard_payload": {
+                "payloadShape": "storage-summary",
+                "fullPayloadStored": False,
+                "balance": 105953.55,
+                "equity": 106153.55,
+                "reportMetrics": {"totalTrades": 20},
+                "positions": [{"symbol": "XAUUSD"}],
+                "payload_mode": "lightweight",
+                "sync_reason": "heartbeat",
+            },
+        }
+
+        previous_recent = dict(connector_api.RECENT_LIVE_ACCOUNTS)
+        try:
+            connector_api.RECENT_LIVE_ACCOUNTS.clear()
+            connector_api.RECENT_LIVE_ACCOUNTS["acc-live"] = cached_entry
+            with patch.object(
+                connector_api.account_service,
+                "build_accounts_snapshot",
+                return_value={
+                    "accounts": [persisted_entry],
+                    "active_account_id": "acc-live",
+                    "snapshot_mode": "full",
+                    "updated_at": "2026-05-28T18:46:00+00:00",
+                },
+            ), patch.object(connector_api.account_service, "build_accounts_registry", return_value=[]):
+                snapshot = connector_api.build_live_accounts_snapshot("owner-live", summary_only=False)
+        finally:
+            connector_api.RECENT_LIVE_ACCOUNTS.clear()
+            connector_api.RECENT_LIVE_ACCOUNTS.update(previous_recent)
+
+        payload = snapshot["accounts"][0]["dashboard_payload"]
+        self.assertEqual(1, len(payload["trades"]))
+        self.assertEqual(1, len(payload["history"]))
+        self.assertEqual("t-1", payload["trades"][0]["trade_id"])
+
     def test_no_key_mt5_ingest_is_rejected_for_remote_production(self) -> None:
         with patch.dict("os.environ", {"KMFX_ENV": "production"}, clear=True):
             self.assertFalse(connector_api._allow_no_key_mt5_ingest(self._request()))
