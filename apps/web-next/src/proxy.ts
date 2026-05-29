@@ -1,5 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { isSupabaseAuthEnabled } from "@/lib/supabase/config";
+import { updateSupabaseSession } from "@/lib/supabase/proxy";
+
 function betaGateEnabled() {
   return Boolean(process.env.KMFX_BETA_GATE_PASSWORD?.trim());
 }
@@ -36,7 +39,11 @@ function hasBetaAccess(request: NextRequest) {
   }
 }
 
-export function proxy(request: NextRequest) {
+function isAuthRoute(pathname: string) {
+  return pathname === "/login" || pathname.startsWith("/auth/");
+}
+
+export async function proxy(request: NextRequest) {
   if (
     request.nextUrl.pathname.startsWith("/debug") &&
     process.env.KMFX_ENABLE_DEBUG_ROUTE !== "1"
@@ -48,7 +55,32 @@ export function proxy(request: NextRequest) {
     return unauthorized();
   }
 
-  return NextResponse.next();
+  if (!isSupabaseAuthEnabled()) {
+    return NextResponse.next();
+  }
+
+  const session = await updateSupabaseSession(request);
+  const pathname = request.nextUrl.pathname;
+
+  if (!session.configured) {
+    return session.response;
+  }
+
+  if (!session.authenticated && !isAuthRoute(pathname)) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (session.authenticated && pathname === "/login") {
+    const dashboardUrl = request.nextUrl.clone();
+    dashboardUrl.pathname = "/dashboard";
+    dashboardUrl.search = "";
+    return NextResponse.redirect(dashboardUrl);
+  }
+
+  return session.response;
 }
 
 export const config = {

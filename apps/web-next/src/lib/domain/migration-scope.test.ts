@@ -5,9 +5,12 @@ import { describe, expect, it } from "vitest";
 
 const runtimeSourceRoot = path.join(process.cwd(), "src");
 
-const blockedRuntimePatterns = [
+const blockedProviderRuntimePatterns = [
   /from\s+["'](?:@supabase|stripe|openai)\b/,
   /require\(["'](?:@supabase|stripe|openai)\b/,
+];
+
+const blockedRuntimePatterns = [
   /from\s+["'](?:node:)?(?:fs|child_process|net|tls)["']/,
   /require\(["'](?:node:)?(?:fs|child_process|net|tls)["']\)/,
   /from\s+["'](?:\.\.\/){2,}/,
@@ -37,12 +40,33 @@ describe("migration scope guardrails", () => {
     const violations = collectRuntimeFiles().flatMap((filePath) => {
       const source = fs.readFileSync(filePath, "utf8");
       const relativePath = path.relative(process.cwd(), filePath);
+      const providerViolations = relativePath.startsWith("src/lib/supabase/")
+        ? []
+        : blockedProviderRuntimePatterns
+            .filter((pattern) => pattern.test(source))
+            .map((pattern) => `${relativePath} -> ${pattern}`);
 
       return blockedRuntimePatterns
         .filter((pattern) => pattern.test(source))
-        .map((pattern) => `${relativePath} -> ${pattern}`);
+        .map((pattern) => `${relativePath} -> ${pattern}`)
+        .concat(providerViolations);
     });
 
     expect(violations).toEqual([]);
+  });
+
+  it("keeps Supabase access behind the dedicated auth wrapper", () => {
+    const supabaseRuntimeFiles = collectRuntimeFiles().filter((filePath) => {
+      const source = fs.readFileSync(filePath, "utf8");
+      return blockedProviderRuntimePatterns.some((pattern) => pattern.test(source));
+    });
+
+    expect(
+      supabaseRuntimeFiles.map((filePath) => path.relative(process.cwd(), filePath)).sort(),
+    ).toEqual([
+      "src/lib/supabase/client.ts",
+      "src/lib/supabase/proxy.ts",
+      "src/lib/supabase/server.ts",
+    ]);
   });
 });

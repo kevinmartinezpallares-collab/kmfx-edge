@@ -455,9 +455,9 @@ function SidebarUserMenu() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem
+                render={<Link href="/auth/signout" />}
                 className="font-medium !text-red-500 focus:!bg-red-500/10 focus:!text-red-500 dark:!text-red-400 dark:focus:!bg-red-400/10 dark:focus:!text-red-400 [&_svg]:!text-red-500 dark:[&_svg]:!text-red-400"
                 variant="destructive"
-                onSelect={(event) => event.preventDefault()}
               >
                 <LogOut data-icon="inline-start" />
                 Cerrar sesión

@@ -9,6 +9,8 @@ import {
   type SnapshotView,
 } from "@/lib/api/kmfx-api-config";
 import type { RawLiveAccountsSnapshot } from "@/lib/contracts/live-snapshot";
+import { isSupabaseAuthEnabled } from "@/lib/supabase/config";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type SnapshotCacheEntry = {
   expiresAt: number;
@@ -39,6 +41,41 @@ function buildPreviewHeaders() {
   return headers;
 }
 
+async function buildSupabaseUserHeaders() {
+  const headers = new Headers({
+    Accept: "application/json",
+  });
+  const supabase = await createServerSupabaseClient();
+  const claims = await supabase.auth.getClaims();
+
+  if (claims.error || !claims.data?.claims) {
+    throw new Error("Supabase session is required for live snapshot");
+  }
+
+  const session = await supabase.auth.getSession();
+  const accessToken = session.data.session?.access_token;
+
+  if (!accessToken) {
+    throw new Error("Supabase access token is required for live snapshot");
+  }
+
+  headers.set("Authorization", `Bearer ${accessToken}`);
+  return headers;
+}
+
+async function buildSnapshotHeaders() {
+  if (isSupabaseAuthEnabled()) {
+    return buildSupabaseUserHeaders();
+  }
+
+  return buildPreviewHeaders();
+}
+
+function resolveEffectiveSnapshotCacheTtlMs() {
+  if (isSupabaseAuthEnabled()) return 0;
+  return resolveKmfxSnapshotCacheTtlMs();
+}
+
 function snapshotCacheKey(view: SnapshotView) {
   return [
     view,
@@ -50,7 +87,7 @@ function snapshotCacheKey(view: SnapshotView) {
 
 async function requestLiveAccountsSnapshot(view: SnapshotView) {
   const controller = new AbortController();
-  const ttlMs = resolveKmfxSnapshotCacheTtlMs();
+  const ttlMs = resolveEffectiveSnapshotCacheTtlMs();
   const timeout = setTimeout(
     () => controller.abort(),
     resolveKmfxSnapshotTimeoutMs(),
@@ -60,7 +97,7 @@ async function requestLiveAccountsSnapshot(view: SnapshotView) {
 
   try {
     response = await fetch(resolveKmfxAccountsSnapshotUrl({ view }), {
-      headers: buildPreviewHeaders(),
+      headers: await buildSnapshotHeaders(),
       ...(ttlMs > 0
         ? {
             next: {
@@ -92,7 +129,7 @@ export async function fetchLiveAccountsSnapshot({
 }: {
   view?: SnapshotView;
 } = {}): Promise<RawLiveAccountsSnapshot> {
-  const ttlMs = resolveKmfxSnapshotCacheTtlMs();
+  const ttlMs = resolveEffectiveSnapshotCacheTtlMs();
   if (ttlMs <= 0) return requestLiveAccountsSnapshot(view);
 
   const now = Date.now();

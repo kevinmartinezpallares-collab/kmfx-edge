@@ -40,7 +40,12 @@ describe("V1 action safety contract", () => {
       const logout = snippetAround(source, "Cerrar sesión", 260);
 
       expect(logout).toMatch(/text-red|destructive/);
-      expect(logout).not.toMatch(/href=|signOut|fetch\(|window\.location|router\./i);
+      if (logout.includes("/auth/signout")) {
+        expect(logout).toContain('href="/auth/signout"');
+      } else {
+        expect(logout).not.toMatch(/href=/i);
+      }
+      expect(logout).not.toMatch(/signOut|fetch\(|window\.location|router\./i);
     }
   });
 

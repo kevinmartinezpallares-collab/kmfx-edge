@@ -1,13 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import * as React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
+  AlertCircleIcon,
   ArrowLeftIcon,
   AtSignIcon,
   CalendarDaysIcon,
   ChartNoAxesCombinedIcon,
   ChevronRightIcon,
   Layers3Icon,
+  LockKeyholeIcon,
   ShieldCheckIcon,
 } from "lucide-react";
 
@@ -24,6 +28,8 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { hasSupabasePublicConfig } from "@/lib/supabase/config";
 
 const accessHighlights = [
   {
@@ -49,6 +55,75 @@ const accessHighlights = [
 ];
 
 export function AuthPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [status, setStatus] = React.useState<"idle" | "loading">("idle");
+  const [message, setMessage] = React.useState("");
+  const nextPath = searchParams.get("next") || "/dashboard";
+  const authConfigured = hasSupabasePublicConfig();
+
+  async function signInWithPassword(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage("");
+
+    if (!authConfigured) {
+      setMessage("El acceso real todavía no está configurado en este entorno.");
+      return;
+    }
+
+    setStatus("loading");
+
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setMessage("Email o contraseña incorrectos.");
+        return;
+      }
+
+      router.replace(nextPath);
+      router.refresh();
+    } catch {
+      setMessage("No se pudo conectar con el acceso seguro.");
+    } finally {
+      setStatus("idle");
+    }
+  }
+
+  async function signInWithProvider(provider: "google" | "apple" | "github") {
+    setMessage("");
+
+    if (!authConfigured) {
+      setMessage("El acceso real todavía no está configurado en este entorno.");
+      return;
+    }
+
+    setStatus("loading");
+
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo },
+      });
+
+      if (error) {
+        setMessage("No se pudo abrir el proveedor de acceso.");
+        setStatus("idle");
+      }
+    } catch {
+      setMessage("No se pudo conectar con el acceso seguro.");
+      setStatus("idle");
+    }
+  }
+
   return (
     <main className="relative min-h-svh overflow-hidden bg-background text-foreground lg:grid lg:grid-cols-[1.05fr_0.95fr]">
       <section className="relative hidden min-h-svh overflow-hidden border-r border-border/70 bg-[radial-gradient(circle_at_20%_20%,hsl(var(--muted))_0,transparent_32%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted)/0.28))] lg:flex">
@@ -126,15 +201,30 @@ export function AuthPage() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <Button type="button" variant="outline">
+            <Button
+              disabled={status === "loading"}
+              onClick={() => void signInWithProvider("google")}
+              type="button"
+              variant="outline"
+            >
               <GoogleIcon data-icon="inline-start" />
               Continuar con Google
             </Button>
-            <Button type="button" variant="outline">
+            <Button
+              disabled={status === "loading"}
+              onClick={() => void signInWithProvider("apple")}
+              type="button"
+              variant="outline"
+            >
               <AppleIcon data-icon="inline-start" />
               Continuar con Apple
             </Button>
-            <Button type="button" variant="outline">
+            <Button
+              disabled={status === "loading"}
+              onClick={() => void signInWithProvider("github")}
+              type="button"
+              variant="outline"
+            >
               <GithubIcon data-icon="inline-start" />
               Continuar con GitHub
             </Button>
@@ -142,7 +232,7 @@ export function AuthPage() {
 
           <AuthDivider>o</AuthDivider>
 
-          <form className="flex flex-col gap-5">
+          <form className="flex flex-col gap-5" onSubmit={signInWithPassword}>
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -152,19 +242,52 @@ export function AuthPage() {
                   </InputGroupAddon>
                   <InputGroupInput
                     autoComplete="email"
+                    disabled={status === "loading"}
                     id="email"
+                    onChange={(event) => setEmail(event.target.value)}
                     placeholder="tu@email.com"
+                    required
                     type="email"
+                    value={email}
                   />
                 </InputGroup>
                 <FieldDescription>
                   Usaremos este email para validar el acceso a tu cuenta.
                 </FieldDescription>
               </Field>
+              <Field>
+                <FieldLabel htmlFor="password">Contraseña</FieldLabel>
+                <InputGroup className="h-10 rounded-xl">
+                  <InputGroupAddon align="inline-start">
+                    <LockKeyholeIcon className="size-4" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    autoComplete="current-password"
+                    disabled={status === "loading"}
+                    id="password"
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Tu contraseña"
+                    required
+                    type="password"
+                    value={password}
+                  />
+                </InputGroup>
+              </Field>
             </FieldGroup>
 
-            <Button className="h-10 rounded-xl" type="button">
-              Continuar con email
+            {message ? (
+              <p className="flex items-center gap-2 text-sm text-destructive">
+                <AlertCircleIcon className="size-4" />
+                {message}
+              </p>
+            ) : null}
+
+            <Button
+              className="h-10 rounded-xl"
+              disabled={status === "loading"}
+              type="submit"
+            >
+              {status === "loading" ? "Validando..." : "Continuar con email"}
               <ChevronRightIcon data-icon="inline-end" />
             </Button>
           </form>
