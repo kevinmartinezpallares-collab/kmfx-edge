@@ -51,6 +51,7 @@ import {
 import {
   livelineWindowForData,
   normalizeLivelinePoints,
+  smoothLivelinePoints,
 } from "@/lib/charts/liveline-points";
 import { cn } from "@/lib/utils";
 
@@ -504,16 +505,20 @@ function EquityCurveCard({
   const latestValue = chartData.at(-1)?.equity ?? activeAccount?.equity ?? 0;
   const balance = activeAccount?.balance ?? latestValue;
   const hasHistory = chartData.length >= 2;
-  const livelineData = normalizeLivelinePoints(
-    chartData.map((point) => ({
-      time: point.time,
-      value: point.equity,
-    })),
-    60,
+  const livelineData = smoothLivelinePoints(
+    normalizeLivelinePoints(
+      chartData.map((point) => ({
+        time: point.time,
+        value: point.equity,
+      })),
+      60,
+    ),
+    { radius: 4, minPoints: 24 },
   );
   const effectiveWindowSecs = livelineWindowForData(livelineData, windowSecs, {
-    minSecs: Math.min(windowSecs, 604_800),
-    maxPadSecs: 172_800,
+    minSecs: Math.min(windowSecs, 86_400),
+    padRatio: 0.18,
+    maxPadSecs: 86_400,
   });
   const labelByTime = new Map(chartData.map((point) => [point.time, point.label]));
 
@@ -560,8 +565,9 @@ function EquityCurveCard({
                   formatCurrency(Number(value), activeAccount?.baseCurrency ?? "USD")
                 }
                 formatTime={(time) => labelByTime.get(time) ?? shortPanelTimeLabel(time)}
-                lineWidth={2.2}
-                padding={{ top: 18, right: 96, bottom: 34, left: 12 }}
+                lerpSpeed={0.14}
+                lineWidth={2.35}
+                padding={{ top: 18, right: 132, bottom: 34, left: 24 }}
               />
             </div>
           </div>

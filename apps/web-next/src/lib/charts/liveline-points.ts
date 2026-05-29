@@ -6,6 +6,11 @@ type WindowOptions = {
   maxPadSecs?: number;
 };
 
+type SmoothOptions = {
+  radius?: number;
+  minPoints?: number;
+};
+
 export function normalizeLivelinePoints(
   points: LivelinePoint[],
   minStepSecs = 1,
@@ -70,4 +75,32 @@ export function livelineWindowForData(
   const fittedWindow = Math.max(minSecs, span + pad);
 
   return Math.min(requestedWindowSecs, fittedWindow);
+}
+
+export function smoothLivelinePoints(
+  points: LivelinePoint[],
+  { radius = 3, minPoints = 16 }: SmoothOptions = {},
+): LivelinePoint[] {
+  if (points.length < minPoints || radius <= 0) return points;
+
+  return points.map((point, index) => {
+    if (index === 0 || index === points.length - 1) return point;
+
+    const from = Math.max(0, index - radius);
+    const to = Math.min(points.length - 1, index + radius);
+    let weightedSum = 0;
+    let weightTotal = 0;
+
+    for (let itemIndex = from; itemIndex <= to; itemIndex += 1) {
+      const distance = Math.abs(itemIndex - index);
+      const weight = radius + 1 - distance;
+      weightedSum += points[itemIndex].value * weight;
+      weightTotal += weight;
+    }
+
+    return {
+      time: point.time,
+      value: weightTotal > 0 ? weightedSum / weightTotal : point.value,
+    };
+  });
 }
