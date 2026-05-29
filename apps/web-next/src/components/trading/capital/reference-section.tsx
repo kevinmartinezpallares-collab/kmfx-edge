@@ -57,6 +57,10 @@ import {
   formatSignedCurrency,
 } from "@/lib/formatters/numbers";
 import { signedTextClass } from "@/lib/domain/semantic-colors";
+import {
+  livelineWindowForData,
+  normalizeLivelinePoints,
+} from "@/lib/charts/liveline-points";
 import { cn } from "@/lib/utils";
 
 const PORTFOLIO_PERIOD_OPTIONS = ["7D", "30D", "90D", "YTD"] as const;
@@ -134,28 +138,6 @@ function shortDateLabel(epochMs: number) {
   }).format(new Date(epochMs));
 }
 
-function withPortfolioWindowBoundary(data: LivelinePoint[], windowSecs: number): LivelinePoint[] {
-  const latestTime = data.at(-1)?.time;
-  if (!latestTime || data.length < 2) return data;
-
-  const boundaryTime = Math.floor(latestTime - windowSecs * 0.95 + 600);
-  const firstVisible = data.find((point) => point.time >= boundaryTime);
-  if (!firstVisible || firstVisible.time - boundaryTime < 43_200) return data;
-
-  const previous = data.findLast((point) => point.time < boundaryTime);
-  const next = firstVisible;
-  const boundaryValue =
-    previous && next.time > previous.time
-      ? previous.value +
-        ((next.value - previous.value) * (boundaryTime - previous.time)) /
-          (next.time - previous.time)
-      : next.value;
-
-  return [...data, { time: boundaryTime, value: boundaryValue }].sort(
-    (left, right) => left.time - right.time,
-  );
-}
-
 function getPeriodCapitalCurve(
   data: LivelinePoint[],
   periodStartMs: number,
@@ -214,6 +196,14 @@ function toStaticLivelineTimeline<T extends { time: number; value: number }>(
       value: point.value,
     };
   });
+}
+
+function portfolioWindowSecsForPeriod(period: PortfolioPeriodOption) {
+  if (period === "7D") return 604_800;
+  if (period === "30D") return 2_592_000;
+  if (period === "90D") return 7_776_000;
+
+  return 31_536_000;
 }
 
 type PageMotionProps = {
@@ -542,6 +532,8 @@ export function CapitalReferenceSection({
   const portfolioChartTheme = useReferenceLivelineTheme();
   const [portfolioPeriod, setPortfolioPeriod] =
     React.useState<PortfolioPeriodOption>("30D");
+  const [portfolioComparisonPeriod, setPortfolioComparisonPeriod] =
+    React.useState<PortfolioPeriodOption>("30D");
   const [portfolioDisplayMode, setPortfolioDisplayMode] =
     React.useState<PortfolioDisplayMode>("capital");
   const initialPortfolioCalendarOverview = React.useMemo(
@@ -650,28 +642,39 @@ export function CapitalReferenceSection({
   });
   const visibleDailyRows =
     periodDailyRows.length > 0 ? periodDailyRows : workspace.analytics.daily;
-  const portfolioWindowSecs =
-    portfolioPeriod === "7D"
-      ? 604_800
-      : portfolioPeriod === "30D"
-        ? 2_592_000
-        : portfolioPeriod === "90D"
-          ? 7_776_000
-          : 31_536_000;
+  const portfolioWindowSecs = portfolioWindowSecsForPeriod(portfolioPeriod);
+  const portfolioComparisonWindowSecs = portfolioWindowSecsForPeriod(
+    portfolioComparisonPeriod,
+  );
   const periodCapitalCurve = getPeriodCapitalCurve(capitalCurveSeries, periodStartMs);
   const capitalCurveForChart =
     periodCapitalCurve.length > 0 && periodCapitalCurve.length < 12
       ? toStaticLivelineTimeline(periodCapitalCurve, {
           endOffsetSecs: 600,
-          minSpanSecs: Math.floor(portfolioWindowSecs * 0.82),
-          minStepSecs: Math.max(
-            3_600,
-            Math.floor(portfolioWindowSecs / Math.max(2, periodCapitalCurve.length + 1)),
-          ),
+          minSpanSecs: 86_400,
+          minStepSecs: 3_600,
         })
       : periodCapitalCurve.length >= 2
         ? periodCapitalCurve
         : capitalCurveDisplaySeries;
+  const comparisonPeriodStartMs = periodStartFromLatest(
+    latestDailyTime,
+    portfolioComparisonPeriod,
+  );
+  const comparisonPeriodCapitalCurve = getPeriodCapitalCurve(
+    capitalCurveSeries,
+    comparisonPeriodStartMs,
+  );
+  const comparisonCapitalCurveForChart =
+    comparisonPeriodCapitalCurve.length > 0 && comparisonPeriodCapitalCurve.length < 12
+      ? toStaticLivelineTimeline(comparisonPeriodCapitalCurve, {
+          endOffsetSecs: 600,
+          minSpanSecs: 86_400,
+          minStepSecs: 3_600,
+        })
+      : comparisonPeriodCapitalCurve.length >= 2
+        ? comparisonPeriodCapitalCurve
+        : capitalCurveForChart;
   const capitalCurveBase =
     capitalCurveForChart[0]?.value ?? Math.max(1, totalEquity - totalPnl);
   const capitalChartData = capitalCurveForChart.map((point) => ({
@@ -683,9 +686,14 @@ export function CapitalReferenceSection({
     time: capitalCurveForChart[index]?.time ?? PORTFOLIO_FALLBACK_EPOCH_SECONDS + index * 86_400,
     value: portfolioDisplayMode === "capital" ? point.capital : point.percent,
   }));
-  const portfolioLivelineData = withPortfolioWindowBoundary(
+  const portfolioLivelineData = normalizeLivelinePoints(
     portfolioLivelineSource,
+    60,
+  );
+  const portfolioEffectiveWindowSecs = livelineWindowForData(
+    portfolioLivelineData,
     portfolioWindowSecs,
+    { minSecs: 86_400, maxPadSecs: 172_800 },
   );
   const portfolioChartValues = portfolioLivelineData.map((point) => point.value);
   const portfolioChartRange =
@@ -714,8 +722,8 @@ export function CapitalReferenceSection({
       const comparisonTarget =
         ([7.2, 5.8, 4.6, 3.4][index] ?? 2.8) +
         Math.max(-1.4, Math.min(1.4, accountReturnPct * 0.05));
-      const pointCount = Math.max(2, capitalCurveForChart.length);
-      const data = capitalCurveForChart.map((point, pointIndex) => {
+      const pointCount = Math.max(2, comparisonCapitalCurveForChart.length);
+      const data = comparisonCapitalCurveForChart.map((point, pointIndex) => {
         const progress = pointCount <= 1 ? 1 : pointIndex / (pointCount - 1);
         const aggregatePct = capitalChartData[pointIndex]?.percent ?? portfolioReturnPct * progress;
         const wave =
@@ -741,10 +749,16 @@ export function CapitalReferenceSection({
         id: row.account.id,
         label: row.account.label,
         color: PORTFOLIO_SERIES_COLORS[index % PORTFOLIO_SERIES_COLORS.length],
-        data,
+        data: normalizeLivelinePoints(data, 60),
         value: data.at(-1)?.value ?? accountReturnPct,
       };
     });
+  const portfolioComparisonData = portfolioComparisonSeries[0]?.data ?? [];
+  const portfolioComparisonEffectiveWindowSecs = livelineWindowForData(
+    portfolioComparisonData,
+    portfolioComparisonWindowSecs,
+    { minSecs: 86_400, maxPadSecs: 172_800 },
+  );
   const portfolioComparisonLatest = portfolioComparisonSeries[0]?.value ?? 0;
   const portfolioComparisonLeader =
     [...portfolioComparisonSeries].sort((a, b) => b.value - a.value)[0] ?? null;
@@ -1111,7 +1125,7 @@ export function CapitalReferenceSection({
                       staggerDelay={0.12}
                     />
                     <div className="border-t border-border/60">
-                      <div className="grid divide-y divide-border/50 sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+                      <div className="grid divide-y divide-border/50 sm:auto-cols-fr sm:grid-flow-col sm:divide-x sm:divide-y-0">
                         {allocationFunnelLegend.map((item) => (
                           <div
                             key={item.account.id}
@@ -1474,7 +1488,7 @@ export function CapitalReferenceSection({
                     theme={portfolioChartTheme.theme}
                     value={portfolioChartLatest}
                     valueMomentumColor={false}
-                    window={portfolioWindowSecs}
+                    window={portfolioEffectiveWindowSecs}
                     windowStyle="rounded"
                   />
                 </div>
@@ -1604,9 +1618,29 @@ export function CapitalReferenceSection({
                   Rendimiento relativo normalizado para comparar tracción, recuperación y estabilidad entre cuentas.
                 </CardDescription>
               </div>
-              <div className="rounded-lg border border-border/60 bg-background/35 px-3 py-2 text-right">
-                <p className="text-xs text-muted-foreground">Unidad</p>
-                <p className="mt-1 font-mono text-sm font-medium text-foreground">% retorno</p>
+              <div className="grid gap-2 lg:justify-items-end">
+                <ToggleGroup
+                  aria-label="Temporalidad de comparativa por cuenta"
+                  onValueChange={(value) => {
+                    const nextValue = value[0] as PortfolioPeriodOption | undefined;
+
+                    if (nextValue) setPortfolioComparisonPeriod(nextValue);
+                  }}
+                  size="sm"
+                  spacing={1}
+                  value={[portfolioComparisonPeriod]}
+                  variant="outline"
+                >
+                  {PORTFOLIO_PERIOD_OPTIONS.map((period) => (
+                    <ToggleGroupItem className="h-11 min-w-11 sm:h-8 sm:min-w-10" key={period} value={period}>
+                      {period}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+                <div className="rounded-lg border border-border/60 bg-background/35 px-3 py-2 text-right">
+                  <p className="text-xs text-muted-foreground">Unidad</p>
+                  <p className="mt-1 font-mono text-sm font-medium text-foreground">% retorno</p>
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -1631,7 +1665,7 @@ export function CapitalReferenceSection({
                 </p>
               </div>
             </div>
-            {portfolioComparisonSeries.length >= 2 && capitalCurveForChart.length >= 2 ? (
+            {portfolioComparisonSeries.length >= 2 && comparisonCapitalCurveForChart.length >= 2 ? (
               <div data-kmfx-liveline className="h-[320px] w-full md:h-[360px]">
                 <Liveline
                   badge={false}
@@ -1655,7 +1689,7 @@ export function CapitalReferenceSection({
                   style={{ height: "100%" }}
                   theme={portfolioChartTheme.theme}
                   value={portfolioComparisonLatest}
-                  window={portfolioWindowSecs}
+                  window={portfolioComparisonEffectiveWindowSecs}
                 />
               </div>
             ) : (

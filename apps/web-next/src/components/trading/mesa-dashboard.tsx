@@ -48,6 +48,10 @@ import {
 import {
   signedTextClass,
 } from "@/lib/domain/semantic-colors";
+import {
+  livelineWindowForData,
+  normalizeLivelinePoints,
+} from "@/lib/charts/liveline-points";
 import { cn } from "@/lib/utils";
 
 const CHART_ACCENT_BY_THEME = {
@@ -384,12 +388,15 @@ function buildEquityChartData(
 
     if (hasDatedHistory) {
       const latestSourceTime = dated.at(-1)?.time ?? now;
-      return dated.map((point) => ({
-        label: point.label || shortPanelTimeLabel(point.time ?? now),
-        equity: point.value,
-        balance,
-        time: now - (latestSourceTime - (point.time ?? latestSourceTime)),
-      }));
+      return dated
+        .slice()
+        .sort((left, right) => (left.time ?? now) - (right.time ?? now))
+        .map((point) => ({
+          label: point.label || shortPanelTimeLabel(point.time ?? now),
+          equity: point.value,
+          balance,
+          time: now - (latestSourceTime - (point.time ?? latestSourceTime)),
+        }));
     }
 
     const targetCount =
@@ -484,28 +491,6 @@ function PanelChartWindowControls({
   );
 }
 
-function withWindowBoundary(data: LivelinePoint[], windowSecs: number): LivelinePoint[] {
-  const latestTime = data.at(-1)?.time;
-  if (!latestTime || data.length < 2) return data;
-
-  const boundaryTime = Math.floor(latestTime - windowSecs * 0.95 + 600);
-  const firstVisible = data.find((point) => point.time >= boundaryTime);
-  if (!firstVisible || firstVisible.time - boundaryTime < 43_200) return data;
-
-  const previous = data.findLast((point) => point.time < boundaryTime);
-  const next = firstVisible;
-  const boundaryValue =
-    previous && next.time > previous.time
-      ? previous.value +
-        ((next.value - previous.value) * (boundaryTime - previous.time)) /
-          (next.time - previous.time)
-      : next.value;
-
-  return [...data, { time: boundaryTime, value: boundaryValue }].sort(
-    (a, b) => a.time - b.time,
-  );
-}
-
 function EquityCurveCard({
   workspace,
   activeAccount,
@@ -519,11 +504,17 @@ function EquityCurveCard({
   const latestValue = chartData.at(-1)?.equity ?? activeAccount?.equity ?? 0;
   const balance = activeAccount?.balance ?? latestValue;
   const hasHistory = chartData.length >= 2;
-  const livelineData = chartData.map((point) => ({
-    time: point.time,
-    value: point.equity,
-  }));
-  const boundedLivelineData = withWindowBoundary(livelineData, windowSecs);
+  const livelineData = normalizeLivelinePoints(
+    chartData.map((point) => ({
+      time: point.time,
+      value: point.equity,
+    })),
+    60,
+  );
+  const effectiveWindowSecs = livelineWindowForData(livelineData, windowSecs, {
+    minSecs: Math.min(windowSecs, 604_800),
+    maxPadSecs: 172_800,
+  });
   const labelByTime = new Map(chartData.map((point) => [point.time, point.label]));
 
   return (
@@ -551,11 +542,11 @@ function EquityCurveCard({
               style={chartTheme.isLight ? { filter: "contrast(1.18)" } : undefined}
             >
               <Liveline
-                data={boundedLivelineData}
+                data={livelineData}
                 value={latestValue}
                 theme={chartTheme.theme}
                 color={chartTheme.accent}
-                window={windowSecs}
+                window={effectiveWindowSecs}
                 grid
                 badge
                 badgeVariant="minimal"

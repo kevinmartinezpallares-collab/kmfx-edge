@@ -36,6 +36,10 @@ import {
   formatPercent,
   formatSignedCurrency,
 } from "@/lib/formatters/numbers";
+import {
+  livelineWindowForData,
+  normalizeLivelinePoints,
+} from "@/lib/charts/liveline-points";
 import { cn } from "@/lib/utils";
 
 const LIVELINE_ACCENT_BY_THEME = {
@@ -106,7 +110,7 @@ function toStaticLivelineTimeline<T extends { time: number; value: number }>(
   const targetEnd = Math.floor(Date.now() / 1000) - endOffsetSecs;
   const targetStart = targetEnd - targetSpan;
 
-  return data.map((point, index) => {
+  return normalizeLivelinePoints(data.map((point, index) => {
     const ratio =
       lastTime > firstTime
         ? (point.time - firstTime) / sourceSpan
@@ -116,7 +120,7 @@ function toStaticLivelineTimeline<T extends { time: number; value: number }>(
       time: Math.round(targetStart + targetSpan * ratio),
       value: point.value,
     };
-  });
+  }), minStepSecs);
 }
 
 
@@ -301,8 +305,12 @@ export function CalendarReferenceSection({
   const cumulativeWindowSecs = React.useMemo(() => {
     const first = cumulativeLivelineData[0]?.time;
     const last = cumulativeLivelineData.at(-1)?.time;
+    const requestedWindow = first && last ? Math.max(86_400, last - first + 86_400) : 86_400;
 
-    return first && last ? Math.max(86_400, last - first + 86_400) : 86_400;
+    return livelineWindowForData(cumulativeLivelineData, requestedWindow, {
+      minSecs: 86_400,
+      maxPadSecs: 86_400,
+    });
   }, [cumulativeLivelineData]);
   const openDayChartData = React.useMemo(() => {
     const points = openDayTrades
@@ -337,7 +345,7 @@ export function CalendarReferenceSection({
         };
       }, { total: 0, points: [] }).points;
 
-    return points.length === 1
+    return points.length > 0
       ? [
           {
             label: "Inicio",
@@ -401,8 +409,13 @@ export function CalendarReferenceSection({
   const openDayWindowSecs = React.useMemo(() => {
     const first = openDayLivelineData[0]?.time;
     const last = openDayLivelineData.at(-1)?.time;
+    const requestedWindow = first && last ? Math.max(3_600, last - first + 1_800) : 3_600;
 
-    return first && last ? Math.max(3_600, last - first + 1_800) : 3_600;
+    return livelineWindowForData(openDayLivelineData, requestedWindow, {
+      minSecs: 3_600,
+      padRatio: 0.18,
+      maxPadSecs: 1_800,
+    });
   }, [openDayLivelineData]);
   const calendarKpis = [
     [
@@ -795,7 +808,7 @@ export function CalendarReferenceSection({
                 grid
                 lineWidth={2.25}
                 momentum={false}
-                padding={{ top: 12, right: 120, bottom: 28, left: 18 }}
+                padding={{ top: 12, right: 132, bottom: 28, left: 18 }}
                 pulse
                 referenceLine={{ value: 0, label: valueMode === "currency" ? "0 US$" : "0%" }}
                 scrub
@@ -1053,7 +1066,7 @@ export function CalendarReferenceSection({
                       grid
                       lineWidth={2.2}
                       momentum={false}
-                      padding={{ top: 10, right: 110, bottom: 24, left: 18 }}
+                      padding={{ top: 14, right: 142, bottom: 24, left: 18 }}
                       pulse
                       referenceLine={{ value: 0, label: valueMode === "currency" ? "0 US$" : "0%" }}
                       scrub
