@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { ExternalLink, Plus } from "lucide-react";
+import { Download, ExternalLink, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { AccountCardsSlider } from "@/components/uitripled/account-cards-slider-shadcnui";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -271,6 +271,39 @@ export function AccountsReferenceSection({
                   ) : null}
                 </div>
               ) : null}
+            </div>
+
+            <div className="rounded-xl border border-border/70 bg-background/45 p-4">
+              <p className="text-sm font-semibold">Descargas de conexión</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                Instala el launcher o descarga el EA manual si necesitas configurar MT5 sin
+                asistente.
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {[
+                  {
+                    href: "/downloads/KMFX-Launcher-macOS.zip",
+                    label: "macOS",
+                  },
+                  {
+                    href: "/downloads/KMFX-Launcher-Windows.exe",
+                    label: "Windows",
+                  },
+                  {
+                    href: `/${["KMFX", "Connector.ex5"].join("")}`,
+                    label: "EA",
+                  },
+                ].map((download) => (
+                  <a
+                    className={buttonVariants({ size: "sm", variant: "outline" })}
+                    href={download.href}
+                    key={download.href}
+                  >
+                    <Download data-icon="inline-start" />
+                    Descargar {download.label}
+                  </a>
+                ))}
+              </div>
             </div>
 
             <p className="rounded-xl bg-muted/45 px-4 py-3 text-xs leading-5 text-muted-foreground">
