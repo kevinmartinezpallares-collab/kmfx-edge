@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ExternalLink, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { AccountCardsSlider } from "@/components/uitripled/account-cards-slider-shadcnui";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,19 @@ export function AccountsReferenceSection({
 }: {
   workspace: WorkspaceState;
 }) {
+  const router = useRouter();
   const [isAddAccountOpen, setIsAddAccountOpen] = React.useState(false);
+  const [linkState, setLinkState] = React.useState<{
+    accountId: string;
+    connectionKey: string;
+    message: string;
+    status: "idle" | "pending" | "ready" | "error";
+  }>({
+    accountId: "",
+    connectionKey: "",
+    message: "",
+    status: "idle",
+  });
   const accountsOverview = getAccountsOverview(workspace);
   const accountRows = accountsOverview.rows;
   const connectedCount = accountRows.filter(
@@ -51,6 +64,61 @@ export function AccountsReferenceSection({
     accountRows.find((account) => account.needsAttention)?.lastSyncLabel ??
     accountRows[0]?.lastSyncLabel ??
     "Sin datos";
+  const linkPending = linkState.status === "pending";
+
+  async function prepareLauncherAccount() {
+    setLinkState({
+      accountId: "",
+      connectionKey: "",
+      message: "Preparando conexión segura...",
+      status: "pending",
+    });
+
+    try {
+      const response = await fetch("/api/kmfx/accounts/link", {
+        body: JSON.stringify({
+          connectionMode: "launcher",
+          label: "Nueva cuenta MT5",
+          platform: "mt5",
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (response.status === 401 || payload?.auth_required) {
+        router.push("/login?next=/accounts");
+        return;
+      }
+
+      if (!response.ok || payload?.ok === false) {
+        throw new Error(payload?.reason || payload?.error || "account_link_failed");
+      }
+
+      setLinkState({
+        accountId: payload.account_id || "",
+        connectionKey: payload.connection_key || "",
+        message:
+          payload.connection_key
+            ? "Cuenta preparada. Copia la KMFX Key en el EA y ejecuta la primera sincronización completa."
+            : "Cuenta preparada. Revisa la conexión desde el launcher.",
+        status: "ready",
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "account_link_failed";
+      setLinkState({
+        accountId: "",
+        connectionKey: "",
+        message:
+          reason === "billing_required" || reason === "entitlement_required"
+            ? "Activa primero la suscripción para añadir cuentas MT5."
+            : "No se pudo preparar la cuenta. Revisa sesión, plan y límites.",
+        status: "error",
+      });
+    }
+  }
 
   return (
     <PageMotion>
@@ -139,32 +207,75 @@ export function AccountsReferenceSection({
                 {
                   title: "Conectar MT5",
                   description: "Alta guiada con login, servidor y broker.",
+                  enabled: true,
                 },
                 {
                   title: "Importar cuenta",
                   description: "Crear ficha y vincular datos cuando estén disponibles.",
+                  enabled: false,
                 },
                 {
                   title: "Cuenta manual",
                   description: "Preparar una cuenta para revisar estructura y permisos.",
+                  enabled: false,
                 },
               ].map((option) => (
                 <button
                   className="flex min-h-32 flex-col justify-between rounded-xl border border-border/70 bg-background/45 p-4 text-left transition-colors hover:bg-muted/55 focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
+                  disabled={!option.enabled || linkPending}
                   key={option.title}
+                  onClick={() => {
+                    if (option.enabled) void prepareLauncherAccount();
+                  }}
                   type="button"
                 >
                   <span className="text-sm font-semibold">{option.title}</span>
                   <span className="text-xs leading-5 text-muted-foreground">
                     {option.description}
                   </span>
+                  {!option.enabled ? (
+                    <span className="mt-3 text-[11px] font-medium text-muted-foreground">
+                      Próximamente
+                    </span>
+                  ) : null}
                 </button>
               ))}
             </div>
 
+            <div
+              aria-live="polite"
+              className="rounded-xl border border-border/70 bg-background/45 p-4"
+            >
+              <p
+                className={
+                  linkState.status === "error"
+                    ? "text-sm text-destructive"
+                    : "text-sm text-muted-foreground"
+                }
+              >
+                {linkState.message ||
+                  "Conectar MT5 crea una cuenta pendiente y una KMFX Key para el EA."}
+              </p>
+              {linkState.connectionKey ? (
+                <div className="mt-3 grid gap-2">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">
+                    KMFX Key
+                  </p>
+                  <code className="block break-all rounded-lg border border-border/70 bg-muted/45 px-3 py-2 font-mono text-sm text-foreground">
+                    {linkState.connectionKey}
+                  </code>
+                  {linkState.accountId ? (
+                    <p className="text-xs text-muted-foreground">
+                      Cuenta pendiente: {linkState.accountId}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
             <p className="rounded-xl bg-muted/45 px-4 py-3 text-xs leading-5 text-muted-foreground">
-              Estos accesos dejan preparada la interfaz. No se guardan credenciales,
-              no se abre MT5 y no se modifica ninguna cuenta hasta conectar el flujo real.
+              No se guardan contraseñas ni se abre MT5 desde esta pantalla.
+              La cuenta queda pendiente hasta que el EA envíe la primera sincronización completa.
             </p>
 
             <DialogFooter>
@@ -175,8 +286,12 @@ export function AccountsReferenceSection({
               >
                 Cerrar
               </Button>
-              <Button disabled type="button">
-                Continuar
+              <Button
+                disabled={linkPending}
+                type="button"
+                onClick={() => void prepareLauncherAccount()}
+              >
+                {linkPending ? "Preparando..." : "Generar KMFX Key"}
               </Button>
             </DialogFooter>
           </DialogContent>
