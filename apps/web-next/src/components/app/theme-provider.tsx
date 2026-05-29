@@ -37,17 +37,25 @@ function readStoredTheme(): Theme {
 }
 
 function getInitialThemeState() {
-  const initialTheme = readStoredTheme();
-
   return {
-    theme: initialTheme,
-    resolvedTheme:
-      typeof window === "undefined" ? "dark" : resolveTheme(initialTheme),
+    theme: "dark" as Theme,
+    resolvedTheme: "dark" as ResolvedTheme,
   };
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [{ theme, resolvedTheme }, setThemeState] = React.useState(getInitialThemeState);
+
+  React.useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const storedTheme = readStoredTheme();
+      setThemeState({ theme: storedTheme, resolvedTheme: resolveTheme(storedTheme) });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, []);
 
   React.useEffect(() => {
     applyTheme(resolvedTheme);
