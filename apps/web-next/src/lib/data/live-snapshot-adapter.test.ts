@@ -4,6 +4,7 @@ import type { RawLiveAccountsSnapshot } from "@/lib/contracts/live-snapshot";
 import { createWorkspaceFromLiveSnapshot } from "@/lib/data/live-snapshot-adapter";
 import fixtureSnapshot from "@/lib/data/fixtures/live-accounts-snapshot.fixture.json";
 import { getAccountsOverview } from "@/lib/domain/accounts-selectors";
+import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
 
 const partialCloseSnapshot = {
   accounts: [
@@ -126,6 +127,100 @@ describe("createWorkspaceFromLiveSnapshot", () => {
     expect(partialTrade?.volume).toBe(0.4);
     expect(partialTrade?.netPnl).toBeCloseTo(49.5);
     expect(partialTrade?.executions).toHaveLength(2);
+  });
+
+  it("counts MT5 closes consistently for any active connected account", () => {
+    const workspace = createWorkspaceFromLiveSnapshot(
+      {
+        accounts: [
+          {
+            account_id: "darwinex-live",
+            display_name: "Cuenta Real MT5",
+            broker: "Tradeslide Trading Tech Limited",
+            login: "40***26",
+            server: "Darwinex-Live",
+            status: "active",
+            last_sync_at: "2026-05-28T09:00:00Z",
+            is_default: true,
+            dashboard_payload: {
+              balance: 100000,
+              equity: 100250,
+              reportMetrics: { totalTrades: 1, winRate: 100 },
+              trades: [
+                {
+                  trade_id: "darwinex-close-1",
+                  position_id: "darwinex-position-1",
+                  symbol: "XAUUSD",
+                  direction: "buy",
+                  volume: 0.1,
+                  open_time: "2026-05-27T09:00:00Z",
+                  close_time: "2026-05-27T10:00:00Z",
+                  net: 250,
+                },
+              ],
+            },
+          },
+          {
+            account_id: "ic-markets-live",
+            display_name: "IC Markets MT5",
+            broker: "Raw Trading Ltd",
+            login: "52***04",
+            server: "ICMarketsSC",
+            status: "active",
+            last_sync_at: "2026-05-28T09:00:00Z",
+            dashboard_payload: {
+              balance: 140000,
+              equity: 139950,
+              reportMetrics: { totalTrades: 3, winRate: 67 },
+              trades: [
+                {
+                  trade_id: "ic-close-1a",
+                  position_id: "ic-position-1",
+                  symbol: "EURUSD",
+                  direction: "sell",
+                  volume: 0.2,
+                  open_time: "2026-05-27T09:00:00Z",
+                  close_time: "2026-05-27T10:00:00Z",
+                  net: 40,
+                },
+                {
+                  trade_id: "ic-close-1b",
+                  position_id: "ic-position-1",
+                  symbol: "EURUSD",
+                  direction: "sell",
+                  volume: 0.1,
+                  open_time: "2026-05-27T09:00:00Z",
+                  close_time: "2026-05-27T10:05:00Z",
+                  net: 10,
+                },
+                {
+                  trade_id: "ic-close-2",
+                  position_id: "ic-position-2",
+                  symbol: "XAUUSD",
+                  direction: "buy",
+                  volume: 0.1,
+                  open_time: "2026-05-27T11:00:00Z",
+                  close_time: "2026-05-27T12:00:00Z",
+                  net: -100,
+                },
+              ],
+            },
+          },
+        ],
+      },
+      "live",
+      "ic-markets-live",
+    );
+
+    expect(workspace.activeAccountId).toBe("ic-markets-live");
+    expect(workspace.trades).toHaveLength(2);
+    expect(countClosedTradeExecutions(workspace.trades)).toBe(3);
+    expect(workspace.analytics.daily[0]?.trades).toBe(3);
+    expect(workspace.dashboard.pulseItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "Trades cerrados", value: "3" }),
+      ]),
+    );
   });
 
   it("uses top-level MT5 metrics when merged live payloads omit reportMetrics", () => {

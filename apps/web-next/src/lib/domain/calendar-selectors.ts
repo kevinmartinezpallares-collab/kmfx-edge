@@ -121,8 +121,15 @@ export function buildCalendarRows(workspace: WorkspaceState): CalendarDayRow[] {
       latestCloseAt: null,
     };
 
-    current.sessions.set(trade.session, (current.sessions.get(trade.session) ?? 0) + 1);
-    current.symbols.set(trade.symbol, (current.symbols.get(trade.symbol) ?? 0) + 1);
+    const executionCount = Math.max(1, trade.executions.length);
+    current.sessions.set(
+      trade.session,
+      (current.sessions.get(trade.session) ?? 0) + executionCount,
+    );
+    current.symbols.set(
+      trade.symbol,
+      (current.symbols.get(trade.symbol) ?? 0) + executionCount,
+    );
     current.firstOpenAt =
       current.firstOpenAt === null || trade.openedAt < current.firstOpenAt
         ? trade.openedAt
@@ -132,12 +139,14 @@ export function buildCalendarRows(workspace: WorkspaceState): CalendarDayRow[] {
         ? trade.closedAt
         : current.latestCloseAt;
 
-    if (trade.netPnl < 0) {
-      current.reviewCount += 1;
-    }
+    current.reviewCount += trade.executions.length
+      ? trade.executions.filter((execution) => execution.netPnl < 0).length
+      : trade.netPnl < 0
+        ? 1
+        : 0;
 
     if (!trade.setup) {
-      current.missingTags += 1;
+      current.missingTags += executionCount;
     }
 
     acc.set(trade.tradingDayKey, current);

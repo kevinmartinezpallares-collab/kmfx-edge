@@ -40,6 +40,7 @@ import {
   riskStatusLabel,
   sessionLabel,
 } from "@/lib/domain/dashboard-selectors";
+import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
 import {
   formatCurrency,
   formatPercent,
@@ -1082,14 +1083,19 @@ function PanelInsightsCompact({
   const reviewSession = [...sessionRows].sort((a, b) => a.pnl - b.pnl)[0];
   const tradeOutcome = workspace.trades.reduce(
     (counts, trade) => {
-      if (trade.netPnl > 0) counts.winCount += 1;
-      if (trade.netPnl < 0) counts.lossCount += 1;
-      if (trade.netPnl === 0) counts.breakevenCount += 1;
+      const netPnls = trade.executions.length
+        ? trade.executions.map((execution) => execution.netPnl)
+        : [trade.netPnl];
+      netPnls.forEach((netPnl) => {
+        if (netPnl > 0) counts.winCount += 1;
+        if (netPnl < 0) counts.lossCount += 1;
+        if (netPnl === 0) counts.breakevenCount += 1;
+      });
       return counts;
     },
     { winCount: 0, lossCount: 0, breakevenCount: 0 },
   );
-  const hasTradeOutcome = workspace.trades.length > 0;
+  const hasTradeOutcome = countClosedTradeExecutions(workspace.trades) > 0;
   const donutWinCount = hasTradeOutcome ? tradeOutcome.winCount : performance.winCount;
   const donutLossCount = hasTradeOutcome ? tradeOutcome.lossCount : performance.lossCount;
   const donutBreakevenCount = hasTradeOutcome
@@ -1176,8 +1182,13 @@ function pctChange(current: number, previous: number) {
 }
 
 function tradePerformance(trades: WorkspaceState["trades"]) {
+  const executionNetPnls = trades.flatMap((trade) =>
+    trade.executions.length
+      ? trade.executions.map((execution) => execution.netPnl)
+      : [trade.netPnl],
+  );
   const netProfit = trades.reduce((sum, trade) => sum + trade.netPnl, 0);
-  const wins = trades.filter((trade) => trade.netPnl > 0).length;
+  const wins = executionNetPnls.filter((netPnl) => netPnl > 0).length;
   const grossProfit = trades
     .filter((trade) => trade.netPnl > 0)
     .reduce((sum, trade) => sum + trade.netPnl, 0);
@@ -1190,7 +1201,7 @@ function tradePerformance(trades: WorkspaceState["trades"]) {
   return {
     netProfit,
     profitFactor: grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? grossProfit : 0,
-    winRatePct: trades.length > 0 ? (wins / trades.length) * 100 : 0,
+    winRatePct: executionNetPnls.length > 0 ? (wins / executionNetPnls.length) * 100 : 0,
   };
 }
 

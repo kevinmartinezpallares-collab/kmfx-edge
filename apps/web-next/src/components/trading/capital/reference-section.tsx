@@ -2220,9 +2220,10 @@ export function LegacyCapitalReferenceSection({
     .sort((a, b) => b.totalPnl - a.totalPnl);
   const strategyWeights = Object.values(
     workspace.trades.reduce<Record<string, { setup: string; trades: number; pnl: number }>>((acc, trade) => {
+      const executionCount = Math.max(1, trade.executions.length);
       const key = trade.setup ?? "Sin etiqueta";
       const current = acc[key] ?? { setup: key, trades: 0, pnl: 0 };
-      current.trades += 1;
+      current.trades += executionCount;
       current.pnl += trade.netPnl;
       acc[key] = current;
       return acc;
@@ -2230,8 +2231,9 @@ export function LegacyCapitalReferenceSection({
   ).sort((a, b) => b.trades - a.trades);
   const symbolWeights = Object.values(
     workspace.trades.reduce<Record<string, { symbol: string; trades: number; pnl: number }>>((acc, trade) => {
+      const executionCount = Math.max(1, trade.executions.length);
       const current = acc[trade.symbol] ?? { symbol: trade.symbol, trades: 0, pnl: 0 };
-      current.trades += 1;
+      current.trades += executionCount;
       current.pnl += trade.netPnl;
       acc[trade.symbol] = current;
       return acc;

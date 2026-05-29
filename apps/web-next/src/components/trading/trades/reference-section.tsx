@@ -37,7 +37,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { WorkspaceState } from "@/lib/contracts/workspace-state";
-import { getTradesOverview } from "@/lib/domain/trades-selectors";
+import { countClosedTradeExecutions, getTradesOverview } from "@/lib/domain/trades-selectors";
 import {
   formatCurrency,
   formatSignedCurrency,
@@ -219,9 +219,15 @@ export function TradesReferenceSection({
     filteredRows[0] ??
     null;
   const selectedTrade = selectedRow?.trade ?? null;
-  const missingSetupCount = trades.filter((trade) => !trade.setup).length;
+  const missingSetupCount = trades.reduce(
+    (sum, trade) => sum + (!trade.setup ? Math.max(1, trade.executions.length) : 0),
+    0,
+  );
   const missingDurationCount = trades.filter((trade) => trade.durationMinutes === null).length;
   const rowsWithPartials = filteredRows.filter((row) => row.trade.executions.length > 1).length;
+  const visibleExecutionCount = countClosedTradeExecutions(
+    filteredRows.map((row) => row.trade),
+  );
   const chartData = React.useMemo(() => {
     const validCloseTimes = filteredRows
       .map((row) => new Date(row.trade.closedAt).getTime())
@@ -264,15 +270,20 @@ export function TradesReferenceSection({
       const key = `${closedDate.getFullYear()}-${String(closedDate.getMonth() + 1).padStart(2, "0")}`;
       const chartRow = rowByKey.get(key);
       if (!chartRow) return;
+      const netPnls = row.trade.executions.length
+        ? row.trade.executions.map((execution) => execution.netPnl)
+        : [row.trade.netPnl];
 
-      if (row.trade.netPnl >= 0) {
-        chartRow.desktop += 1;
-        chartRow.wins += 1;
-      } else {
-        chartRow.mobile += 1;
-        chartRow.losses += 1;
-      }
-      chartRow.trades += 1;
+      netPnls.forEach((netPnl) => {
+        if (netPnl >= 0) {
+          chartRow.desktop += 1;
+          chartRow.wins += 1;
+        } else {
+          chartRow.mobile += 1;
+          chartRow.losses += 1;
+        }
+        chartRow.trades += 1;
+      });
       chartRow.pnl += row.trade.netPnl;
       chartRow.isNoData = false;
       chartRow.isEmpty = false;
@@ -390,7 +401,7 @@ export function TradesReferenceSection({
               {[
                 [
                   "Operaciones cerradas",
-                  String(trades.length),
+                  String(overview.totalTrades),
                   activeAccount ? activeAccount.label : "Cuenta activa",
                 ],
                 [
@@ -531,8 +542,8 @@ export function TradesReferenceSection({
                 <div>
                   <CardTitle>Ledger de operaciones</CardTitle>
                   <CardDescription>
-                    Mostrando {tableRangeLabel} de {filteredRows.length} trades visibles /{" "}
-                    {rowsWithPartials} con parciales.
+                    Mostrando {tableRangeLabel} de {filteredRows.length} posiciones visibles /{" "}
+                    {visibleExecutionCount} cierres MT5 / {rowsWithPartials} con parciales.
                   </CardDescription>
                 </div>
                 <Button variant="outline" size="sm" onClick={resetFilters}>

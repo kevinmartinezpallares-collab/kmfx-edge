@@ -1,6 +1,7 @@
 import type { TradingAccount } from "@/lib/contracts/account";
 import type { ClosedTrade } from "@/lib/contracts/trade";
 import type { WorkspaceState } from "@/lib/contracts/workspace-state";
+import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
 import { formatSignedCurrency } from "@/lib/formatters/numbers";
 
 export type DashboardPerformance = {
@@ -57,9 +58,15 @@ export function buildDashboardPerformance(
   options: { preferActiveTrades?: boolean } = {},
 ): DashboardPerformance {
   const trades = workspace.trades;
+  const executionNetPnls = trades.flatMap((trade) =>
+    trade.executions.length
+      ? trade.executions.map((execution) => execution.netPnl)
+      : [trade.netPnl],
+  );
+  const totalExecutions = executionNetPnls.length;
   const netProfit = trades.reduce((sum, trade) => sum + trade.netPnl, 0);
-  const winCount = trades.filter((trade) => trade.netPnl >= 0).length;
-  const lossCount = trades.filter((trade) => trade.netPnl < 0).length;
+  const winCount = executionNetPnls.filter((netPnl) => netPnl >= 0).length;
+  const lossCount = executionNetPnls.filter((netPnl) => netPnl < 0).length;
   const grossProfit = trades
     .filter((trade) => trade.netPnl > 0)
     .reduce((sum, trade) => sum + trade.netPnl, 0);
@@ -72,8 +79,8 @@ export function buildDashboardPerformance(
     netProfit,
     grossProfit,
     grossLoss,
-    winRatePct: trades.length > 0 ? (winCount / trades.length) * 100 : 0,
-    totalTrades: trades.length,
+    winRatePct: totalExecutions > 0 ? (winCount / totalExecutions) * 100 : 0,
+    totalTrades: totalExecutions,
     winCount,
     lossCount,
     profitFactor: grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? grossProfit : 0,
@@ -90,9 +97,9 @@ export function buildDashboardPerformance(
     (source.winCount > 0 || source.lossCount > 0 || source.profitFactor > 0);
   const sourceLooksAggregated =
     options.preferActiveTrades &&
-    trades.length > 0 &&
+    countClosedTradeExecutions(trades) > 0 &&
     source.totalTrades > 0 &&
-    source.totalTrades !== trades.length;
+    source.totalTrades !== countClosedTradeExecutions(trades);
 
   return sourceLooksEmpty || sourceLooksContradictory || sourceLooksAggregated
     ? fallback
@@ -173,11 +180,17 @@ export function buildDashboardAttentionItems(
 
 export function buildDashboardSetupRows(trades: ClosedTrade[]): DashboardSetupRow[] {
   const setupMap = trades.reduce<Map<string, DashboardSetupRow>>((acc, trade) => {
+    const executionCount = Math.max(1, trade.executions.length);
+    const executionWins = trade.executions.length
+      ? trade.executions.filter((execution) => execution.netPnl >= 0).length
+      : trade.netPnl >= 0
+        ? 1
+        : 0;
     const name = trade.setup || "Sin etiqueta";
     const row = acc.get(name) ?? { name, trades: 0, pnl: 0, wins: 0 };
-    row.trades += 1;
+    row.trades += executionCount;
     row.pnl += trade.netPnl;
-    if (trade.netPnl >= 0) row.wins += 1;
+    row.wins += executionWins;
     acc.set(name, row);
     return acc;
   }, new Map());
@@ -187,8 +200,9 @@ export function buildDashboardSetupRows(trades: ClosedTrade[]): DashboardSetupRo
 
 export function buildDashboardSymbolRows(trades: ClosedTrade[]): DashboardSymbolRow[] {
   const symbolMap = trades.reduce<Map<string, DashboardSymbolRow>>((acc, trade) => {
+    const executionCount = Math.max(1, trade.executions.length);
     const row = acc.get(trade.symbol) ?? { symbol: trade.symbol, trades: 0, pnl: 0 };
-    row.trades += 1;
+    row.trades += executionCount;
     row.pnl += trade.netPnl;
     acc.set(trade.symbol, row);
     return acc;
@@ -200,8 +214,9 @@ export function buildDashboardSymbolRows(trades: ClosedTrade[]): DashboardSymbol
 export function buildDashboardSessionRows(trades: ClosedTrade[]): DashboardSessionRow[] {
   const sessionMap = trades.reduce<Map<ClosedTrade["session"], DashboardSessionRow>>(
     (acc, trade) => {
+      const executionCount = Math.max(1, trade.executions.length);
       const row = acc.get(trade.session) ?? { session: trade.session, trades: 0, pnl: 0 };
-      row.trades += 1;
+      row.trades += executionCount;
       row.pnl += trade.netPnl;
       acc.set(trade.session, row);
       return acc;

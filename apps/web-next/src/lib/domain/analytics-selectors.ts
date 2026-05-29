@@ -2,6 +2,7 @@ import type { WorkspaceState } from "@/lib/contracts/workspace-state";
 import type { DailyTradeBucket, HourlyTradeBucket, TradeSession } from "@/lib/contracts/trade";
 import { buildReviewPriorityRows } from "@/lib/domain/review-selectors";
 import { buildStrategyRows } from "@/lib/domain/strategies-selectors";
+import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
 
 export type AnalyticsReadinessStatus = "empty" | "partial" | "ready";
 
@@ -74,8 +75,13 @@ function clampPercent(value: number) {
 }
 
 export function getAnalyticsReadiness(workspace: WorkspaceState): AnalyticsReadiness {
-  const totalTrades = workspace.analytics.performance.totalTrades || workspace.trades.length;
-  const taggedTrades = workspace.trades.filter((trade) => Boolean(trade.setup)).length;
+  const totalTrades =
+    workspace.analytics.performance.totalTrades ||
+    countClosedTradeExecutions(workspace.trades);
+  const taggedTrades = workspace.trades.reduce(
+    (sum, trade) => sum + (trade.setup ? Math.max(1, trade.executions.length) : 0),
+    0,
+  );
   const tagCoveragePct =
     totalTrades > 0 ? clampPercent((taggedTrades / totalTrades) * 100) : 0;
   const dailyBucketCount = workspace.analytics.daily.length;
@@ -166,15 +172,20 @@ export function buildInsightAttribution(
   const negativeSetups = setupRows.filter((row) => row.netPnl < 0);
   const bestSetup = positiveSetups[0] ?? setupRows[0] ?? null;
   const worstSetup = negativeSetups.sort((a, b) => a.netPnl - b.netPnl)[0] ?? null;
-  const taggedTrades = trades.filter((trade) => Boolean(trade.setup)).length;
-  const tagCoverage = trades.length > 0 ? (taggedTrades / trades.length) * 100 : 0;
+  const totalTrades = countClosedTradeExecutions(trades);
+  const taggedTrades = trades.reduce(
+    (sum, trade) => sum + (trade.setup ? Math.max(1, trade.executions.length) : 0),
+    0,
+  );
+  const tagCoverage = totalTrades > 0 ? (taggedTrades / totalTrades) * 100 : 0;
   const reviewQueue = buildReviewPriorityRows(workspace);
   const dailyOverview = getAnalyticsDailyOverview(workspace);
   const topSymbol =
     Object.values(
       trades.reduce<Record<string, AnalyticsAttributionBucket>>((acc, trade) => {
+        const executionCount = Math.max(1, trade.executions.length);
         const current = acc[trade.symbol] ?? { label: trade.symbol, trades: 0, pnl: 0 };
-        current.trades += 1;
+        current.trades += executionCount;
         current.pnl += trade.netPnl;
         acc[trade.symbol] = current;
         return acc;
@@ -182,8 +193,9 @@ export function buildInsightAttribution(
     ).sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))[0] ?? null;
   const sessionRows = Object.values(
     trades.reduce<Record<string, AnalyticsAttributionBucket>>((acc, trade) => {
+      const executionCount = Math.max(1, trade.executions.length);
       const current = acc[trade.session] ?? { label: trade.session, trades: 0, pnl: 0 };
-      current.trades += 1;
+      current.trades += executionCount;
       current.pnl += trade.netPnl;
       acc[trade.session] = current;
       return acc;

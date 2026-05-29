@@ -45,6 +45,10 @@ function percent(part: number, total: number) {
 
 export function buildStrategyRows(workspace: WorkspaceState): StrategyPerformanceRow[] {
   const grouped = workspace.trades.reduce<Map<string, StrategyAccumulator>>((acc, trade) => {
+    const executionCount = Math.max(1, trade.executions.length);
+    const executionNetPnls = trade.executions.length
+      ? trade.executions.map((execution) => execution.netPnl)
+      : [trade.netPnl];
     const name = trade.setup?.trim() || `${trade.session} discretionary`;
     const current = acc.get(name) ?? {
       name,
@@ -59,16 +63,16 @@ export function buildStrategyRows(workspace: WorkspaceState): StrategyPerformanc
       symbols: new Set<string>(),
     };
 
-    current.trades += 1;
+    current.trades += executionCount;
     current.netPnl += trade.netPnl;
     current.symbols.add(trade.symbol);
-    current.sessions.set(trade.session, (current.sessions.get(trade.session) ?? 0) + 1);
+    current.sessions.set(
+      trade.session,
+      (current.sessions.get(trade.session) ?? 0) + executionCount,
+    );
 
-    if (trade.netPnl >= 0) {
-      current.wins += 1;
-    } else {
-      current.losses += 1;
-    }
+    current.wins += executionNetPnls.filter((netPnl) => netPnl >= 0).length;
+    current.losses += executionNetPnls.filter((netPnl) => netPnl < 0).length;
 
     if (trade.durationMinutes !== null) {
       current.durations.push(trade.durationMinutes);
@@ -118,8 +122,14 @@ export function buildStrategyRows(workspace: WorkspaceState): StrategyPerformanc
 
 export function getStrategiesReadiness(workspace: WorkspaceState): StrategiesReadiness {
   const rows = buildStrategyRows(workspace);
-  const totalTrades = workspace.trades.length;
-  const untaggedTrades = workspace.trades.filter((trade) => !trade.setup).length;
+  const totalTrades = workspace.trades.reduce(
+    (sum, trade) => sum + Math.max(1, trade.executions.length),
+    0,
+  );
+  const untaggedTrades = workspace.trades.reduce(
+    (sum, trade) => sum + (!trade.setup ? Math.max(1, trade.executions.length) : 0),
+    0,
+  );
 
   return {
     status:

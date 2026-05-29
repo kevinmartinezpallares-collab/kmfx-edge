@@ -93,6 +93,20 @@ function buildTradeBuckets(trades: ClosedTrade[]) {
 
   trades.forEach((trade) => {
     const dayKey = trade.tradingDayKey;
+    const executions = trade.executions.length
+      ? trade.executions
+      : [
+          {
+            id: trade.id,
+            volume: trade.volume,
+            exitPrice: trade.exitPrice,
+            closedAt: trade.closedAt,
+            grossPnl: trade.grossPnl,
+            commission: trade.commission,
+            swap: trade.swap,
+            netPnl: trade.netPnl,
+          },
+        ];
     const dayBucket = dailyMap.get(dayKey) ?? {
       tradingDayKey: dayKey,
       label: toDayLabel(trade.closedAt),
@@ -104,12 +118,14 @@ function buildTradeBuckets(trades: ClosedTrade[]) {
     };
 
     dayBucket.pnl += trade.netPnl;
-    dayBucket.trades += 1;
-    if (trade.netPnl >= 0) {
-      dayBucket.wins += 1;
-    } else {
-      dayBucket.losses += 1;
-    }
+    executions.forEach((execution) => {
+      dayBucket.trades += 1;
+      if (execution.netPnl >= 0) {
+        dayBucket.wins += 1;
+      } else {
+        dayBucket.losses += 1;
+      }
+    });
     dayBucket.winRatePct =
       dayBucket.trades > 0 ? (dayBucket.wins / dayBucket.trades) * 100 : 0;
     dailyMap.set(dayKey, dayBucket);
@@ -127,12 +143,14 @@ function buildTradeBuckets(trades: ClosedTrade[]) {
       };
 
       hourlyBucket.pnl += trade.netPnl;
-      hourlyBucket.trades += 1;
-      if (trade.netPnl >= 0) {
-        hourlyBucket.wins += 1;
-      } else {
-        hourlyBucket.losses += 1;
-      }
+      executions.forEach((execution) => {
+        hourlyBucket.trades += 1;
+        if (execution.netPnl >= 0) {
+          hourlyBucket.wins += 1;
+        } else {
+          hourlyBucket.losses += 1;
+        }
+      });
       hourlyMap.set(hour, hourlyBucket);
     }
   });

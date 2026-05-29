@@ -32,6 +32,7 @@ import {
   routeTitles,
   type NavigationItem,
 } from "@/lib/domain/navigation";
+import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -74,7 +75,7 @@ function getNavBadge(
   if (href === "/accounts") return String(workspace.accounts.length);
   if (href === "/risk") return workspace.risk.status === "safe" ? "OK" : workspace.risk.status;
   if (href === "/analytics") return workspace.analytics.currentPeriod;
-  if (href === "/trades") return String(workspace.trades.length);
+  if (href === "/trades") return String(countClosedTradeExecutions(workspace.trades));
   if (href === "/capital") {
     const fundedCount = workspace.accounts.filter((account) => account.isFunded).length;
     return `${fundedCount}F`;

@@ -237,9 +237,10 @@ export function getPortfolioOverview(workspace: WorkspaceState): PortfolioOvervi
   const portfolioReadiness = getPortfolioPolicyReadiness(workspace);
   const strategyWeights = Object.values(
     workspace.trades.reduce<Record<string, PortfolioWeightRow>>((acc, trade) => {
+      const executionCount = Math.max(1, trade.executions.length);
       const key = trade.setup ?? "Sin etiqueta";
       const current = acc[key] ?? { setup: key, trades: 0, pnl: 0 };
-      current.trades += 1;
+      current.trades += executionCount;
       current.pnl += trade.netPnl;
       acc[key] = current;
       return acc;
@@ -247,8 +248,9 @@ export function getPortfolioOverview(workspace: WorkspaceState): PortfolioOvervi
   ).sort((a, b) => b.trades - a.trades);
   const sessionWeights = Object.values(
     workspace.trades.reduce<Record<string, PortfolioSessionWeightRow>>((acc, trade) => {
+      const executionCount = Math.max(1, trade.executions.length);
       const current = acc[trade.session] ?? { session: trade.session, trades: 0, pnl: 0 };
-      current.trades += 1;
+      current.trades += executionCount;
       current.pnl += trade.netPnl;
       acc[trade.session] = current;
       return acc;
