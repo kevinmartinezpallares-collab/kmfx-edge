@@ -5855,6 +5855,10 @@ def mt5_sync_record_limit(name: str, *, default: int) -> int:
     return max(0, _env_int(name, default=default))
 
 
+def mt5_sync_requests_history_bootstrap(payload: dict[str, Any]) -> bool:
+    return safe_bool(payload.get("historyBootstrapFull"), default=False)
+
+
 def limit_mt5_record_list(
     records: Any,
     *,
@@ -5896,6 +5900,7 @@ def bounded_mt5_sync_payload(
     trades: list[dict[str, Any]],
     issues: list[dict[str, Any]],
 ) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
+    history_bootstrap_full = mt5_sync_requests_history_bootstrap(payload)
     bounded_positions = limit_mt5_record_list(
         positions,
         section="positions",
@@ -5906,16 +5911,20 @@ def bounded_mt5_sync_payload(
     bounded_trades = limit_mt5_record_list(
         trades,
         section="trades",
-        env_name="KMFX_MT5_SYNC_MAX_TRADES",
-        default=40,
+        env_name="KMFX_MT5_SYNC_BOOTSTRAP_MAX_TRADES" if history_bootstrap_full else "KMFX_MT5_SYNC_MAX_TRADES",
+        default=5000 if history_bootstrap_full else 40,
         issues=issues,
     )
     history = payload.get("history") if isinstance(payload.get("history"), list) else []
     bounded_history = limit_mt5_record_list(
         history,
         section="history",
-        env_name="KMFX_MT5_SYNC_MAX_HISTORY_POINTS",
-        default=48,
+        env_name=(
+            "KMFX_MT5_SYNC_BOOTSTRAP_MAX_HISTORY_POINTS"
+            if history_bootstrap_full
+            else "KMFX_MT5_SYNC_MAX_HISTORY_POINTS"
+        ),
+        default=2000 if history_bootstrap_full else 48,
         issues=issues,
         keep_tail=True,
     )
@@ -7972,6 +7981,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
                 "details": {
                     "positions_count": len(sanitized_positions),
                     "trades_count": len(sanitized_trades),
+                    "history_bootstrap_full": mt5_sync_requests_history_bootstrap(payload),
                     "issues": issues,
                     "account_id": synced_account.account_id,
                 },

@@ -354,6 +354,26 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("2026-05-25T10:04:00Z", bounded_payload["history"][0]["timestamp"])
         self.assertEqual({"positions", "trades", "history"}, {issue["section"] for issue in issues})
 
+    def test_mt5_history_bootstrap_keeps_full_trade_history(self) -> None:
+        payload = {
+            "historyBootstrapFull": True,
+            "history": [{"timestamp": f"2026-05-25T10:{index:02d}:00Z", "value": index} for index in range(60)],
+        }
+        trades = [{"ticket": str(index), "time": f"2026-05-25T10:{index % 60:02d}:00Z"} for index in range(250)]
+        issues: list[dict[str, object]] = []
+
+        with patch.dict("os.environ", {}, clear=True):
+            bounded_payload, _, bounded_trades = connector_api.bounded_mt5_sync_payload(
+                payload,
+                positions=[],
+                trades=trades,
+                issues=issues,
+            )
+
+        self.assertEqual(250, len(bounded_trades))
+        self.assertEqual(60, len(bounded_payload["history"]))
+        self.assertEqual([], issues)
+
     def test_mt5_journal_rejects_oversized_body_without_echoing_payload(self) -> None:
         oversized_body = json.dumps({"batch_id": "batch-1", "events": ["secret-value"]}).encode("utf-8")
         request = self._request(body_bytes=oversized_body)
