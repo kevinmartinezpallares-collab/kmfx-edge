@@ -32,6 +32,14 @@ function resolveWorkspaceSourceMode(): WorkspaceSourceMode {
   return "fixture";
 }
 
+function shouldAllowLiveFixtureFallback() {
+  const normalized = String(process.env.KMFX_ALLOW_LIVE_FIXTURE_FALLBACK || "")
+    .trim()
+    .toLowerCase();
+
+  return normalized === "1" || normalized === "true";
+}
+
 async function readFixtureWorkspaceState(activeAccountId?: string) {
   return createWorkspaceFromLiveSnapshot(
     fixtureSnapshot as RawLiveAccountsSnapshot,
@@ -61,10 +69,19 @@ async function buildWorkspaceState(
       activeAccountId,
     );
   } catch (error) {
-    console.warn("[KMFX][NEXT][WAVE1] live snapshot unavailable, falling back to fixture", {
-      message: error instanceof Error ? error.message : String(error),
+    const message = error instanceof Error ? error.message : String(error);
+
+    if (shouldAllowLiveFixtureFallback()) {
+      console.warn("[KMFX][NEXT][WAVE1] live snapshot unavailable, falling back to fixture", {
+        message,
+      });
+      return readFixtureWorkspaceState(activeAccountId);
+    }
+
+    console.error("[KMFX][NEXT][WAVE1] live snapshot unavailable", {
+      message,
     });
-    return readFixtureWorkspaceState(activeAccountId);
+    throw new Error(`KMFX live snapshot unavailable: ${message}`);
   }
 }
 

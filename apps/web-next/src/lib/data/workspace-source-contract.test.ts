@@ -33,11 +33,13 @@ describe("workspace source contract", () => {
     expect(source).toContain('if (sourceMode === "fixture")');
   });
 
-  it("falls back from live mode to the redacted fixture instead of crashing the UI", () => {
+  it("does not hide live mode failures behind the redacted fixture", () => {
     const source = readWorkspaceSource();
 
-    expect(source).toContain("live snapshot unavailable, falling back to fixture");
-    expect(source).toContain("return readFixtureWorkspaceState(activeAccountId);");
+    expect(source).toContain("KMFX_ALLOW_LIVE_FIXTURE_FALLBACK");
+    expect(source).toContain("shouldAllowLiveFixtureFallback");
+    expect(source).toContain("KMFX live snapshot unavailable");
+    expect(source).toContain("throw new Error");
   });
 
   it("keeps workspace routes dynamic so live read-only snapshots are not frozen at build time", () => {
