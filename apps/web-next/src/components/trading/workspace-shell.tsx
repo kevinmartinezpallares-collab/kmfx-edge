@@ -7,6 +7,7 @@ import {
   Bell,
   ChevronDown,
   CreditCard,
+  ExternalLink,
   LogOut,
   Settings2,
   UserRound,
@@ -32,6 +33,7 @@ import {
   routeTitles,
   type NavigationItem,
 } from "@/lib/domain/navigation";
+import { resolveConnectionAccess } from "@/lib/billing/connection-access";
 import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
 import { cn } from "@/lib/utils";
 import {
@@ -556,12 +558,55 @@ function WorkspaceSidebar({ workspace }: { workspace: WorkspaceState }) {
 
 export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const searchParamsValue = searchParams.toString();
+  const previewMode = searchParams.get("demo") === "1";
   const selectedAccountId =
     searchParams.get("account") ?? workspace.activeAccountId;
   const activeAccount =
     workspace.accounts.find((account) => account.id === selectedAccountId) ??
     workspace.accounts[0];
+
+  React.useEffect(() => {
+    if (pathname === "/subscription" || previewMode) return;
+
+    let cancelled = false;
+
+    async function checkBillingAccess() {
+      try {
+        const response = await fetch("/api/kmfx/billing/status", {
+          cache: "no-store",
+        });
+        const payload = await response.json().catch(() => ({}));
+        const access = resolveConnectionAccess(response.ok ? payload : { ok: false });
+
+        if (
+          cancelled ||
+          access.allowed ||
+          access.reason === "auth_required" ||
+          access.reason === "billing_status_unavailable"
+        ) {
+          return;
+        }
+
+        const next = `${pathname}${searchParamsValue ? `?${searchParamsValue}` : ""}`;
+        const params = new URLSearchParams({
+          next,
+          welcome: "1",
+        });
+        router.replace(`/subscription?${params.toString()}`);
+      } catch {
+        // Keep navigation usable if billing status cannot be checked momentarily.
+      }
+    }
+
+    void checkBillingAccess();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, previewMode, router, searchParamsValue]);
 
   return (
     <SidebarProvider defaultOpen>
@@ -596,7 +641,41 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
 
         <main className="relative">
           <div className="h-[calc(100svh-4rem)] overflow-y-auto">
-            <div className="p-4 md:p-6">{children}</div>
+            <div className="grid gap-4 p-4 md:p-6">
+              {previewMode ? (
+                <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card/85 p-4 shadow-[0_18px_45px_-34px_rgba(0,0,0,0.45)] backdrop-blur-xl md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      Vista de ejemplo
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      Puedes revisar el panel con datos preparados. Para conectar MT5,
+                      añadir cuentas o descargar archivos necesitas un plan activo.
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <Button
+                      nativeButton={false}
+                      render={<Link href="/subscription?welcome=1" />}
+                      size="sm"
+                    >
+                      <CreditCard data-icon="inline-start" />
+                      Activar plan
+                    </Button>
+                    <Button
+                      nativeButton={false}
+                      render={<Link href="/subscription?welcome=1" />}
+                      size="sm"
+                      variant="outline"
+                    >
+                      <ExternalLink data-icon="inline-start" />
+                      Salir
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+              {children}
+            </div>
           </div>
         </main>
       </SidebarInset>

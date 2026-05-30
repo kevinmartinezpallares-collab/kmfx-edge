@@ -64,4 +64,12 @@ describe("workspace source contract", () => {
     expect(source).toContain("getWorkspaceStateForSearchParams");
     expect(source).toContain("resolvedSearchParams?.account");
   });
+
+  it("keeps preview mode explicit and backed by the redacted fixture", () => {
+    const source = readWorkspaceSource();
+
+    expect(source).toContain('resolvedSearchParams?.demo');
+    expect(source).toContain("previewMode");
+    expect(source).toContain("return readFixtureWorkspaceState(activeAccountId)");
+  });
 });

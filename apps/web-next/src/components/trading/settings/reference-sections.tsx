@@ -549,7 +549,13 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
   );
 }
 
-export function SubscriptionReferenceSection({ workspace }: { workspace: WorkspaceState }) {
+export function SubscriptionReferenceSection({
+  welcome = false,
+  workspace,
+}: {
+  welcome?: boolean;
+  workspace: WorkspaceState;
+}) {
   const router = useRouter();
   const settingsOverview = getSettingsOverview(workspace);
   const { plan } = settingsOverview;
@@ -656,6 +662,12 @@ export function SubscriptionReferenceSection({ workspace }: { workspace: Workspa
   const billingMessage =
     billingAction.message ||
     (billingPending ? "Preparando conexión segura..." : plan.managementNote);
+
+  function scrollToPlanOptions() {
+    document
+      .getElementById("kmfx-plan-options")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   async function readBillingPayload(response: Response) {
     const payload = await response.json().catch(() => ({}));
@@ -774,6 +786,54 @@ export function SubscriptionReferenceSection({ workspace }: { workspace: Workspa
   return (
     <PageMotion>
       <div className="grid max-w-7xl gap-4">
+        {welcome ? (
+          <Card className="overflow-hidden border-border/70 bg-card/80">
+            <CardHeader className="gap-4 border-b border-border/60 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase text-muted-foreground">
+                  <LockKeyhole className="size-4" />
+                  <span>Plan pendiente</span>
+                </div>
+                <CardTitle>Activa KMFX Edge para conectar MT5</CardTitle>
+                <CardDescription>
+                  El panel ya está preparado. Activa un plan para añadir cuentas,
+                  descargar launcher/EA y leer métricas reales desde MT5.
+                </CardDescription>
+              </div>
+              <CardAction className="flex flex-wrap gap-2">
+                <Button onClick={scrollToPlanOptions} type="button">
+                  <CreditCard data-icon="inline-start" />
+                  Elegir plan
+                </Button>
+                <Button
+                  nativeButton={false}
+                  render={<Link href="/dashboard?demo=1" />}
+                  variant="outline"
+                >
+                  <ExternalLink data-icon="inline-start" />
+                  Ver ejemplo
+                </Button>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="grid gap-4 p-4 sm:grid-cols-3 sm:p-6">
+              {[
+                ["1", "Plan activo", "Desbloquea conexión, descargas y alta de cuentas."],
+                ["2", "Launcher y EA", "Instala la versión preparada para la beta."],
+                ["3", "Lectura completa", "La primera carga trae el historial y después solo cambios."],
+              ].map(([step, title, description]) => (
+                <div
+                  key={step}
+                  className="grid gap-2 border-l border-border/70 pl-4 first:border-l-0 first:pl-0 sm:first:border-l sm:first:pl-4"
+                >
+                  <p className="font-mono text-xs text-muted-foreground">{step}</p>
+                  <p className="font-semibold text-foreground">{title}</p>
+                  <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ) : null}
+
         <Card className="overflow-hidden border-border/70 bg-card/80">
           <CardHeader className="border-b border-border/60">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -832,7 +892,7 @@ export function SubscriptionReferenceSection({ workspace }: { workspace: Workspa
             </p>
           </CardHeader>
           <CardContent className="grid gap-5 p-4 sm:p-6">
-            <div className="grid gap-5 lg:grid-cols-3">
+            <div id="kmfx-plan-options" className="scroll-mt-24 grid gap-5 lg:grid-cols-3">
               {plan.options.map((option, index) => {
                 const featured = option.key === "pro";
                 const current = option.current;
@@ -879,11 +939,11 @@ export function SubscriptionReferenceSection({ workspace }: { workspace: Workspa
                           <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/70">
                             KMFX Edge
                           </p>
-                          <div className="mt-2 flex items-end justify-between gap-3">
-                            <h3 className="text-3xl font-bold leading-none tracking-tight text-white">
+                          <div className="mt-2 flex min-w-0 items-end justify-between gap-3">
+                            <h3 className="min-w-0 truncate text-3xl font-bold leading-none tracking-tight text-white">
                               {visual.code}
                             </h3>
-                            <p className="max-w-36 text-right text-2xl font-semibold tracking-tight text-white">
+                            <p className="shrink-0 whitespace-nowrap text-right text-[clamp(1.35rem,1.7vw,1.5rem)] font-semibold leading-none tracking-tight text-white">
                               {priceForInterval(option)}
                             </p>
                           </div>

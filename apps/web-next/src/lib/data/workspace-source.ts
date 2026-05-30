@@ -112,6 +112,11 @@ export async function getWorkspaceStateForSearchParams(
 ) {
   const resolvedSearchParams = await searchParams;
   const activeAccountId = firstSearchParamValue(resolvedSearchParams?.account);
+  const previewMode = firstSearchParamValue(resolvedSearchParams?.demo) === "1";
+
+  if (previewMode) {
+    return readFixtureWorkspaceState(activeAccountId);
+  }
 
   if (!activeAccountId) {
     return getWorkspaceState();
