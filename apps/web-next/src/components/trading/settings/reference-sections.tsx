@@ -68,7 +68,10 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { WorkspaceState } from "@/lib/contracts/workspace-state";
-import { getSettingsOverview } from "@/lib/domain/settings-selectors";
+import {
+  getSettingsOverview,
+  type SettingsPlanOption,
+} from "@/lib/domain/settings-selectors";
 import { cn } from "@/lib/utils";
 
 function PageMotion({ children }: { children: React.ReactNode }) {
@@ -76,6 +79,7 @@ function PageMotion({ children }: { children: React.ReactNode }) {
 }
 
 type PlanGradientTheme = Omit<CustomConfig, "preset" | "speed">;
+type PlanOptionKey = SettingsPlanOption["key"];
 
 const PLAN_GRADIENT_THEMES = {
   core: {
@@ -134,6 +138,41 @@ function planGradientConfigForOption(
     ...PLAN_GRADIENT_THEMES[key],
     speed: 7 + index * 2,
   };
+}
+
+function normalizeBillingPlanKey(value: unknown): PlanOptionKey | null {
+  if (value === "core" || value === "pro" || value === "unlimited") {
+    return value;
+  }
+
+  return null;
+}
+
+function billingPlanKeyFromPayload(payload: unknown): PlanOptionKey | null {
+  if (!payload || typeof payload !== "object") return null;
+
+  const billing = (payload as { billing?: unknown }).billing;
+  if (!billing || typeof billing !== "object") return null;
+
+  const data = billing as {
+    effectivePlan?: unknown;
+    plan?: unknown;
+  };
+
+  return normalizeBillingPlanKey(data.effectivePlan) ?? normalizeBillingPlanKey(data.plan);
+}
+
+function includedAccountsLabelForPlan(option: SettingsPlanOption) {
+  if (option.key === "unlimited") return "Ilimitadas";
+  if (option.key === "pro") return "5";
+  return "2";
+}
+
+function usagePercentForPlan(option: SettingsPlanOption, accountCount: number) {
+  if (option.key === "unlimited") return 100;
+
+  const limit = option.key === "pro" ? 5 : 2;
+  return Math.min(100, Math.round((accountCount / Math.max(1, limit)) * 100));
 }
 
 function SettingsPreferenceControl({
@@ -562,10 +601,13 @@ export function SubscriptionReferenceSection({
   const [billingInterval, setBillingInterval] = React.useState<"monthly" | "yearly">(
     "monthly",
   );
+  const [billingPlanKey, setBillingPlanKey] = React.useState<PlanOptionKey | null>(
+    null,
+  );
   const [billingAction, setBillingAction] = React.useState<{
     status: "idle" | "pending" | "success" | "error";
     message: string;
-    planKey?: (typeof plan.options)[number]["key"];
+    planKey?: PlanOptionKey;
   }>({
     message: "",
     status: "idle",
@@ -576,10 +618,19 @@ export function SubscriptionReferenceSection({
     attention: ReceiptText,
     locked: LockKeyhole,
   } as const;
-  const currentOption = plan.options.find((option) => option.current) ?? plan.options[0];
+  const fallbackPlanKey =
+    plan.options.find((option) => option.current)?.key ?? plan.options[0]?.key ?? "core";
+  const effectivePlanKey = billingPlanKey ?? fallbackPlanKey;
+  const planOptions = plan.options.map((option) => ({
+    ...option,
+    current: option.key === effectivePlanKey,
+  }));
+  const currentOption =
+    planOptions.find((option) => option.current) ??
+    (planOptions[0] as SettingsPlanOption);
   const overLimit = plan.statusTone === "attention";
   const includedFeatures = currentOption?.features ?? [];
-  const priceForInterval = (option: (typeof plan.options)[number]) =>
+  const priceForInterval = (option: SettingsPlanOption) =>
     billingInterval === "monthly" ? option.priceLabel : option.yearlyLabel;
   const intervalCaption =
     billingInterval === "monthly" ? "Sin permanencia" : "Dos meses de margen frente al mensual";
@@ -620,7 +671,7 @@ export function SubscriptionReferenceSection({
   const entitlementRows = [
     {
       label: "Cuentas MT5",
-      values: plan.options.map((option) => option.accountLimitLabel),
+      values: planOptions.map((option) => option.accountLimitLabel),
     },
     {
       label: "Riesgo y dashboard",
@@ -635,7 +686,7 @@ export function SubscriptionReferenceSection({
       values: ["No incluido", "Incluido", "Avanzado"],
     },
   ];
-  const planChartData = plan.options.map((option) => {
+  const planChartData = planOptions.map((option) => {
     const priceLabel = billingInterval === "monthly" ? option.priceLabel : option.yearlyLabel;
     const price = Number.parseInt(priceLabel, 10);
     const accountCapacity =
@@ -662,6 +713,38 @@ export function SubscriptionReferenceSection({
   const billingMessage =
     billingAction.message ||
     (billingPending ? "Preparando conexión segura..." : plan.managementNote);
+  const displayedIncludedAccountsLabel = includedAccountsLabelForPlan(currentOption);
+  const displayedUsagePercent = usagePercentForPlan(currentOption, settingsOverview.accountCount);
+  const displayedAccountNote =
+    currentOption.key === "unlimited"
+      ? "Cuentas ilimitadas dentro del plan."
+      : "Cuentas dentro del plan.";
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function readBillingStatus() {
+      try {
+        const response = await fetch("/api/kmfx/billing/status", {
+          cache: "no-store",
+        });
+        const payload = await response.json().catch(() => ({}));
+        const nextPlanKey = billingPlanKeyFromPayload(payload);
+
+        if (!cancelled && response.ok && nextPlanKey) {
+          setBillingPlanKey(nextPlanKey);
+        }
+      } catch {
+        // Keep the selector fallback if billing status cannot be read momentarily.
+      }
+    }
+
+    void readBillingStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function scrollToPlanOptions() {
     document
@@ -684,7 +767,7 @@ export function SubscriptionReferenceSection({
     return payload;
   }
 
-  async function startCheckout(planKey: (typeof plan.options)[number]["key"]) {
+  async function startCheckout(planKey: PlanOptionKey) {
     setBillingAction({
       message: "Preparando Checkout seguro...",
       planKey,
@@ -727,6 +810,7 @@ export function SubscriptionReferenceSection({
         return;
       }
 
+      setBillingPlanKey(billingPlanKeyFromPayload(payload) ?? planKey);
       setBillingAction({
         message: payload.message || "Suscripción actualizada correctamente.",
         planKey,
@@ -880,7 +964,7 @@ export function SubscriptionReferenceSection({
             <p
               aria-live="polite"
               className={cn(
-                "mt-3 text-sm",
+                "col-span-full mt-3 text-sm",
                 billingAction.status === "error"
                   ? "text-destructive"
                   : billingAction.status === "success"
@@ -893,7 +977,7 @@ export function SubscriptionReferenceSection({
           </CardHeader>
           <CardContent className="grid gap-5 p-4 sm:p-6">
             <div id="kmfx-plan-options" className="scroll-mt-24 grid gap-5 lg:grid-cols-3">
-              {plan.options.map((option, index) => {
+              {planOptions.map((option, index) => {
                 const featured = option.key === "pro";
                 const current = option.current;
                 const visual = planCardVisuals[option.key];
@@ -1139,14 +1223,14 @@ export function SubscriptionReferenceSection({
               <div className="rounded-xl border border-border/70 bg-background/35 p-4">
                 <p className="font-medium text-foreground">Plan actual</p>
                 <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-                  {plan.name}
+                  {currentOption.name}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {plan.usedAccountsLabel}/{plan.includedAccountsLabel} cuentas conectadas
+                  {plan.usedAccountsLabel}/{displayedIncludedAccountsLabel} cuentas conectadas
                 </p>
-                <Progress className="mt-4" value={plan.usagePercent} />
+                <Progress className="mt-4" value={displayedUsagePercent} />
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  {plan.accountNote}
+                  {displayedAccountNote}
                 </p>
               </div>
             </div>
@@ -1245,11 +1329,11 @@ export function SubscriptionReferenceSection({
                     <div className="grid gap-2 sm:grid-cols-3">
                       {row.values.map((value, index) => (
                         <div
-                          key={`${row.label}-${plan.options[index]?.key}`}
+                          key={`${row.label}-${planOptions[index]?.key}`}
                           className="min-w-0 rounded-md bg-muted/35 px-3 py-2"
                         >
                           <div className="text-xs font-medium text-muted-foreground">
-                            {plan.options[index]?.name.replace("Edge ", "")}
+                            {planOptions[index]?.name.replace("Edge ", "")}
                           </div>
                           <div className="mt-1 text-sm text-foreground">{value}</div>
                         </div>
