@@ -462,33 +462,50 @@ function shortPanelTimeLabel(time: number) {
 }
 
 function PanelChartWindowControls({
+  availableWindowSecs,
   value,
   onChange,
 }: {
+  availableWindowSecs: number;
   value: number;
   onChange: (value: number) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {PANEL_EQUITY_WINDOWS.map((option) => {
-        const isActive = option.secs === value;
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {PANEL_EQUITY_WINDOWS.map((option) => {
+          const isActive = option.secs === value;
+          const isAvailable =
+            option.secs === PANEL_EQUITY_WINDOWS[0].secs ||
+            option.secs <= availableWindowSecs;
 
-        return (
-          <button
-            aria-pressed={isActive}
-            className={cn(
-              "h-11 min-w-11 rounded-md border px-3 text-xs font-medium transition-colors sm:h-8 sm:min-w-0",
-              "border-border bg-background text-foreground hover:bg-muted/70",
-              isActive && "bg-muted text-foreground shadow-sm",
-            )}
-            key={option.label}
-            onClick={() => onChange(option.secs)}
-            type="button"
-          >
-            {option.label}
-          </button>
-        );
-      })}
+          return (
+            <button
+              aria-disabled={!isAvailable}
+              aria-pressed={isActive}
+              className={cn(
+                "h-11 min-w-11 rounded-md border px-3 text-xs font-medium transition-colors sm:h-8 sm:min-w-0",
+                "border-border bg-background text-foreground hover:bg-muted/70",
+                isActive && "bg-muted text-foreground shadow-sm",
+                !isAvailable &&
+                  "cursor-not-allowed opacity-40 hover:bg-background",
+              )}
+              key={option.label}
+              onClick={() => {
+                if (isAvailable) onChange(option.secs);
+              }}
+              type="button"
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+      {availableWindowSecs < PANEL_EQUITY_WINDOWS[1].secs ? (
+        <span className="text-xs text-muted-foreground">
+          Histórico disponible limitado al primer sync.
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -506,6 +523,18 @@ function EquityCurveCard({
   const latestValue = chartData.at(-1)?.equity ?? activeAccount?.equity ?? 0;
   const balance = activeAccount?.balance ?? latestValue;
   const hasHistory = chartData.length >= 2;
+  const dataSpanSecs =
+    chartData.length >= 2
+      ? Math.max(0, (chartData.at(-1)?.time ?? 0) - (chartData[0]?.time ?? 0))
+      : 0;
+  const availableWindowSecs =
+    dataSpanSecs >= PANEL_EQUITY_WINDOWS[1].secs
+      ? PANEL_EQUITY_WINDOWS[2].secs
+      : dataSpanSecs >= PANEL_EQUITY_WINDOWS[0].secs
+        ? PANEL_EQUITY_WINDOWS[1].secs
+        : PANEL_EQUITY_WINDOWS[0].secs;
+  const selectedWindowSecs =
+    windowSecs > availableWindowSecs ? PANEL_EQUITY_WINDOWS[0].secs : windowSecs;
   const livelineData = smoothLivelinePoints(
     normalizeLivelinePoints(
       chartData.map((point) => ({
@@ -516,8 +545,8 @@ function EquityCurveCard({
     ),
     { radius: 4, minPoints: 24 },
   );
-  const effectiveWindowSecs = livelineWindowForData(livelineData, windowSecs, {
-    minSecs: Math.min(windowSecs, 86_400),
+  const effectiveWindowSecs = livelineWindowForData(livelineData, selectedWindowSecs, {
+    minSecs: Math.min(selectedWindowSecs, 86_400),
     padRatio: 0.18,
     maxPadSecs: 86_400,
   });
@@ -541,7 +570,11 @@ function EquityCurveCard({
       <CardContent className="px-6 pb-5">
         {hasHistory ? (
           <div className="grid gap-3">
-            <PanelChartWindowControls value={windowSecs} onChange={setWindowSecs} />
+            <PanelChartWindowControls
+              availableWindowSecs={availableWindowSecs}
+              value={selectedWindowSecs}
+              onChange={setWindowSecs}
+            />
             <div
               data-kmfx-liveline
               className="h-[320px] w-full xl:h-[340px]"

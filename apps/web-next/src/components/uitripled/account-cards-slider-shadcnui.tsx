@@ -38,6 +38,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { AccountRow } from "@/lib/domain/accounts-selectors";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   formatCurrency,
   formatPercent,
@@ -644,6 +645,7 @@ export function AccountCardsSlider({
   activeAccountId?: string;
 }) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null);
@@ -671,7 +673,9 @@ export function AccountCardsSlider({
   const scrollTo = (direction: "left" | "right") => {
     const currentX = x.get();
     const containerWidth = containerRef.current?.offsetWidth || 0;
-    const scrollAmount = containerWidth * 0.8;
+    const scrollAmount = isMobile
+      ? Math.min(Math.max(containerWidth - 48, 272), 360) + 24
+      : containerWidth * 0.8;
 
     let newX =
       direction === "left" ? currentX + scrollAmount : currentX - scrollAmount;
@@ -725,7 +729,8 @@ export function AccountCardsSlider({
     return (
       <motion.div
         key={card.id}
-        className="h-[500px] min-w-[320px] max-w-[320px]"
+        data-account-card
+        className="h-[500px] min-w-[calc(100svw-3rem)] max-w-[calc(100svw-3rem)] sm:min-w-[320px] sm:max-w-[320px]"
         whileHover={{ y: -10, transition: { duration: 0.3 } }}
       >
         <Card
@@ -918,32 +923,34 @@ export function AccountCardsSlider({
   return (
     <div className="flex min-w-0 max-w-full flex-col gap-5 overflow-hidden">
       <div className="group/slider relative min-w-0 max-w-full overflow-hidden p-0">
-        <div className="absolute left-2 top-1/2 z-20 -translate-y-1/2 opacity-0 transition-opacity duration-300 group-hover/slider:opacity-100">
+        <div className="absolute left-2 top-1/2 z-20 -translate-y-1/2 opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/slider:opacity-100">
           <button
             onClick={() => scrollTo("left")}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-background active:scale-95"
+            type="button"
+            className="flex size-12 items-center justify-center rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-background active:scale-95"
             aria-label="Ver cuentas anteriores"
           >
-            <ChevronLeft className="h-6 w-6" />
+            <ChevronLeft className="size-6" />
           </button>
         </div>
-        <div className="absolute right-2 top-1/2 z-20 -translate-y-1/2 opacity-0 transition-opacity duration-300 group-hover/slider:opacity-100">
+        <div className="absolute right-2 top-1/2 z-20 -translate-y-1/2 opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/slider:opacity-100">
           <button
             onClick={() => scrollTo("right")}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-background active:scale-95"
+            type="button"
+            className="flex size-12 items-center justify-center rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-background active:scale-95"
             aria-label="Ver cuentas siguientes"
           >
-            <ChevronRight className="h-6 w-6" />
+            <ChevronRight className="size-6" />
           </button>
         </div>
 
         <motion.div
           ref={containerRef}
-          className="max-w-full cursor-grab overflow-hidden px-1 py-8 active:cursor-grabbing"
+          className="max-w-full overflow-hidden px-1 py-8 md:cursor-grab md:active:cursor-grabbing"
           whileTap={{ cursor: "grabbing" }}
         >
           <motion.div
-            drag="x"
+            drag={isMobile ? false : "x"}
             dragConstraints={{ right: 0, left: -width }}
             dragElastic={0.1}
             style={{ x }}

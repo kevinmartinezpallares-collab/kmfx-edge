@@ -418,12 +418,6 @@ function SidebarUserMenu({ workspace }: { workspace: WorkspaceState }) {
   const initials = profileInitials(profileName);
   const secondaryLabel = workspace.meta.userEmail ?? roleLabel;
 
-  async function signOut() {
-    await fetch("/auth/signout", { method: "POST" }).catch(() => null);
-    router.replace("/login");
-    router.refresh();
-  }
-
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -491,14 +485,17 @@ function SidebarUserMenu({ workspace }: { workspace: WorkspaceState }) {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem
-                onClick={() => void signOut()}
-                className="font-medium !text-red-500 focus:!bg-red-500/10 focus:!text-red-500 dark:!text-red-400 dark:focus:!bg-red-400/10 dark:focus:!text-red-400 [&_svg]:!text-red-500 dark:[&_svg]:!text-red-400"
-                variant="destructive"
-              >
-                <LogOut data-icon="inline-start" />
-                Cerrar sesión
-              </DropdownMenuItem>
+              <form action="/auth/signout" method="post">
+                <DropdownMenuItem
+                  nativeButton
+                  render={<button aria-label="Cerrar sesión" type="submit" />}
+                  className="w-full font-medium !text-red-500 focus:!bg-red-500/10 focus:!text-red-500 dark:!text-red-400 dark:focus:!bg-red-400/10 dark:focus:!text-red-400 [&_svg]:!text-red-500 dark:[&_svg]:!text-red-400"
+                  variant="destructive"
+                >
+                  <LogOut data-icon="inline-start" />
+                  Cerrar sesión
+                </DropdownMenuItem>
+              </form>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
