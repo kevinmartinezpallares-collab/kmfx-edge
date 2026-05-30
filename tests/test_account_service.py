@@ -79,6 +79,19 @@ class AccountServiceTests(unittest.TestCase):
         self.assertEqual([second.account_id], default_ids)
         self.assertNotEqual(first.account_id, default_ids[0])
 
+    def test_rename_account_updates_visible_alias(self) -> None:
+        created = self.service.create_pending_account(
+            user_id="user-123",
+            alias="Nueva cuenta MT5",
+        )
+
+        renamed = self.service.rename_account(created.account_id, "Darwinex real")
+        accounts = self.service.list_accounts("user-123")
+
+        self.assertIsNotNone(renamed)
+        self.assertEqual("Darwinex real", accounts[0].alias)
+        self.assertEqual("Darwinex real", accounts[0].nickname)
+
     def test_accounts_snapshot_includes_all_operational_accounts(self) -> None:
         first = self.service.ingest_account_snapshot(
             user_id="user-123",

@@ -5,7 +5,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type BackendJsonOptions = {
   body?: Record<string, unknown>;
-  method?: "DELETE" | "GET" | "POST";
+  method?: "DELETE" | "GET" | "PATCH" | "POST";
 };
 
 async function resolveSupabaseAccessToken() {

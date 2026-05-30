@@ -13,7 +13,16 @@ import {
   type CustomConfig,
 } from "@/components/ui/animated-gradient";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +32,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { animate, motion, useMotionValue } from "framer-motion";
 import {
   ChevronLeft,
@@ -35,7 +45,7 @@ import {
   Rocket,
   Trash2,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import type { AccountRow } from "@/lib/domain/accounts-selectors";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -649,6 +659,10 @@ export function AccountCardsSlider({
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null);
+  const [renamingAccount, setRenamingAccount] = useState<AccountRow | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renamingAccountId, setRenamingAccountId] = useState<string | null>(null);
+  const [renameError, setRenameError] = useState("");
   const x = useMotionValue(0);
   const cards = useMemo(
     () => buildCards(accounts, activeAccountId),
@@ -720,6 +734,55 @@ export function AccountCardsSlider({
       window.alert("No se pudo eliminar la cuenta. Inténtalo de nuevo.");
     } finally {
       setDeletingAccountId(null);
+    }
+  }
+
+  function openRenameDialog(account: AccountRow) {
+    setRenamingAccount(account);
+    setRenameValue(account.label);
+    setRenameError("");
+  }
+
+  async function renameAccount(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!renamingAccount || renamingAccountId) {
+      return;
+    }
+
+    const alias = renameValue.trim();
+    if (!alias) {
+      setRenameError("Escribe un nombre para esta cuenta.");
+      return;
+    }
+
+    setRenamingAccountId(renamingAccount.id);
+    setRenameError("");
+    try {
+      const response = await fetch(
+        `/api/kmfx/accounts/${encodeURIComponent(renamingAccount.id)}`,
+        {
+          body: JSON.stringify({ alias }),
+          headers: { "Content-Type": "application/json" },
+          method: "PATCH",
+        },
+      );
+      const payload = await response.json().catch(() => ({}));
+
+      if (response.status === 401 || payload?.auth_required) {
+        window.location.href = "/login?next=/accounts";
+        return;
+      }
+
+      if (!response.ok || payload?.ok === false) {
+        throw new Error(String(payload?.reason || "rename_failed"));
+      }
+
+      setRenamingAccount(null);
+      router.refresh();
+    } catch {
+      setRenameError("No se pudo guardar el nombre. Revisa el texto e inténtalo de nuevo.");
+    } finally {
+      setRenamingAccountId(null);
     }
   }
 
@@ -797,16 +860,13 @@ export function AccountCardsSlider({
                     <Copy />
                     Copiar login MT5
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openRenameDialog(card.account)}>
+                    <Pencil />
+                    Renombrar cuenta
+                  </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem disabled>
-                    <Pencil />
-                    Editar cuenta
-                    <span className="ml-auto text-[10px] text-muted-foreground">
-                      Pendiente
-                    </span>
-                  </DropdownMenuItem>
                   <DropdownMenuItem disabled>
                     <Rocket />
                     Abrir launcher
@@ -964,6 +1024,70 @@ export function AccountCardsSlider({
       {selectedAccount ? (
         <AccountConnectionDetail key={selectedAccount.id} account={selectedAccount} />
       ) : null}
+
+      <Dialog
+        open={renamingAccount !== null}
+        onOpenChange={(open) => {
+          if (!open && !renamingAccountId) {
+            setRenamingAccount(null);
+            setRenameError("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={renameAccount} className="grid gap-4">
+            <DialogHeader>
+              <DialogTitle>Renombrar cuenta</DialogTitle>
+              <DialogDescription>
+                Este nombre se mostrará en cuentas, selector y detalle. No cambia el login ni la KMFX Key.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-2">
+              <label
+                htmlFor="account-alias"
+                className="text-sm font-medium text-foreground"
+              >
+                Nombre visible
+              </label>
+              <Input
+                id="account-alias"
+                maxLength={80}
+                onChange={(event) => setRenameValue(event.target.value)}
+                placeholder="Darwinex real"
+                value={renameValue}
+              />
+              <p className="text-xs text-muted-foreground">
+                Cuenta MT5 {renamingAccount?.login ?? ""} · {renamingAccount?.server ?? ""}
+              </p>
+              {renameError ? (
+                <p className="text-sm text-destructive">{renameError}</p>
+              ) : null}
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (!renamingAccountId) {
+                    setRenamingAccount(null);
+                    setRenameError("");
+                  }
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={Boolean(renamingAccountId) || !renameValue.trim()}
+              >
+                {renamingAccountId ? "Guardando..." : "Guardar nombre"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1176,6 +1176,29 @@ class AccountService:
         self.store.save_accounts(accounts)
         return deepcopy(target) if target else None
 
+    def rename_account(self, account_id: str, alias: str) -> Account | None:
+        cleaned_alias = _clean_alias(alias)
+        if not cleaned_alias:
+            raise ValueError("missing_alias")
+
+        accounts = self.store.list_accounts()
+        target: Account | None = None
+        now = _now_utc()
+        for account in accounts:
+            if account.account_id == account_id and not _is_deleted(account):
+                account.alias = cleaned_alias
+                account.nickname = cleaned_alias
+                account.updated_at = now
+                target = account
+                log.info(
+                    "[KMFX][ACCOUNT_LIFECYCLE] account_id=%s user_id=%s event=rename_account",
+                    account.account_id,
+                    account.user_id,
+                )
+                break
+        self.store.save_accounts(accounts)
+        return deepcopy(target) if target else None
+
     def revoke_connection_key(self, account_id: str, reason: str = "manual_revocation") -> Account | None:
         accounts = self.store.list_accounts()
         target: Account | None = None

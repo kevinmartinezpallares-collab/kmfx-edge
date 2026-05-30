@@ -249,7 +249,7 @@ def resolve_cors_allow_origin_regex() -> str | None:
 
 CORS_ALLOW_ORIGINS = resolve_cors_allow_origins()
 CORS_ALLOW_ORIGIN_REGEX = resolve_cors_allow_origin_regex()
-CORS_ALLOW_METHODS = ["GET", "POST", "DELETE", "OPTIONS"]
+CORS_ALLOW_METHODS = ["GET", "POST", "PATCH", "DELETE", "OPTIONS"]
 CORS_ALLOW_HEADERS = [
     "Authorization",
     "Content-Type",
@@ -7379,6 +7379,112 @@ async def delete_own_account(account_id: str, request: Request) -> JSONResponse:
             "deleted": True,
             "archived": True,
             "status": archived.status,
+            "timestamp": now_iso(),
+        }
+    )
+
+
+@app.patch("/api/accounts/{account_id}")
+async def update_own_account(account_id: str, request: Request) -> JSONResponse:
+    scope_user_id, auth_context = resolve_account_scope(request)
+    if not scope_user_id:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "auth_required",
+                "timestamp": now_iso(),
+            },
+            status_code=401,
+        )
+    rate_limited = sensitive_rate_limit_response(
+        "PATCH /api/accounts/{account_id}",
+        request,
+        user_id=scope_user_id,
+        email=safe_str(auth_context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
+
+    payload, payload_error = await read_json_object_payload(
+        request,
+        "PATCH /api/accounts/{account_id}",
+        max_bytes=8_192,
+    )
+    if payload_error is not None:
+        return payload_error
+
+    normalized_account_id = safe_str(account_id)
+    account = next(
+        (
+            item
+            for item in account_service.list_accounts(scope_user_id)
+            if item.account_id == normalized_account_id
+        ),
+        None,
+    )
+    if account is None:
+        if not auth_context.get("is_admin"):
+            return connector_json_response(
+                {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+                status_code=404,
+            )
+        account = find_account_by_id_any_user(normalized_account_id)
+        if account is None:
+            return connector_json_response(
+                {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+                status_code=404,
+            )
+
+    alias = safe_str(
+        payload.get("alias")
+        or payload.get("label")
+        or payload.get("display_name")
+        or payload.get("name"),
+    )
+    if not alias:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "missing_alias",
+                "details": {"field": "alias"},
+                "timestamp": now_iso(),
+            },
+            status_code=400,
+        )
+
+    try:
+        updated = account_service.rename_account(normalized_account_id, alias)
+    except ValueError as exc:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": str(exc) or "invalid_alias",
+                "details": {"field": "alias", "max_length": 80},
+                "timestamp": now_iso(),
+            },
+            status_code=400,
+        )
+
+    if updated is None:
+        return connector_json_response(
+            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+            status_code=404,
+        )
+
+    remember_live_account_snapshot(updated)
+    emit_audit_event(
+        "rename_account",
+        context=auth_context,
+        user_id=scope_user_id,
+        account_id=updated.account_id,
+        details={"source": "accounts_list"},
+    )
+    return connector_json_response(
+        {
+            "ok": True,
+            "account_id": updated.account_id,
+            "alias": updated.alias,
+            "display_name": updated.alias,
             "timestamp": now_iso(),
         }
     )
