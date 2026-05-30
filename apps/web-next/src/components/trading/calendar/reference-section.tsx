@@ -710,24 +710,29 @@ export function CalendarReferenceSection({
                               disabled={!cell.trades}
                               title={cell.trades ? `${cell.trades} operaciones / ${formatCalendarValue(cell.pnl, valueMode, baseCapital)}. Abrir detalle` : "Sin operativa"}
                               aria-label={cell.trades ? `${cell.dayNumber}: ${cell.trades} operaciones, ${formatCalendarValue(cell.pnl, valueMode, baseCapital)}. Abrir detalle` : `${cell.dayNumber}: sin operativa`}
-                              className={[
+                              className={cn(
                                 "min-h-16 rounded-lg border p-1.5 text-left transition md:min-h-[72px] md:p-2 xl:min-h-20",
-                                cell.key === selectedDayKey
-                                  ? "border-zinc-500/45 bg-card text-foreground"
-                                  : cell.state === "win"
-                                    ? "border-profit/40 bg-profit-muted hover:bg-profit-muted"
-                                    : cell.state === "loss"
-                                      ? "border-loss/40 bg-loss-muted hover:bg-loss-muted"
-                                      : "border-border/70 bg-card/60 hover:bg-card",
+                                cell.state === "win"
+                                  ? "border-profit/40 bg-profit-muted hover:bg-profit-muted"
+                                  : cell.state === "loss"
+                                    ? "border-loss/40 bg-loss-muted hover:bg-loss-muted"
+                                    : "border-border/70 bg-card/60 hover:bg-card",
+                                cell.key === selectedDayKey &&
+                                  "border-zinc-400/70 ring-1 ring-zinc-300/45",
                                 cell.trades ? "cursor-pointer" : "cursor-default hover:bg-card/60",
-                              ].join(" ")}
+                              )}
                             >
-                              <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-start justify-between gap-1">
                                 <span className="text-sm font-medium text-foreground">
                                   {cell.dayNumber}
                                 </span>
-                                <span className="rounded-full bg-background/55 px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                                  {cell.trades ? `${cell.trades} op` : ""}
+                                <span className="min-w-5 rounded-full bg-background/55 px-1 py-0.5 text-center font-mono text-[10px] leading-none whitespace-nowrap text-muted-foreground">
+                                  {cell.trades ? (
+                                    <>
+                                      {cell.trades}
+                                      <span className="hidden sm:inline"> op</span>
+                                    </>
+                                  ) : null}
                                 </span>
                               </div>
                               <div className="mt-2 xl:mt-5">
