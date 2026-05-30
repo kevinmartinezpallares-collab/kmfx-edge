@@ -63,5 +63,10 @@
     "tailwindcss": "4.3.0",
     "typescript": "^5",
     "vitest": "^4.1.6"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.15"
+    }
   }
 }
