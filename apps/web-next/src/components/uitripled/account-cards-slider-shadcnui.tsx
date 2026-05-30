@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 import {
   Avatar,
@@ -253,6 +254,12 @@ function playbookLabel(rawLabel: string) {
 
 function copyAccountLogin(account: AccountRow) {
   void navigator.clipboard?.writeText(account.login);
+}
+
+function deleteAccountConfirmation(account: AccountRow) {
+  return window.confirm(
+    `¿Eliminar ${account.label} del dashboard? Se revocará su KMFX Key y dejará de aparecer en tus cuentas.`,
+  );
 }
 
 function companyName(account: AccountRow) {
@@ -636,8 +643,10 @@ export function AccountCardsSlider({
   accounts: AccountRow[];
   activeAccountId?: string;
 }) {
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
+  const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null);
   const x = useMotionValue(0);
   const cards = useMemo(
     () => buildCards(accounts, activeAccountId),
@@ -676,6 +685,39 @@ export function AccountCardsSlider({
       mass: 1,
     });
   };
+
+  async function deleteAccount(account: AccountRow) {
+    if (deletingAccountId || !deleteAccountConfirmation(account)) {
+      return;
+    }
+
+    setDeletingAccountId(account.id);
+    try {
+      const response = await fetch(
+        `/api/kmfx/accounts/${encodeURIComponent(account.id)}`,
+        { method: "DELETE" },
+      );
+      const payload = await response.json().catch(() => ({}));
+
+      if (response.status === 401 || payload?.auth_required) {
+        window.location.href = "/login?next=/accounts";
+        return;
+      }
+
+      if (!response.ok || payload?.ok === false) {
+        throw new Error("delete_failed");
+      }
+
+      setSelectedAccountId((current) =>
+        current === account.id ? cards.find((card) => card.id !== account.id)?.id ?? "" : current,
+      );
+      router.refresh();
+    } catch {
+      window.alert("No se pudo eliminar la cuenta. Inténtalo de nuevo.");
+    } finally {
+      setDeletingAccountId(null);
+    }
+  }
 
   const cardNodes = cards.map((card, index) => {
     const gradientConfig = gradientConfigForCard(card.account, index);
@@ -769,17 +811,17 @@ export function AccountCardsSlider({
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  disabled
-                  variant="destructive"
-                  className="text-destructive focus:bg-destructive/10 focus:text-destructive [&_svg]:text-destructive"
-                >
-                  <Trash2 />
-                  Eliminar cuenta
-                  <span className="ml-auto text-[10px] text-muted-foreground">
-                    Pendiente
-                  </span>
-                </DropdownMenuItem>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    disabled={deletingAccountId === card.id}
+                    onClick={() => void deleteAccount(card.account)}
+                    variant="destructive"
+                    className="text-destructive focus:bg-destructive/10 focus:text-destructive [&_svg]:text-destructive"
+                  >
+                    <Trash2 />
+                    {deletingAccountId === card.id ? "Eliminando..." : "Eliminar cuenta"}
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -836,25 +878,25 @@ export function AccountCardsSlider({
             </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-4">
-            <div className="flex items-center gap-2">
+          <div className="mt-2 flex items-center justify-between gap-3 pt-2">
+            <div className="flex min-w-0 items-center gap-2">
               <AccountLogoFrame
                 src={card.author.avatar}
                 alt={`${card.author.name} logo`}
                 className="size-8 border border-border/50 bg-background ring-2 ring-background"
                 size={32}
               />
-              <div className="flex flex-col">
-                <span className="text-xs font-semibold text-foreground">
+              <div className="flex min-w-0 flex-col">
+                <span className="truncate text-xs font-semibold text-foreground">
                   {card.author.name}
                 </span>
-                <span className="text-[10px] text-muted-foreground">
+                <span className="truncate text-[10px] text-muted-foreground">
                   {card.status} / {card.date}
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 rounded-full bg-secondary/50 px-2.5 py-1 text-xs font-medium text-muted-foreground">
-              <Clock className="h-3 w-3" />
+            <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-secondary/50 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              <Clock className="size-3" />
               <span>{card.readTime}</span>
             </div>
           </div>

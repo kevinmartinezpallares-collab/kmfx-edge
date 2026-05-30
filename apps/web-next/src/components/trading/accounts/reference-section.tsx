@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, Copy, Download, ExternalLink, Plus } from "lucide-react";
+import { CheckCircle2, Copy, Download, ExternalLink, Plus, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { AccountCardsSlider } from "@/components/uitripled/account-cards-slider-shadcnui";
@@ -97,6 +97,21 @@ const mt5FinishSteps = [
   },
 ] as const;
 
+type PendingAccountStatus = {
+  account_id?: string;
+  alias?: string;
+  broker?: string;
+  login?: string;
+  mt5_login?: string;
+  server?: string;
+  status?: string;
+  lifecycle_status?: string;
+  last_sync_at?: string;
+  first_sync_at?: string;
+  last_error_code?: string;
+  last_error_message?: string;
+};
+
 function readRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
@@ -168,6 +183,25 @@ function accountLinkFailureMessage(payload: unknown, status: number) {
     : "No se pudo preparar la cuenta. Revisa sesión, plan y límites.";
 }
 
+function formatSyncCheckLabel(value: string | undefined) {
+  if (!value) return "";
+
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return "";
+
+  const diffSeconds = Math.max(0, Math.round((Date.now() - timestamp) / 1000));
+  if (diffSeconds < 60) return `Hace ${diffSeconds} s`;
+
+  const diffMinutes = Math.round(diffSeconds / 60);
+  if (diffMinutes < 60) return `Hace ${diffMinutes} min`;
+
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `Hace ${diffHours} h`;
+
+  const diffDays = Math.round(diffHours / 24);
+  return `Hace ${diffDays} d`;
+}
+
 type PageMotionProps = {
   children: React.ReactNode;
 };
@@ -202,6 +236,13 @@ export function AccountsReferenceSection({
     message: "",
     status: "idle",
   });
+  const [connectionCheck, setConnectionCheck] = React.useState<{
+    message: string;
+    status: "idle" | "checking" | "waiting" | "connected" | "error";
+  }>({
+    message: "",
+    status: "idle",
+  });
   const [copiedWebRequest, setCopiedWebRequest] = React.useState(false);
   const accountsOverview = getAccountsOverview(workspace);
   const accountRows = accountsOverview.rows;
@@ -230,6 +271,7 @@ export function AccountsReferenceSection({
     if (open) {
       setAddAccountStep(1);
       setCopiedWebRequest(false);
+      setConnectionCheck({ message: "", status: "idle" });
     }
   }
 
@@ -302,6 +344,7 @@ export function AccountsReferenceSection({
       message: "Preparando conexión segura...",
       status: "pending",
     });
+    setConnectionCheck({ message: "", status: "idle" });
 
     try {
       const response = await fetch("/api/kmfx/accounts/link", {
@@ -344,6 +387,90 @@ export function AccountsReferenceSection({
         accountId: "",
         connectionKey: "",
         message,
+        status: "error",
+      });
+    }
+  }
+
+  async function checkPendingAccountConnection() {
+    if (!linkState.accountId) {
+      setConnectionCheck({
+        message: "Genera primero la KMFX Key de esta cuenta.",
+        status: "error",
+      });
+      return;
+    }
+
+    setConnectionCheck({
+      message: "Comprobando si el EA ya envió la primera sincronización...",
+      status: "checking",
+    });
+
+    try {
+      const response = await fetch(
+        `/api/kmfx/accounts/pending?account_id=${encodeURIComponent(linkState.accountId)}`,
+        { cache: "no-store" },
+      );
+      const payload = await response.json().catch(() => ({}));
+
+      if (response.status === 401 || payload?.auth_required) {
+        router.push("/login?next=/accounts");
+        return;
+      }
+
+      const account = Array.isArray(payload?.accounts)
+        ? (payload.accounts[0] as PendingAccountStatus | undefined)
+        : undefined;
+
+      if (!response.ok || !account) {
+        setConnectionCheck({
+          message:
+            "Todavía no aparece esta conexión. Revisa que la KMFX Key esté pegada en el EA correcto.",
+          status: "waiting",
+        });
+        return;
+      }
+
+      const rawStatus = String(account.status || account.lifecycle_status || "").toLowerCase();
+      const hasError =
+        rawStatus === "error" ||
+        Boolean(account.last_error_code || account.last_error_message);
+      const hasSync =
+        rawStatus === "active" ||
+        rawStatus === "connected" ||
+        Boolean(account.last_sync_at || account.first_sync_at);
+      const lastSyncLabel = formatSyncCheckLabel(account.last_sync_at);
+      const login = account.login || account.mt5_login;
+
+      if (hasError) {
+        setConnectionCheck({
+          message:
+            account.last_error_message ||
+            "MT5 respondió con error. Revisa WebRequest, Algo Trading y el campo KMFXKey del EA.",
+          status: "error",
+        });
+        return;
+      }
+
+      if (hasSync) {
+        setConnectionCheck({
+          message: `Conexión confirmada${login ? ` para MT5 ${login}` : ""}${
+            lastSyncLabel ? ` - ${lastSyncLabel}` : ""
+          }.`,
+          status: "connected",
+        });
+        router.refresh();
+        return;
+      }
+
+      setConnectionCheck({
+        message:
+          "Aún no llegó la primera sincronización. Deja MT5 abierto y confirma WebRequest, Algo Trading y KMFX Key.",
+        status: "waiting",
+      });
+    } catch {
+      setConnectionCheck({
+        message: "No se pudo comprobar la conexión ahora. Inténtalo de nuevo en unos segundos.",
         status: "error",
       });
     }
@@ -677,13 +804,25 @@ export function AccountsReferenceSection({
                       ) : null}
                     </div>
                   ) : null}
+                  {connectionCheck.message ? (
+                    <p
+                      className={cn(
+                        "mt-3 text-xs leading-5 text-muted-foreground",
+                        connectionCheck.status === "connected" && "text-foreground",
+                        connectionCheck.status === "error" && "text-destructive",
+                      )}
+                    >
+                      {connectionCheck.message}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="grid gap-3 rounded-xl border border-border/70 bg-background/45 p-4 sm:grid-cols-3">
                   {mt5FinishSteps.map((step, index) => (
                     <div className="flex items-start gap-3" key={step.title}>
                       <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border/70 bg-muted/35">
-                        {linkState.connectionKey && index === 0 ? (
+                        {(linkState.connectionKey && index === 0) ||
+                        (connectionCheck.status === "connected" && index === 2) ? (
                           <CheckCircle2 data-icon="inline-start" />
                         ) : (
                           <span className="text-xs font-medium">{index + 1}</span>
@@ -760,6 +899,22 @@ export function AccountsReferenceSection({
                     onClick={() => setIsAddAccountOpen(false)}
                   >
                     Cerrar
+                  </Button>
+                  <Button
+                    disabled={!linkState.accountId || connectionCheck.status === "checking"}
+                    type="button"
+                    variant="outline"
+                    onClick={() => void checkPendingAccountConnection()}
+                  >
+                    <RefreshCw
+                      data-icon="inline-start"
+                      className={cn(
+                        connectionCheck.status === "checking" && "animate-spin",
+                      )}
+                    />
+                    {connectionCheck.status === "checking"
+                      ? "Comprobando..."
+                      : "Comprobar conexión"}
                   </Button>
                   <Button
                     disabled={linkPending || !connectionReady}

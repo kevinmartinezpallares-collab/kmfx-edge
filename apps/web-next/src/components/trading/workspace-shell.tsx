@@ -34,6 +34,7 @@ import {
   type NavigationItem,
 } from "@/lib/domain/navigation";
 import { resolveConnectionAccess } from "@/lib/billing/connection-access";
+import { getAccountsOverview } from "@/lib/domain/accounts-selectors";
 import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
 import { cn } from "@/lib/utils";
 import {
@@ -74,7 +75,7 @@ function getNavBadge(
   if (!href) return item.badge;
 
   if (href === "/dashboard") return "Activo";
-  if (href === "/accounts") return String(workspace.accounts.length);
+  if (href === "/accounts") return String(getAccountsOverview(workspace).totalCount);
   if (href === "/risk") return workspace.risk.status === "safe" ? "OK" : workspace.risk.status;
   if (href === "/analytics") return workspace.analytics.currentPeriod;
   if (href === "/trades") return String(countClosedTradeExecutions(workspace.trades));

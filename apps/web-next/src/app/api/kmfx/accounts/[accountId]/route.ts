@@ -1,13 +1,18 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 import { requestAuthenticatedBackendJson } from "@/lib/api/authenticated-backend";
 
-export async function GET(request: NextRequest) {
-  const query = request.nextUrl.searchParams.toString();
+type RouteContext = {
+  params: Promise<{ accountId: string }>;
+};
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { accountId } = await context.params;
 
   try {
     const result = await requestAuthenticatedBackendJson(
-      `/accounts/pending${query ? `?${query}` : ""}`,
+      `/api/accounts/${encodeURIComponent(accountId)}`,
+      { method: "DELETE" },
     );
 
     return NextResponse.json(result.payload, { status: result.status });

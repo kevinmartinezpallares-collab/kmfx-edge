@@ -6783,11 +6783,22 @@ async def list_pending_accounts(request: Request) -> JSONResponse:
     scope_user_id, admin_context = resolve_account_scope(request)
     if not scope_user_id:
         return connector_json_response(empty_accounts_payload(admin_context))
-    pending_accounts = [
-        account
-        for account in account_service.build_accounts_registry(scope_user_id)
-        if account.get("status") in {"draft", "pending", "pending_setup", "pending_link", "waiting_sync", "linked"}
-    ]
+    requested_account_id = safe_str(
+        request.query_params.get("account_id") or request.query_params.get("accountId")
+    )
+    registry = account_service.build_accounts_registry(scope_user_id)
+    if requested_account_id:
+        pending_accounts = [
+            account
+            for account in registry
+            if safe_str(account.get("account_id")) == requested_account_id
+        ]
+    else:
+        pending_accounts = [
+            account
+            for account in registry
+            if account.get("status") in {"draft", "pending", "pending_setup", "pending_link", "waiting_sync", "linked"}
+        ]
     return connector_json_response(
         {
             "ok": True,
@@ -6800,7 +6811,17 @@ async def list_pending_accounts(request: Request) -> JSONResponse:
                     "connection_key": account.get("connection_key", ""),
                     "status": account.get("status", ""),
                     "lifecycle_status": account.get("lifecycle_status", account.get("status", "")),
+                    "broker": account.get("broker", ""),
+                    "login": account.get("login", ""),
+                    "mt5_login": account.get("mt5_login", ""),
+                    "server": account.get("server", ""),
+                    "display_name": account.get("display_name", ""),
+                    "last_sync_at": account.get("last_sync_at", ""),
+                    "first_sync_at": account.get("first_sync_at", ""),
+                    "last_error_code": account.get("last_error_code", ""),
+                    "last_error_message": account.get("last_error_message", ""),
                     "created_at": account.get("created_at", ""),
+                    "updated_at": account.get("updated_at", ""),
                 }
                 for account in pending_accounts
             ],
