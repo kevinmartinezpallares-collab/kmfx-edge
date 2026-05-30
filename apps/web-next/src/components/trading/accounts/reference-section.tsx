@@ -97,6 +97,77 @@ const mt5FinishSteps = [
   },
 ] as const;
 
+function readRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function readString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function accountLinkFailureMessage(payload: unknown, status: number) {
+  const data = readRecord(payload);
+  const details = readRecord(data.details);
+  const reason = readString(data.reason || data.error);
+  const message = readString(data.message);
+
+  if (message) {
+    return message;
+  }
+
+  if (reason === "auth_required") {
+    return "Inicia sesión de nuevo para generar una KMFX Key.";
+  }
+
+  if (reason === "billing_required" || reason === "entitlement_required") {
+    return "Activa un plan para añadir cuentas MT5 y descargar launcher/EA.";
+  }
+
+  if (reason === "billing_past_due") {
+    return "Regulariza la suscripción para conectar cuentas MT5.";
+  }
+
+  if (reason === "plan_limit_reached") {
+    const currentConnections = details.current_connections;
+    const connectionLimit = details.connection_limit;
+    const hasCounts =
+      typeof currentConnections === "number" &&
+      typeof connectionLimit === "number";
+
+    return hasCounts
+      ? `Has alcanzado el límite de tu plan (${currentConnections}/${connectionLimit} cuentas MT5). Gestiona el plan o libera una key.`
+      : "Has alcanzado el límite de cuentas MT5 de tu plan.";
+  }
+
+  if (reason === "connection_key_revoked") {
+    return "La KMFX Key de esta cuenta fue revocada. Genera o restaura una key válida.";
+  }
+
+  if (reason === "connection_key_already_linked") {
+    return "Esta KMFX Key ya está asociada a otra cuenta.";
+  }
+
+  if (reason === "connection_key_not_available") {
+    return "No se pudo recuperar una KMFX Key para esta cuenta. Prueba a generar una nueva conexión.";
+  }
+
+  if (reason === "account_not_found") {
+    return "La cuenta pendiente no existe en el registro actual. Cierra el modal y vuelve a crear la conexión.";
+  }
+
+  if (reason === "rate_limited") {
+    return "Demasiados intentos seguidos. Espera un momento y vuelve a generar la KMFX Key.";
+  }
+
+  if (reason === "fetch failed") {
+    return "No se pudo contactar con el backend MT5 desde este entorno. En local, arranca la API o configura KMFX_API_BASE_URL hacia Render.";
+  }
+
+  return status >= 500
+    ? "El backend no pudo preparar la cuenta ahora. Reinténtalo en unos segundos."
+    : "No se pudo preparar la cuenta. Revisa sesión, plan y límites.";
+}
+
 type PageMotionProps = {
   children: React.ReactNode;
 };
@@ -252,7 +323,7 @@ export function AccountsReferenceSection({
       }
 
       if (!response.ok || payload?.ok === false) {
-        throw new Error(payload?.reason || payload?.error || "account_link_failed");
+        throw new Error(accountLinkFailureMessage(payload, response.status));
       }
 
       setLinkState({
@@ -265,14 +336,14 @@ export function AccountsReferenceSection({
         status: "ready",
       });
     } catch (error) {
-      const reason = error instanceof Error ? error.message : "account_link_failed";
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo preparar la cuenta. Revisa sesión, plan y límites.";
       setLinkState({
         accountId: "",
         connectionKey: "",
-        message:
-          reason === "billing_required" || reason === "entitlement_required"
-            ? "Activa primero la suscripción para añadir cuentas MT5."
-            : "No se pudo preparar la cuenta. Revisa sesión, plan y límites.",
+        message,
         status: "error",
       });
     }
