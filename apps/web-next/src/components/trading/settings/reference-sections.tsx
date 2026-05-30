@@ -176,6 +176,17 @@ function usagePercentForPlan(option: SettingsPlanOption, accountCount: number) {
   return Math.min(100, Math.round((accountCount / Math.max(1, limit)) * 100));
 }
 
+function annualMonthlyEquivalentLabel(option: SettingsPlanOption) {
+  const annualPrice = Number.parseInt(option.yearlyLabel, 10);
+  const monthlyEquivalent = annualPrice / 12;
+  const formatter = new Intl.NumberFormat("es-ES", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: Number.isInteger(monthlyEquivalent) ? 0 : 2,
+  });
+
+  return `Equiv. ${formatter.format(monthlyEquivalent)} EUR/mes`;
+}
+
 function SettingsPreferenceControl({
   preference,
   value,
@@ -642,7 +653,8 @@ export function SubscriptionReferenceSection({
   const includedFeatures = currentOption?.features ?? [];
   const priceForInterval = (option: SettingsPlanOption) =>
     billingInterval === "monthly" ? option.priceLabel : option.yearlyLabel;
-  const intervalCaption = billingInterval === "monthly" ? "Sin permanencia" : "Pagas 10 meses";
+  const intervalCaptionForOption = (option: SettingsPlanOption) =>
+    billingInterval === "monthly" ? "Sin permanencia" : annualMonthlyEquivalentLabel(option);
   const planDecisionRows = [
     {
       label: "Individual",
@@ -737,7 +749,7 @@ export function SubscriptionReferenceSection({
     {
       label: "Precio",
       value: priceForInterval(currentOption),
-      note: intervalCaption,
+      note: intervalCaptionForOption(currentOption),
     },
     {
       label: "Capacidad",
@@ -1126,7 +1138,7 @@ export function SubscriptionReferenceSection({
                                 {priceForInterval(option)}
                               </p>
                               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                                {intervalCaption}
+                                {intervalCaptionForOption(option)}
                               </p>
                             </div>
                             <div className="rounded-2xl border border-border/50 bg-background/35 p-3">
