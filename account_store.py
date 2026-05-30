@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
 from typing import Iterable
 
-from account_keys import hash_connection_key, mask_connection_key, normalize_connection_key
+from account_keys import hash_connection_key, mask_connection_key, normalize_connection_key, unseal_connection_key
 from account_models import Account
 
 
@@ -261,6 +261,7 @@ def _projected_account_record(row: dict) -> dict:
         "api_key": "",
         "connection_key_hash": row.get("connection_key_hash") or "",
         "connection_key_preview": row.get("connection_key_preview") or "",
+        "connection_key_sealed": row.get("connection_key_sealed") or "",
         "last_sync_at": row.get("last_sync_at") or "",
         "mt5_login": row.get("mt5_login") or row.get("login") or "",
         "is_primary": _bool_from_value(row.get("is_primary")),
@@ -311,6 +312,7 @@ def account_to_record(account: Account) -> dict:
         "api_key": "",
         "connection_key_hash": connection_key_hash,
         "connection_key_preview": connection_key_preview,
+        "connection_key_sealed": account.connection_key_sealed,
         "last_sync_at": _serialize_datetime(account.last_sync_at),
         "mt5_login": account.mt5_login,
         "is_primary": bool(account.is_primary or account.is_default),
@@ -338,6 +340,7 @@ def account_to_record(account: Account) -> dict:
 def record_to_account(record: dict) -> Account:
     now = _now_utc()
     raw_api_key = normalize_connection_key(record.get("api_key"))
+    raw_api_key = raw_api_key or unseal_connection_key(record.get("connection_key_sealed"))
     raw_revoked_keys = [
         normalize_connection_key(item)
         for item in (record.get("revoked_connection_keys") or [])
@@ -364,6 +367,7 @@ def record_to_account(record: dict) -> Account:
         api_key=raw_api_key,
         connection_key_hash=connection_key_hash,
         connection_key_preview=connection_key_preview,
+        connection_key_sealed=str(record.get("connection_key_sealed") or ""),
         last_sync_at=_parse_datetime(record.get("last_sync_at")),
         mt5_login=str(record.get("mt5_login") or record.get("login") or ""),
         is_primary=bool(record.get("is_primary") if "is_primary" in record else record.get("is_default")),

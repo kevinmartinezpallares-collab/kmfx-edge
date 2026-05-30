@@ -472,7 +472,14 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                     },
                 )
 
-                with patch.dict("os.environ", {"KMFX_DEFAULT_CONNECTION_PLAN": "core"}, clear=False):
+                with patch.dict(
+                    "os.environ",
+                    {
+                        "KMFX_DEFAULT_CONNECTION_PLAN": "core",
+                        "KMFX_CONNECTION_KEY_SECRET": "unit-test-key-secret",
+                    },
+                    clear=False,
+                ):
                     response = asyncio.run(connector_api.link_account(request))
                 body = json.loads(response.body.decode("utf-8"))
                 raw_key = body["connection_key"]
@@ -489,6 +496,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 self.assertEqual("", record["api_key"])
                 self.assertEqual(hash_connection_key(raw_key), record["connection_key_hash"])
                 self.assertEqual(mask_connection_key(raw_key), record["connection_key_preview"])
+                self.assertTrue(record["connection_key_sealed"])
                 self.assertNotIn(raw_key, json.dumps(persisted))
 
                 list_response = asyncio.run(connector_api.list_accounts(request))
@@ -501,7 +509,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
-    def test_link_account_regenerates_missing_plaintext_key_for_pending_account(self) -> None:
+    def test_link_account_regenerates_legacy_missing_plaintext_key_for_pending_account(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service
             store_path = os.path.join(temp_dir, "accounts.json")
@@ -518,8 +526,30 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                     },
                 )
 
-                with patch.dict("os.environ", {"KMFX_DEFAULT_CONNECTION_PLAN": "core"}, clear=False):
+                with patch.dict(
+                    "os.environ",
+                    {
+                        "KMFX_DEFAULT_CONNECTION_PLAN": "core",
+                        "KMFX_CONNECTION_KEY_SECRET": "unit-test-key-secret",
+                    },
+                    clear=False,
+                ):
                     first_response = asyncio.run(connector_api.link_account(request))
+
+                with open(store_path, "r", encoding="utf-8") as handle:
+                    legacy_persisted = json.load(handle)
+                legacy_persisted["accounts"][0]["connection_key_sealed"] = ""
+                with open(store_path, "w", encoding="utf-8") as handle:
+                    json.dump(legacy_persisted, handle)
+
+                with patch.dict(
+                    "os.environ",
+                    {
+                        "KMFX_DEFAULT_CONNECTION_PLAN": "core",
+                        "KMFX_CONNECTION_KEY_SECRET": "unit-test-key-secret",
+                    },
+                    clear=False,
+                ):
                     second_response = asyncio.run(connector_api.link_account(request))
                 first_body = json.loads(first_response.body.decode("utf-8"))
                 second_body = json.loads(second_response.body.decode("utf-8"))
@@ -536,9 +566,47 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 record = persisted["accounts"][0]
                 self.assertEqual("", record["api_key"])
                 self.assertEqual(hash_connection_key(second_body["connection_key"]), record["connection_key_hash"])
+                self.assertTrue(record["connection_key_sealed"])
                 self.assertIn(hash_connection_key(first_body["connection_key"]), record["revoked_connection_key_hashes"])
                 self.assertNotIn(first_body["connection_key"], json.dumps(persisted))
                 self.assertNotIn(second_body["connection_key"], json.dumps(persisted))
+            finally:
+                connector_api.account_service = previous_service
+
+    def test_account_detail_connection_key_returns_sealed_key_for_owner(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            store_path = os.path.join(temp_dir, "accounts.json")
+            connector_api.account_service = AccountService(JsonFileAccountStore(store_path))
+            try:
+                request = self._request(
+                    host="127.0.0.1",
+                    headers={"x-kmfx-user-id": "user-123"},
+                    json_body={
+                        "label": "Cuenta MT5 EA",
+                        "platform": "mt5",
+                        "connection_mode": "launcher",
+                    },
+                )
+                with patch.dict(
+                    "os.environ",
+                    {
+                        "KMFX_DEFAULT_CONNECTION_PLAN": "core",
+                        "KMFX_CONNECTION_KEY_SECRET": "unit-test-key-secret",
+                    },
+                    clear=False,
+                ):
+                    link_response = asyncio.run(connector_api.link_account(request))
+                    link_body = json.loads(link_response.body.decode("utf-8"))
+                    key_response = asyncio.run(
+                        connector_api.get_own_account_connection_key(link_body["account_id"], request)
+                    )
+                key_body = json.loads(key_response.body.decode("utf-8"))
+
+                self.assertEqual(200, key_response.status_code)
+                self.assertEqual(link_body["account_id"], key_body["account_id"])
+                self.assertEqual(link_body["connection_key"], key_body["connection_key"])
+                self.assertEqual(mask_connection_key(link_body["connection_key"]), key_body["connection_key_preview"])
             finally:
                 connector_api.account_service = previous_service
 

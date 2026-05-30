@@ -19,6 +19,7 @@ class Account:
     api_key: str
     connection_key_hash: str = ""
     connection_key_preview: str = ""
+    connection_key_sealed: str = ""
     last_sync_at: Optional[datetime] = None
     mt5_login: str = ""
     is_primary: bool = False

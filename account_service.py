@@ -15,6 +15,7 @@ from account_keys import (
     hash_connection_key,
     mask_connection_key,
     normalize_connection_key,
+    seal_connection_key,
 )
 from account_models import Account
 from account_store import AccountStore
@@ -447,6 +448,7 @@ def _set_account_connection_key(account: Account, connection_key: str) -> None:
     account.api_key = normalized
     account.connection_key_hash = hash_connection_key(normalized)
     account.connection_key_preview = mask_connection_key(normalized)
+    account.connection_key_sealed = seal_connection_key(normalized)
 
 
 def _account_has_connection_key(account: Account) -> bool:
@@ -556,6 +558,7 @@ class AccountService:
                 api_key=api_key,
                 connection_key_hash=hash_connection_key(api_key),
                 connection_key_preview=mask_connection_key(api_key),
+                connection_key_sealed=seal_connection_key(api_key),
                 nickname=nickname,
                 mt5_login=login,
                 is_primary=is_default,

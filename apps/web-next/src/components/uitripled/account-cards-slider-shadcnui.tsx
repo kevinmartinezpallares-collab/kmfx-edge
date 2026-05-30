@@ -356,6 +356,55 @@ function AccountDetailMetric({
 
 function AccountConnectionDetail({ account }: { account: AccountRow }) {
   const funding = account.funding;
+  const [connectionKey, setConnectionKey] = useState("");
+  const [keyStatus, setKeyStatus] = useState<"idle" | "loading" | "ready" | "error" | "copied">(
+    "idle",
+  );
+  const [keyMessage, setKeyMessage] = useState(
+    "La KMFX Key es única para esta cuenta MT5.",
+  );
+
+  async function revealConnectionKey() {
+    setKeyStatus("loading");
+    setKeyMessage("Recuperando key segura...");
+    try {
+      const response = await fetch(
+        `/api/kmfx/accounts/${encodeURIComponent(account.id)}/connection-key`,
+        { cache: "no-store" },
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        connection_key?: string;
+        connection_key_preview?: string;
+        reason?: string;
+      };
+      if (!response.ok || !payload.connection_key) {
+        const unavailable =
+          payload.reason === "connection_key_not_available"
+            ? "No se puede recuperar esta key antigua. Genera una nueva conexión para esta cuenta."
+            : "No se pudo recuperar la KMFX Key. Revisa sesión, plan y permisos.";
+        setConnectionKey(payload.connection_key_preview ?? "");
+        setKeyStatus("error");
+        setKeyMessage(unavailable);
+        return;
+      }
+      setConnectionKey(payload.connection_key);
+      setKeyStatus("ready");
+      setKeyMessage("Key lista para copiar y pegar en el EA de esta cuenta.");
+    } catch {
+      setKeyStatus("error");
+      setKeyMessage("No se pudo contactar con la API para recuperar la key.");
+    }
+  }
+
+  async function copyConnectionKey() {
+    if (!connectionKey) {
+      await revealConnectionKey();
+      return;
+    }
+    await navigator.clipboard.writeText(connectionKey);
+    setKeyStatus("copied");
+    setKeyMessage("KMFX Key copiada.");
+  }
 
   return (
     <motion.div
@@ -408,13 +457,31 @@ function AccountConnectionDetail({ account }: { account: AccountRow }) {
                 </Badge>
               </div>
               <div className="rounded-2xl border border-border/60 bg-background/40 p-4">
-                <p className="text-sm font-medium text-foreground">Key KMFX</p>
-                <p className="mt-2 font-mono text-sm text-muted-foreground">
-                  •••• •••• ••••
-                </p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  La clave completa se mantiene protegida. Aquí solo se mostrará
-                  una vista parcial segura cuando esté disponible.
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">KMFX Key</p>
+                    <p className="mt-2 truncate font-mono text-sm text-muted-foreground">
+                      {connectionKey || "•••• •••• ••••"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={connectionKey ? copyConnectionKey : revealConnectionKey}
+                    disabled={keyStatus === "loading"}
+                    className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-accent disabled:cursor-wait disabled:opacity-60"
+                  >
+                    <Copy className="size-3.5" />
+                    {keyStatus === "loading"
+                      ? "Cargando"
+                      : keyStatus === "copied"
+                        ? "Copiada"
+                        : connectionKey
+                          ? "Copiar"
+                          : "Ver key"}
+                  </button>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  {keyMessage}
                 </p>
               </div>
             </div>
@@ -845,7 +912,9 @@ export function AccountCardsSlider({
         </motion.div>
       </div>
 
-      {selectedAccount ? <AccountConnectionDetail account={selectedAccount} /> : null}
+      {selectedAccount ? (
+        <AccountConnectionDetail key={selectedAccount.id} account={selectedAccount} />
+      ) : null}
     </div>
   );
 }

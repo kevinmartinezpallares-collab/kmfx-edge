@@ -7048,6 +7048,22 @@ async def get_own_account_connection_key(account_id: str, request: Request) -> J
             )
     connection_key = safe_str(getattr(account, "api_key", ""))
     if not connection_key:
+        if can_regenerate_missing_pending_connection_key(account):
+            regenerated_account = account_service.regenerate_connection_key(account.account_id)
+            if regenerated_account is not None:
+                account = regenerated_account
+                connection_key = safe_str(getattr(account, "api_key", ""))
+                emit_audit_event(
+                    "repair_connection_key",
+                    context=auth_context,
+                    user_id=account.user_id,
+                    account_id=account.account_id,
+                    details={
+                        "source": "account_detail",
+                        "connection_key_preview": getattr(account, "connection_key_preview", "") or mask_connection_key(connection_key),
+                    },
+                )
+    if not connection_key:
         return connector_json_response(
             {
                 "ok": False,
