@@ -697,7 +697,7 @@ export function SubscriptionReferenceSection({
           cancelUrl: "/subscription?checkout=cancelled",
           interval: billingInterval,
           plan: planKey,
-          successUrl: "/subscription?checkout=success",
+          successUrl: "/subscription?checkout=success&session_id={CHECKOUT_SESSION_ID}",
         }),
         headers: {
           "Content-Type": "application/json",
