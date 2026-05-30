@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Download, ExternalLink, Plus } from "lucide-react";
+import { CheckCircle2, Copy, Download, ExternalLink, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { AccountCardsSlider } from "@/components/uitripled/account-cards-slider-shadcnui";
@@ -26,6 +26,46 @@ import type { WorkspaceState } from "@/lib/contracts/workspace-state";
 import { resolveConnectionAccess } from "@/lib/billing/connection-access";
 import { getAccountsOverview } from "@/lib/domain/accounts-selectors";
 import { formatCurrency } from "@/lib/formatters/numbers";
+
+const MT5_WEBREQUEST_URL = "https://mt5-api.kmfxedge.com";
+
+const mt5ConnectionSteps = [
+  {
+    title: "Abre o instala KMFX Launcher",
+    body: "Prepara el conector en este equipo. Si no se abre, descarga tu versión.",
+  },
+  {
+    title: "Instala el conector",
+    body: "Elige la instancia de MetaTrader 5 que vas a vincular e instala KMFX Connector.",
+  },
+  {
+    title: "Permite WebRequest en MT5",
+    body: "En Tools > Options > Expert Advisors, activa WebRequest y añade la URL de KMFX.",
+  },
+  {
+    title: "Activa el EA",
+    body: "Arrastra KMFXConnector a un gráfico y deja Algo Trading activo.",
+  },
+  {
+    title: "Confirma la sincronización",
+    body: "Cuando Experts confirme KMFX, la cuenta quedará sincronizada en el dashboard.",
+  },
+] as const;
+
+const mt5FinishSteps = [
+  {
+    title: "Copiar KMFX Key",
+    body: "Cada cuenta MT5 usa una key estable. Si reinstalas el EA, reutiliza la misma.",
+  },
+  {
+    title: "Pegar en MT5",
+    body: "Pégala en el campo KMFXKey del Expert Advisor con WebRequest activo.",
+  },
+  {
+    title: "Primera sincronización",
+    body: "Deja MT5 abierto hasta que llegue el histórico completo inicial.",
+  },
+] as const;
 
 type PageMotionProps = {
   children: React.ReactNode;
@@ -60,6 +100,7 @@ export function AccountsReferenceSection({
     message: "",
     status: "idle",
   });
+  const [copiedWebRequest, setCopiedWebRequest] = React.useState(false);
   const accountsOverview = getAccountsOverview(workspace);
   const accountRows = accountsOverview.rows;
   const connectedCount = accountRows.filter(
@@ -74,6 +115,12 @@ export function AccountsReferenceSection({
     "Sin datos";
   const linkPending = linkState.status === "pending";
   const connectionReady = connectionAccess.status === "ready";
+
+  async function copyWebRequestUrl() {
+    await navigator.clipboard?.writeText(MT5_WEBREQUEST_URL);
+    setCopiedWebRequest(true);
+    window.setTimeout(() => setCopiedWebRequest(false), 1600);
+  }
 
   React.useEffect(() => {
     if (!isAddAccountOpen) {
@@ -269,48 +316,73 @@ export function AccountsReferenceSection({
               <DialogTitle>Añadir cuenta</DialogTitle>
               <DialogDescription>
                 Prepara la conexión de una cuenta real, fondeo, Darwinex o bot.
-                La activación final se completará con el launcher y permisos de MT5.
+                El flujo recomendado usa EA, KMFX Key y primera sincronización desde MT5.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              {[
-                {
-                  title: "Conectar MT5",
-                  description: "Alta guiada con login, servidor y broker.",
-                  enabled: true,
-                },
-                {
-                  title: "Importar cuenta",
-                  description: "Crear ficha y vincular datos cuando estén disponibles.",
-                  enabled: false,
-                },
-                {
-                  title: "Cuenta manual",
-                  description: "Preparar una cuenta para revisar estructura y permisos.",
-                  enabled: false,
-                },
-              ].map((option) => (
-                <button
-                  className="flex min-h-32 flex-col justify-between rounded-xl border border-border/70 bg-background/45 p-4 text-left transition-colors hover:bg-muted/55 focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
-                  disabled={!option.enabled || linkPending || !connectionReady}
-                  key={option.title}
+            <div className="rounded-xl border border-border/70 bg-background/45 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold">Conectar cuenta paso a paso</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Instala el conector con Launcher, pega la KMFX Key en el EA y deja
+                    MT5 abierto para la primera sincronización.
+                  </p>
+                </div>
+                <Button
+                  disabled={!connectionReady}
                   onClick={() => {
-                    if (option.enabled) void prepareLauncherAccount();
+                    window.location.href = "kmfx-launcher://open";
                   }}
+                  size="sm"
                   type="button"
+                  variant="outline"
                 >
-                  <span className="text-sm font-semibold">{option.title}</span>
-                  <span className="text-xs leading-5 text-muted-foreground">
-                    {option.description}
-                  </span>
-                  {!option.enabled ? (
-                    <span className="mt-3 text-[11px] font-medium text-muted-foreground">
-                      Próximamente
+                  <ExternalLink data-icon="inline-start" />
+                  Abrir Launcher
+                </Button>
+              </div>
+              <div className="mt-4 grid gap-3">
+                {mt5ConnectionSteps.map((step, index) => (
+                  <div
+                    className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3"
+                    key={step.title}
+                  >
+                    <span className="flex size-8 items-center justify-center rounded-full border border-border/70 bg-muted/35 text-xs font-medium text-foreground">
+                      {index + 1}
                     </span>
-                  ) : null}
-                </button>
-              ))}
+                    <span>
+                      <span className="block text-sm font-medium text-foreground">
+                        {step.title}
+                      </span>
+                      <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                        {step.body}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 rounded-lg bg-muted/35 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium uppercase text-muted-foreground">
+                      URL para WebRequest en MetaTrader 5
+                    </p>
+                    <code className="mt-1 block break-all font-mono text-xs text-foreground">
+                      {MT5_WEBREQUEST_URL}
+                    </code>
+                  </div>
+                  <Button
+                    onClick={() => void copyWebRequestUrl()}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    <Copy data-icon="inline-start" />
+                    {copiedWebRequest ? "Copiada" : "Copiar URL"}
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <div
@@ -350,8 +422,8 @@ export function AccountsReferenceSection({
             <div className="rounded-xl border border-border/70 bg-background/45 p-4">
               <p className="text-sm font-semibold">Descargas de conexión</p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Instala el launcher o descarga el EA manual si necesitas configurar MT5 sin
-                asistente.
+                Usa el Launcher como camino recomendado. El EA manual queda disponible
+                para instalaciones sin asistente.
               </p>
               <div className="mt-3 grid gap-2 sm:grid-cols-3">
                 {[
@@ -390,6 +462,28 @@ export function AccountsReferenceSection({
                   )
                 ))}
               </div>
+            </div>
+
+            <div className="grid gap-3 rounded-xl border border-border/70 bg-background/45 p-4 sm:grid-cols-3">
+              {mt5FinishSteps.map((step, index) => (
+                <div className="flex items-start gap-3" key={step.title}>
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border/70 bg-muted/35">
+                    {linkState.connectionKey && index === 0 ? (
+                      <CheckCircle2 className="size-4 text-muted-foreground" />
+                    ) : (
+                      <span className="text-xs font-medium">{index + 1}</span>
+                    )}
+                  </span>
+                  <span>
+                    <span className="block text-sm font-medium text-foreground">
+                      {step.title}
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                      {step.body}
+                    </span>
+                  </span>
+                </div>
+              ))}
             </div>
 
             <p className="rounded-xl bg-muted/45 px-4 py-3 text-xs leading-5 text-muted-foreground">
