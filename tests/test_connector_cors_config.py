@@ -501,6 +501,47 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
+    def test_link_account_regenerates_missing_plaintext_key_for_pending_account(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            store_path = os.path.join(temp_dir, "accounts.json")
+            connector_api.account_service = AccountService(JsonFileAccountStore(store_path))
+            try:
+                request = self._request(
+                    host="127.0.0.1",
+                    headers={"x-kmfx-user-id": "user-123"},
+                    json_body={
+                        "label": "Cuenta MT5 EA",
+                        "alias": "Cuenta MT5 EA",
+                        "platform": "mt5",
+                        "connection_mode": "launcher",
+                    },
+                )
+
+                with patch.dict("os.environ", {"KMFX_DEFAULT_CONNECTION_PLAN": "core"}, clear=False):
+                    first_response = asyncio.run(connector_api.link_account(request))
+                    second_response = asyncio.run(connector_api.link_account(request))
+                first_body = json.loads(first_response.body.decode("utf-8"))
+                second_body = json.loads(second_response.body.decode("utf-8"))
+
+                self.assertEqual(200, first_response.status_code)
+                self.assertEqual(200, second_response.status_code)
+                self.assertEqual(first_body["account_id"], second_body["account_id"])
+                self.assertTrue(second_body["connection_key"])
+                self.assertNotEqual(first_body["connection_key"], second_body["connection_key"])
+                self.assertEqual(1, len(connector_api.account_service.list_accounts("user-123")))
+
+                with open(store_path, "r", encoding="utf-8") as handle:
+                    persisted = json.load(handle)
+                record = persisted["accounts"][0]
+                self.assertEqual("", record["api_key"])
+                self.assertEqual(hash_connection_key(second_body["connection_key"]), record["connection_key_hash"])
+                self.assertIn(hash_connection_key(first_body["connection_key"]), record["revoked_connection_key_hashes"])
+                self.assertNotIn(first_body["connection_key"], json.dumps(persisted))
+                self.assertNotIn(second_body["connection_key"], json.dumps(persisted))
+            finally:
+                connector_api.account_service = previous_service
+
     def test_link_account_rejects_revoked_existing_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service

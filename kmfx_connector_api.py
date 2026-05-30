@@ -6368,6 +6368,15 @@ async def link_account(request: Request) -> JSONResponse:
     return await link_account_from_payload(request, payload)
 
 
+def can_regenerate_missing_pending_connection_key(account: Any) -> bool:
+    status = safe_str(getattr(account, "status", "")).lower()
+    if status not in {"draft", "pending", "pending_setup", "pending_link", "waiting_sync"}:
+        return False
+    if getattr(account, "first_sync_at", None) or getattr(account, "last_sync_at", None):
+        return False
+    return True
+
+
 async def link_account_from_payload(request: Request, payload: dict[str, Any]) -> JSONResponse:
     scope_user_id, auth_context = resolve_account_scope(request)
     if not scope_user_id:
@@ -6574,15 +6583,39 @@ async def link_account_from_payload(request: Request, payload: dict[str, Any]) -
                     status_code=409,
                 )
             if not connection_key:
-                return connector_json_response(
-                    {
-                        "ok": False,
-                        "reason": "connection_key_not_available",
-                        "details": {"account_id": account_id},
-                        "timestamp": now_iso(),
-                    },
-                    status_code=409,
-                )
+                if can_regenerate_missing_pending_connection_key(existing_account):
+                    regenerated_account = account_service.regenerate_connection_key(account_id)
+                    if regenerated_account is not None:
+                        existing_account = regenerated_account
+                        connection_key = safe_str(getattr(existing_account, "api_key", ""))
+                        log.info(
+                            "ACCOUNT link repaired missing pending key | account_id=%s user_id=%s connection_key=%s",
+                            account_id,
+                            user_id,
+                            mask_connection_key(connection_key),
+                        )
+                        emit_audit_event(
+                            "repair_connection_key",
+                            context=auth_context,
+                            user_id=user_id,
+                            account_id=account_id,
+                            details={
+                                "source": "accounts_link",
+                                "connection_mode": connection_mode,
+                                "platform": platform,
+                                "connection_key_preview": mask_connection_key(connection_key),
+                            },
+                        )
+                if not connection_key:
+                    return connector_json_response(
+                        {
+                            "ok": False,
+                            "reason": "connection_key_not_available",
+                            "details": {"account_id": account_id},
+                            "timestamp": now_iso(),
+                        },
+                        status_code=409,
+                    )
         else:
             try:
                 created = account_service.create_pending_account(
