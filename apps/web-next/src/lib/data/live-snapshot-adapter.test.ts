@@ -147,6 +147,34 @@ describe("createWorkspaceFromLiveSnapshot", () => {
     });
   });
 
+  it("replaces pending MT5 placeholder labels with broker identity after sync", () => {
+    const workspace = createWorkspaceFromLiveSnapshot(
+      {
+        accounts: [
+          {
+            account_id: "pending-darwinex",
+            display_name: "Nueva cuenta MT5",
+            broker: "Tradeslide Trading Tech Limited",
+            login: "4000082126",
+            server: "Darwinex-Live",
+            status: "active",
+            last_sync_at: "2026-05-30T14:30:00Z",
+            dashboard_payload: {
+              accountName: "Nueva cuenta MT5",
+              balance: 100000,
+              broker: "Tradeslide Trading Tech Limited",
+              equity: 106286,
+              server: "Darwinex-Live",
+            },
+          },
+        ],
+      },
+      "fixture",
+    );
+
+    expect(workspace.accounts[0]?.label).toBe("Darwinex MT5");
+  });
+
   it("groups MT5 partial closes by position_id without duplicating trades", () => {
     const workspace = createWorkspaceFromLiveSnapshot(
       partialCloseSnapshot,

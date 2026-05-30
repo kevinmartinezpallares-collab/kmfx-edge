@@ -446,6 +446,52 @@ function inferIsFunded(account: RawLiveSnapshotAccount) {
   );
 }
 
+function isGenericAccountLabel(label: string) {
+  const normalized = label.trim().toLowerCase();
+
+  return [
+    "mt5 account",
+    "cuenta mt5",
+    "cuenta real mt5",
+    "nueva cuenta mt5",
+  ].includes(normalized);
+}
+
+function friendlyAccountLabel(account: RawLiveSnapshotAccount): string {
+  const payload = account.dashboard_payload || {};
+  const rawLabel =
+    String(account.display_name || "").trim() ||
+    String(payload.accountName || payload.name || "").trim();
+
+  if (rawLabel && !isGenericAccountLabel(rawLabel)) {
+    return rawLabel;
+  }
+
+  const source = [
+    account.broker,
+    account.server,
+    payload.broker,
+    payload.server,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (source.includes("darwin")) return "Darwinex MT5";
+  if (source.includes("ic markets") || source.includes("icmarkets")) {
+    return "IC Markets MT5";
+  }
+  if (source.includes("ftmo")) return "FTMO MT5";
+  if (source.includes("orion")) return "Orion MT5";
+  if (source.includes("pepperstone")) return "Pepperstone MT5";
+
+  const broker =
+    String(account.broker || "").trim() ||
+    String(payload.broker || "").trim();
+
+  return broker ? `${broker} MT5` : rawLabel;
+}
+
 function mapFundingProfile(account: RawLiveSnapshotAccount) {
   const payload = account.dashboard_payload || {};
   const fundingProfile = payload.fundingProfile;
@@ -568,9 +614,7 @@ function mapAccount(account: RawLiveSnapshotAccount): TradingAccount {
 
     return sanitized || fallback;
   };
-  const rawLabel =
-    String(account.display_name || "").trim() ||
-    String(payload.accountName || payload.name || "").trim();
+  const rawLabel = friendlyAccountLabel(account);
   const rawServer =
     String(account.server || "").trim() ||
     String(payload.server || "").trim();
