@@ -1203,7 +1203,7 @@ export function SubscriptionReferenceSection({
               })}
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.38fr)]">
+            <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.38fr)]">
               <div className="grid content-start gap-4 py-2">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -1267,11 +1267,11 @@ export function SubscriptionReferenceSection({
                 <button
                   type="button"
                   onClick={() => setPlanDetailsOpen(true)}
-                  className="group/plan-card relative self-start overflow-hidden rounded-xl border border-border/70 bg-card/65 text-left shadow-sm transition-colors hover:border-foreground/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                  className="group/plan-card relative h-full min-h-[13rem] overflow-hidden rounded-xl border border-border/70 bg-card/65 text-left shadow-sm transition-colors hover:border-foreground/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                 >
                   <AnimatedGradient config={currentPlanGradientConfig} />
                   <span className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/62 to-background/20" />
-                  <span className="relative block p-4">
+                  <span className="relative flex h-full flex-col p-4">
                     <span className="flex items-start justify-between gap-3">
                       <span className="min-w-0">
                         <span className="text-xs font-medium uppercase text-white/70">
@@ -1292,7 +1292,7 @@ export function SubscriptionReferenceSection({
                       className="mt-4 [&_[data-slot=progress-indicator]]:bg-white/85 [&_[data-slot=progress-track]]:bg-white/20"
                       value={displayedUsagePercent}
                     />
-                    <span className="mt-4 flex items-center justify-between gap-3 border-t border-white/20 pt-3">
+                    <span className="mt-auto flex items-center justify-between gap-3 border-t border-white/20 pt-4">
                       <span className="text-sm leading-6 text-white/75">
                         {displayedAccountNote}
                       </span>
@@ -1422,24 +1422,28 @@ export function SubscriptionReferenceSection({
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-              <div className="rounded-lg border border-border/70 bg-background/35 p-4">
-                <p className="text-xs font-medium uppercase text-muted-foreground">
-                  Renovación
-                </p>
-                <p className="mt-2 text-sm font-medium leading-6 text-foreground">
-                  {plan.renewalLabel}
-                </p>
-                <Separator className="my-4" />
-                <p className="text-xs font-medium uppercase text-muted-foreground">
-                  Gestión
-                </p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {plan.managementNote}
-                </p>
+            <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
+              <div className="grid content-start gap-4">
+                <div>
+                  <p className="text-xs font-medium uppercase text-muted-foreground">
+                    Renovación
+                  </p>
+                  <p className="mt-2 text-sm font-medium leading-6 text-foreground">
+                    {plan.renewalLabel}
+                  </p>
+                </div>
+                <Separator />
+                <div>
+                  <p className="text-xs font-medium uppercase text-muted-foreground">
+                    Gestión
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {plan.managementNote}
+                  </p>
+                </div>
               </div>
 
-              <div className="grid gap-0">
+              <div className="grid gap-0 border-l border-border/60 pl-5">
                 {plan.paymentRows.map((row, index) => {
                   const Icon = paymentIconByTone[row.tone];
 
@@ -1477,41 +1481,47 @@ export function SubscriptionReferenceSection({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-3">
+              <div className="grid gap-0">
+                <div className="grid grid-cols-[minmax(7rem,1fr)_repeat(3,minmax(0,0.9fr))] gap-3 pb-3 text-xs font-medium uppercase text-muted-foreground">
+                  <span>Área</span>
+                  {planOptions.map((option) => (
+                    <span key={option.key}>
+                      {option.name.replace("Edge ", "")}
+                    </span>
+                  ))}
+                </div>
                 {entitlementRows.map((row) => (
                   <div
                     key={row.label}
-                    className="grid gap-2 border-b border-border/60 pb-3 last:border-b-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] sm:items-start"
+                    className="grid grid-cols-[minmax(7rem,1fr)_repeat(3,minmax(0,0.9fr))] gap-3 border-t border-border/60 py-3 text-sm"
                   >
                     <div className="font-medium text-foreground">{row.label}</div>
-                    <div className="grid gap-2 sm:grid-cols-3">
-                      {row.values.map((value, index) => (
-                        <div
-                          key={`${row.label}-${planOptions[index]?.key}`}
-                          className="min-w-0 rounded-md bg-muted/35 px-3 py-2"
-                        >
-                          <div className="text-xs font-medium text-muted-foreground">
-                            {planOptions[index]?.name.replace("Edge ", "")}
-                          </div>
-                          <div className="mt-1 text-sm text-foreground">{value}</div>
-                        </div>
-                      ))}
-                    </div>
+                    {row.values.map((value, index) => (
+                      <div
+                        key={`${row.label}-${planOptions[index]?.key}`}
+                        className={cn(
+                          "min-w-0 text-muted-foreground",
+                          planOptions[index]?.current && "font-medium text-foreground",
+                        )}
+                      >
+                        {value}
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-border/70 bg-card/70">
+          <Card className="border-border/70 bg-card/70 xl:col-span-2">
             <CardHeader>
               <CardTitle>Incluido ahora</CardTitle>
               <CardDescription>
                 Lo que ya está cubierto por tu plan actual.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4">
-              <div className="grid gap-3">
+            <CardContent className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
+              <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
                 {includedFeatures.map((feature) => (
                   <div key={feature} className="flex items-start gap-3">
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-background/35">
@@ -1521,15 +1531,14 @@ export function SubscriptionReferenceSection({
                   </div>
                 ))}
               </div>
-              <Separator />
-              <div className="grid gap-3">
+              <div className="grid gap-3 border-t border-border/60 pt-5 sm:grid-cols-3 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
                 {planDecisionRows.map((row) => (
-                  <div key={row.label} className="flex items-start justify-between gap-3 text-sm">
-                    <span className="text-muted-foreground">{row.label}</span>
-                    <span className="min-w-0 text-right">
-                      <span className="block font-medium text-foreground">{row.value}</span>
-                      <span className="block text-xs text-muted-foreground">{row.note}</span>
-                    </span>
+                  <div key={row.label} className="min-w-0 text-sm">
+                    <p className="text-xs font-medium uppercase text-muted-foreground">
+                      {row.label}
+                    </p>
+                    <p className="mt-2 font-medium text-foreground">{row.value}</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{row.note}</p>
                   </div>
                 ))}
               </div>
