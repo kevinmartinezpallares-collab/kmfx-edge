@@ -411,11 +411,18 @@ function AccountSwitcher({
 }
 
 function SidebarUserMenu({ workspace }: { workspace: WorkspaceState }) {
+  const router = useRouter();
   const { isMobile } = useSidebar();
   const profileName = profileNameFromEmail(workspace.meta.userEmail);
   const roleLabel = workspace.meta.userRoleLabel ?? "Usuario";
   const initials = profileInitials(profileName);
   const secondaryLabel = workspace.meta.userEmail ?? roleLabel;
+
+  async function signOut() {
+    await fetch("/auth/signout", { method: "POST" }).catch(() => null);
+    router.replace("/login");
+    router.refresh();
+  }
 
   return (
     <SidebarMenu>
@@ -465,19 +472,19 @@ function SidebarUserMenu({ workspace }: { workspace: WorkspaceState }) {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem render={<Link href="/settings" />}>
+              <DropdownMenuItem onClick={() => router.push("/settings")}>
                 <UserRound data-icon="inline-start" />
                 Perfil y preferencias
               </DropdownMenuItem>
-              <DropdownMenuItem render={<Link href="/accounts" />}>
+              <DropdownMenuItem onClick={() => router.push("/accounts")}>
                 <WalletCards data-icon="inline-start" />
                 Cuentas conectadas
               </DropdownMenuItem>
-              <DropdownMenuItem render={<Link href="/subscription" />}>
+              <DropdownMenuItem onClick={() => router.push("/subscription")}>
                 <CreditCard data-icon="inline-start" />
                 Suscripción y plan
               </DropdownMenuItem>
-              <DropdownMenuItem render={<Link href="/settings" />}>
+              <DropdownMenuItem onClick={() => router.push("/settings")}>
                 <Settings2 data-icon="inline-start" />
                 Ajustes generales
               </DropdownMenuItem>
@@ -485,7 +492,7 @@ function SidebarUserMenu({ workspace }: { workspace: WorkspaceState }) {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem
-                render={<Link href="/auth/signout" />}
+                onClick={() => void signOut()}
                 className="font-medium !text-red-500 focus:!bg-red-500/10 focus:!text-red-500 dark:!text-red-400 dark:focus:!bg-red-400/10 dark:focus:!text-red-400 [&_svg]:!text-red-500 dark:[&_svg]:!text-red-400"
                 variant="destructive"
               >

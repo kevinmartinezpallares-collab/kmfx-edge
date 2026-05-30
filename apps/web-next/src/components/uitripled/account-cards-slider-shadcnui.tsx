@@ -765,7 +765,7 @@ export function AccountCardsSlider({
             </div>
           </div>
 
-          <div className="absolute right-4 top-4 z-20">
+          <div className="absolute right-4 top-4 z-40">
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
@@ -826,13 +826,13 @@ export function AccountCardsSlider({
             </DropdownMenu>
           </div>
 
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
+          <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
             <motion.button
               type="button"
               onClick={() => setSelectedAccountId(card.id)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex min-h-11 items-center gap-2 rounded-full bg-white/90 px-5 py-2 text-sm font-semibold text-black shadow-lg sm:min-h-9"
+              className="pointer-events-auto flex min-h-11 items-center gap-2 rounded-full bg-white/90 px-5 py-2 text-sm font-semibold text-black shadow-lg sm:min-h-9"
             >
               Ver detalles
             </motion.button>
