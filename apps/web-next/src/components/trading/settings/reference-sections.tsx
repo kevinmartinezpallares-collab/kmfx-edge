@@ -630,12 +630,19 @@ export function SubscriptionReferenceSection({
   const currentOption =
     planOptions.find((option) => option.current) ??
     (planOptions[0] as SettingsPlanOption);
+  const currentPlanIndex = Math.max(
+    0,
+    planOptions.findIndex((option) => option.key === currentOption.key),
+  );
+  const currentPlanGradientConfig = planGradientConfigForOption(
+    currentOption.key,
+    currentPlanIndex,
+  );
   const overLimit = plan.statusTone === "attention";
   const includedFeatures = currentOption?.features ?? [];
   const priceForInterval = (option: SettingsPlanOption) =>
     billingInterval === "monthly" ? option.priceLabel : option.yearlyLabel;
-  const intervalCaption =
-    billingInterval === "monthly" ? "Sin permanencia" : "Dos meses de margen frente al mensual";
+  const intervalCaption = billingInterval === "monthly" ? "Sin permanencia" : "Pagas 10 meses";
   const planDecisionRows = [
     {
       label: "Individual",
@@ -1118,7 +1125,7 @@ export function SubscriptionReferenceSection({
                               <p className="mt-2 text-lg font-semibold leading-tight text-foreground">
                                 {priceForInterval(option)}
                               </p>
-                              <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                              <p className="mt-1 text-xs leading-5 text-muted-foreground">
                                 {intervalCaption}
                               </p>
                             </div>
@@ -1185,7 +1192,7 @@ export function SubscriptionReferenceSection({
             </div>
 
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.38fr)]">
-              <div className="rounded-xl border border-border/70 bg-background/35 p-4">
+              <div className="grid content-start gap-4 py-2">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-medium text-foreground">Precio vs capacidad</p>
@@ -1248,31 +1255,38 @@ export function SubscriptionReferenceSection({
                 <button
                   type="button"
                   onClick={() => setPlanDetailsOpen(true)}
-                  className="group/plan-card self-start rounded-xl border border-border/70 bg-card/65 p-4 text-left shadow-sm transition-colors hover:border-foreground/25 hover:bg-card/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                  className="group/plan-card relative self-start overflow-hidden rounded-xl border border-border/70 bg-card/65 text-left shadow-sm transition-colors hover:border-foreground/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                 >
-                  <span className="flex items-start justify-between gap-3">
-                    <span className="min-w-0">
-                      <span className="text-xs font-medium uppercase text-muted-foreground">
-                        Plan actual
+                  <AnimatedGradient config={currentPlanGradientConfig} />
+                  <span className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/62 to-background/20" />
+                  <span className="relative block p-4">
+                    <span className="flex items-start justify-between gap-3">
+                      <span className="min-w-0">
+                        <span className="text-xs font-medium uppercase text-white/70">
+                          Plan actual
+                        </span>
+                        <span className="mt-2 block text-2xl font-semibold tracking-tight text-white">
+                          {currentOption.name}
+                        </span>
+                        <span className="mt-1 block text-sm text-white/75">
+                          {plan.usedAccountsLabel}/{displayedIncludedAccountsLabel} cuentas conectadas
+                        </span>
                       </span>
-                      <span className="mt-2 block text-2xl font-semibold tracking-tight text-foreground">
-                        {currentOption.name}
-                      </span>
-                      <span className="mt-1 block text-sm text-muted-foreground">
-                        {plan.usedAccountsLabel}/{displayedIncludedAccountsLabel} cuentas conectadas
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/20 bg-background/35 text-white/75 transition-colors group-hover/plan-card:text-white">
+                        <Plus className="size-4" />
                       </span>
                     </span>
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border/70 bg-background/55 text-muted-foreground transition-colors group-hover/plan-card:text-foreground">
-                      <Plus className="size-4" />
-                    </span>
-                  </span>
-                  <Progress className="mt-4" value={displayedUsagePercent} />
-                  <span className="mt-4 flex items-center justify-between gap-3 border-t border-border/60 pt-3">
-                    <span className="text-sm leading-6 text-muted-foreground">
-                      {displayedAccountNote}
-                    </span>
-                    <span className="shrink-0 text-xs font-medium text-foreground">
-                      Ver detalle
+                    <Progress
+                      className="mt-4 [&_[data-slot=progress-indicator]]:bg-white/85 [&_[data-slot=progress-track]]:bg-white/20"
+                      value={displayedUsagePercent}
+                    />
+                    <span className="mt-4 flex items-center justify-between gap-3 border-t border-white/20 pt-3">
+                      <span className="text-sm leading-6 text-white/75">
+                        {displayedAccountNote}
+                      </span>
+                      <span className="shrink-0 text-xs font-medium text-white">
+                        Ver detalle
+                      </span>
                     </span>
                   </span>
                 </button>
