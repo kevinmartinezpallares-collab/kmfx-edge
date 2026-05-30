@@ -15,6 +15,7 @@ import {
   LockKeyhole,
   LogOut,
   Palette,
+  Plus,
   ReceiptText,
   ShieldCheck,
   Sparkles,
@@ -604,6 +605,7 @@ export function SubscriptionReferenceSection({
   const [billingPlanKey, setBillingPlanKey] = React.useState<PlanOptionKey | null>(
     null,
   );
+  const [planDetailsOpen, setPlanDetailsOpen] = React.useState(false);
   const [billingAction, setBillingAction] = React.useState<{
     status: "idle" | "pending" | "success" | "error";
     message: string;
@@ -719,6 +721,28 @@ export function SubscriptionReferenceSection({
     currentOption.key === "unlimited"
       ? "Cuentas ilimitadas dentro del plan."
       : "Cuentas dentro del plan.";
+  const currentPlanDetails = [
+    {
+      label: "Plan",
+      value: currentOption.name,
+      note: currentOption.recommendedFor,
+    },
+    {
+      label: "Precio",
+      value: priceForInterval(currentOption),
+      note: intervalCaption,
+    },
+    {
+      label: "Capacidad",
+      value: currentOption.accountLimitLabel,
+      note: displayedAccountNote,
+    },
+    {
+      label: "Cuentas conectadas",
+      value: `${plan.usedAccountsLabel}/${displayedIncludedAccountsLabel}`,
+      note: "Uso actual del plan.",
+    },
+  ];
 
   React.useEffect(() => {
     let cancelled = false;
@@ -1220,19 +1244,127 @@ export function SubscriptionReferenceSection({
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border/70 bg-background/35 p-4">
-                <p className="font-medium text-foreground">Plan actual</p>
-                <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-                  {currentOption.name}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {plan.usedAccountsLabel}/{displayedIncludedAccountsLabel} cuentas conectadas
-                </p>
-                <Progress className="mt-4" value={displayedUsagePercent} />
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  {displayedAccountNote}
-                </p>
-              </div>
+              <Dialog open={planDetailsOpen} onOpenChange={setPlanDetailsOpen}>
+                <button
+                  type="button"
+                  onClick={() => setPlanDetailsOpen(true)}
+                  className="group/plan-card self-start rounded-xl border border-border/70 bg-card/65 p-4 text-left shadow-sm transition-colors hover:border-foreground/25 hover:bg-card/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                >
+                  <span className="flex items-start justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="text-xs font-medium uppercase text-muted-foreground">
+                        Plan actual
+                      </span>
+                      <span className="mt-2 block text-2xl font-semibold tracking-tight text-foreground">
+                        {currentOption.name}
+                      </span>
+                      <span className="mt-1 block text-sm text-muted-foreground">
+                        {plan.usedAccountsLabel}/{displayedIncludedAccountsLabel} cuentas conectadas
+                      </span>
+                    </span>
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border/70 bg-background/55 text-muted-foreground transition-colors group-hover/plan-card:text-foreground">
+                      <Plus className="size-4" />
+                    </span>
+                  </span>
+                  <Progress className="mt-4" value={displayedUsagePercent} />
+                  <span className="mt-4 flex items-center justify-between gap-3 border-t border-border/60 pt-3">
+                    <span className="text-sm leading-6 text-muted-foreground">
+                      {displayedAccountNote}
+                    </span>
+                    <span className="shrink-0 text-xs font-medium text-foreground">
+                      Ver detalle
+                    </span>
+                  </span>
+                </button>
+                <DialogContent className="sm:max-w-xl">
+                  <DialogHeader>
+                    <DialogTitle>{currentOption.name}</DialogTitle>
+                    <DialogDescription>
+                      Información del plan activo y límites disponibles.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4">
+                    <div className="grid overflow-hidden rounded-lg border border-border/70 sm:grid-cols-2">
+                      {currentPlanDetails.map((item, index) => (
+                        <div
+                          key={item.label}
+                          className={cn(
+                            "min-w-0 border-border/70 bg-background/25 p-3",
+                            index < 2 && "border-b",
+                            index % 2 === 0 && "sm:border-r",
+                            index === 1 && "sm:border-b",
+                          )}
+                        >
+                          <p className="text-xs font-medium uppercase text-muted-foreground">
+                            {item.label}
+                          </p>
+                          <p className="mt-2 text-lg font-semibold text-foreground">
+                            {item.value}
+                          </p>
+                          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                            {item.note}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Incluido</p>
+                      <div className="mt-3 grid gap-2">
+                        {includedFeatures.map((feature) => (
+                          <div
+                            key={feature}
+                            className="flex items-start gap-3 rounded-lg border border-border/70 bg-background/25 px-3 py-2"
+                          >
+                            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                            <span className="text-sm leading-6 text-muted-foreground">
+                              {feature}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="grid gap-2 text-sm">
+                      {plan.paymentRows.map((row) => (
+                        <div
+                          key={row.label}
+                          className="flex items-start justify-between gap-3"
+                        >
+                          <span className="text-muted-foreground">{row.label}</span>
+                          <span className="min-w-0 text-right">
+                            <span className="block font-medium text-foreground">
+                              {row.value}
+                            </span>
+                            <span className="block text-xs leading-5 text-muted-foreground">
+                              {row.note}
+                            </span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setPlanDetailsOpen(false)}
+                    >
+                      Cerrar
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={!plan.managementReady || billingPending}
+                      onClick={() => void openBillingPortal()}
+                    >
+                      <CreditCard data-icon="inline-start" />
+                      Gestionar plan
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </CardContent>
         </Card>
