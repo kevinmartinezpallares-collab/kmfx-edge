@@ -26,8 +26,38 @@ import type { WorkspaceState } from "@/lib/contracts/workspace-state";
 import { resolveConnectionAccess } from "@/lib/billing/connection-access";
 import { getAccountsOverview } from "@/lib/domain/accounts-selectors";
 import { formatCurrency } from "@/lib/formatters/numbers";
+import { cn } from "@/lib/utils";
 
 const MT5_WEBREQUEST_URL = "https://mt5-api.kmfxedge.com";
+
+type AddAccountStep = 1 | 2 | 3;
+
+const addAccountSteps: Array<{ id: AddAccountStep; label: string }> = [
+  { id: 1, label: "Método" },
+  { id: 2, label: "Preparación" },
+  { id: 3, label: "KMFX Key" },
+];
+
+const accountConnectionMethods = [
+  {
+    body: "Camino recomendado para beta: Launcher, EA y primera sincronización completa desde MT5.",
+    label: "Disponible",
+    title: "Conectar MT5 con EA",
+    value: "launcher",
+  },
+  {
+    body: "Crear ficha desde un extracto o historial cuando el asistente esté disponible.",
+    label: "Próximamente",
+    title: "Importar cuenta",
+    value: "import",
+  },
+  {
+    body: "Preparar una cuenta sin sincronización automática para revisión interna.",
+    label: "Próximamente",
+    title: "Cuenta manual",
+    value: "manual",
+  },
+] as const;
 
 const mt5ConnectionSteps = [
   {
@@ -82,6 +112,7 @@ export function AccountsReferenceSection({
 }) {
   const router = useRouter();
   const [isAddAccountOpen, setIsAddAccountOpen] = React.useState(false);
+  const [addAccountStep, setAddAccountStep] = React.useState<AddAccountStep>(1);
   const [linkState, setLinkState] = React.useState<{
     accountId: string;
     connectionKey: string;
@@ -120,6 +151,15 @@ export function AccountsReferenceSection({
     await navigator.clipboard?.writeText(MT5_WEBREQUEST_URL);
     setCopiedWebRequest(true);
     window.setTimeout(() => setCopiedWebRequest(false), 1600);
+  }
+
+  function handleAddAccountOpenChange(open: boolean) {
+    setIsAddAccountOpen(open);
+
+    if (open) {
+      setAddAccountStep(1);
+      setCopiedWebRequest(false);
+    }
   }
 
   React.useEffect(() => {
@@ -310,202 +350,355 @@ export function AccountsReferenceSection({
           </CardContent>
         </Card>
 
-        <Dialog open={isAddAccountOpen} onOpenChange={setIsAddAccountOpen}>
+        <Dialog open={isAddAccountOpen} onOpenChange={handleAddAccountOpenChange}>
           <DialogContent className="max-h-[calc(100svh-1rem)] overflow-y-auto overscroll-contain sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>Añadir cuenta</DialogTitle>
               <DialogDescription>
                 Prepara la conexión de una cuenta real, fondeo, Darwinex o bot.
-                El flujo recomendado usa EA, KMFX Key y primera sincronización desde MT5.
+                Avanza por método, preparación y KMFX Key.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="rounded-xl border border-border/70 bg-background/45 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold">Conectar cuenta paso a paso</p>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    Instala el conector con Launcher, pega la KMFX Key en el EA y deja
-                    MT5 abierto para la primera sincronización.
-                  </p>
-                </div>
-                <Button
-                  disabled={!connectionReady}
-                  onClick={() => {
-                    window.location.href = "kmfx-launcher://open";
-                  }}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  <ExternalLink data-icon="inline-start" />
-                  Abrir Launcher
-                </Button>
-              </div>
-              <div className="mt-4 grid gap-3">
-                {mt5ConnectionSteps.map((step, index) => (
+            <div className="grid gap-2 sm:grid-cols-3">
+              {addAccountSteps.map((step) => {
+                const isCurrent = addAccountStep === step.id;
+                const isComplete = addAccountStep > step.id;
+
+                return (
                   <div
-                    className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3"
-                    key={step.title}
+                    className={cn(
+                      "rounded-lg border border-border/70 bg-muted/20 px-3 py-2",
+                      isCurrent && "border-foreground/40 bg-muted/50",
+                      isComplete && "bg-muted/35",
+                    )}
+                    key={step.id}
                   >
-                    <span className="flex size-8 items-center justify-center rounded-full border border-border/70 bg-muted/35 text-xs font-medium text-foreground">
-                      {index + 1}
-                    </span>
-                    <span>
-                      <span className="block text-sm font-medium text-foreground">
-                        {step.title}
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-6 items-center justify-center rounded-full border border-border/70 bg-background text-xs font-medium">
+                        {isComplete ? (
+                          <CheckCircle2 data-icon="inline-start" />
+                        ) : (
+                          step.id
+                        )}
                       </span>
-                      <span className="mt-1 block text-xs leading-5 text-muted-foreground">
-                        {step.body}
-                      </span>
-                    </span>
+                      <span className="text-sm font-medium">{step.label}</span>
+                    </div>
                   </div>
-                ))}
-              </div>
-              <div className="mt-4 rounded-lg bg-muted/35 p-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium uppercase text-muted-foreground">
-                      URL para WebRequest en MetaTrader 5
-                    </p>
-                    <code className="mt-1 block break-all font-mono text-xs text-foreground">
-                      {MT5_WEBREQUEST_URL}
-                    </code>
-                  </div>
-                  <Button
-                    onClick={() => void copyWebRequestUrl()}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                  >
-                    <Copy data-icon="inline-start" />
-                    {copiedWebRequest ? "Copiada" : "Copiar URL"}
-                  </Button>
-                </div>
-              </div>
+                );
+              })}
             </div>
 
-            <div
-              aria-live="polite"
-              className="rounded-xl border border-border/70 bg-background/45 p-4"
-            >
-              <p
-                className={
-                  linkState.status === "error" ||
-                  connectionAccess.status === "blocked" ||
-                  connectionAccess.status === "error"
-                    ? "text-sm text-destructive"
-                    : "text-sm text-muted-foreground"
-                }
-              >
-                {linkState.message ||
-                  connectionAccess.message ||
-                  "Conectar MT5 crea una cuenta pendiente y una KMFX Key para el EA."}
-              </p>
-              {linkState.connectionKey ? (
-                <div className="mt-3 grid gap-2">
-                  <p className="text-xs font-medium uppercase text-muted-foreground">
-                    KMFX Key
+            {addAccountStep === 1 ? (
+              <div className="flex flex-col gap-4">
+                <div className="rounded-xl border border-border/70 bg-background/45 p-4">
+                  <p className="text-sm font-semibold">Elige cómo conectar</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Para beta, el flujo operativo es MT5 con EA y KMFX Key. Las
+                    otras vías quedan preparadas como próximas opciones.
                   </p>
-                  <code className="block break-all rounded-lg border border-border/70 bg-muted/45 px-3 py-2 font-mono text-sm text-foreground">
-                    {linkState.connectionKey}
-                  </code>
-                  {linkState.accountId ? (
-                    <p className="text-xs text-muted-foreground">
-                      Cuenta pendiente: {linkState.accountId}
-                    </p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    {accountConnectionMethods.map((method) => {
+                      const isLauncher = method.value === "launcher";
+                      const methodEnabled = isLauncher && connectionReady;
+
+                      return (
+                        <button
+                          className={cn(
+                            "min-h-40 rounded-xl border border-border/70 bg-background/55 p-4 text-left transition-colors",
+                            methodEnabled
+                              ? "hover:bg-muted/35"
+                              : "cursor-not-allowed opacity-55",
+                          )}
+                          disabled={!methodEnabled}
+                          key={method.value}
+                          onClick={() => setAddAccountStep(2)}
+                          type="button"
+                        >
+                          <span className="text-sm font-semibold text-foreground">
+                            {method.title}
+                          </span>
+                          <span className="mt-3 block text-xs leading-5 text-muted-foreground">
+                            {method.body}
+                          </span>
+                          <span className="mt-5 inline-flex rounded-full border border-border/70 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                            {method.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div
+                  aria-live="polite"
+                  className="rounded-xl border border-border/70 bg-background/45 p-4"
+                >
+                  <p
+                    className={cn(
+                      "text-sm leading-6 text-muted-foreground",
+                      (connectionAccess.status === "blocked" ||
+                        connectionAccess.status === "error") &&
+                        "text-destructive",
+                    )}
+                  >
+                    {connectionAccess.message ||
+                      "Validaremos que el plan permite añadir cuentas antes de generar la KMFX Key."}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
+            {addAccountStep === 2 ? (
+              <div className="flex flex-col gap-4">
+                <div className="rounded-xl border border-border/70 bg-background/45 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold">Prepara MT5</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        Descarga el Launcher, instala el conector y deja WebRequest
+                        permitido antes de crear la KMFX Key.
+                      </p>
+                    </div>
+                    <Button
+                      disabled={!connectionReady}
+                      onClick={() => {
+                        window.location.href = "kmfx-launcher://open";
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <ExternalLink data-icon="inline-start" />
+                      Abrir Launcher
+                    </Button>
+                  </div>
+
+                  <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                    {[
+                      {
+                        href: "/downloads/KMFX-Launcher-macOS.zip",
+                        label: "macOS",
+                      },
+                      {
+                        href: "/downloads/KMFX-Launcher-Windows.exe",
+                        label: "Windows",
+                      },
+                      {
+                        href: `/${["KMFX", "Connector.ex5"].join("")}`,
+                        label: "EA",
+                      },
+                    ].map((download) =>
+                      connectionReady ? (
+                        <a
+                          className={buttonVariants({
+                            size: "sm",
+                            variant: "outline",
+                          })}
+                          href={download.href}
+                          key={download.href}
+                        >
+                          <Download data-icon="inline-start" />
+                          Descargar {download.label}
+                        </a>
+                      ) : (
+                        <button
+                          className={buttonVariants({
+                            size: "sm",
+                            variant: "outline",
+                          })}
+                          disabled
+                          key={download.href}
+                          type="button"
+                        >
+                          <Download data-icon="inline-start" />
+                          Descargar {download.label}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border/70 bg-background/45 p-4">
+                  <div className="grid gap-3">
+                    {mt5ConnectionSteps.map((step, index) => (
+                      <div
+                        className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3"
+                        key={step.title}
+                      >
+                        <span className="flex size-8 items-center justify-center rounded-full border border-border/70 bg-muted/35 text-xs font-medium text-foreground">
+                          {index + 1}
+                        </span>
+                        <span>
+                          <span className="block text-sm font-medium text-foreground">
+                            {step.title}
+                          </span>
+                          <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                            {step.body}
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 rounded-lg bg-muted/35 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium uppercase text-muted-foreground">
+                          URL para WebRequest en MetaTrader 5
+                        </p>
+                        <code className="mt-1 block break-all font-mono text-xs text-foreground">
+                          {MT5_WEBREQUEST_URL}
+                        </code>
+                      </div>
+                      <Button
+                        onClick={() => void copyWebRequestUrl()}
+                        size="sm"
+                        type="button"
+                        variant="secondary"
+                      >
+                        <Copy data-icon="inline-start" />
+                        {copiedWebRequest ? "Copiada" : "Copiar URL"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="rounded-xl bg-muted/45 px-4 py-3 text-xs leading-5 text-muted-foreground">
+                  No se guardan contraseñas ni se abre MT5 desde esta pantalla.
+                  La cuenta queda pendiente hasta que el EA envíe la primera
+                  sincronización completa.
+                </p>
+              </div>
+            ) : null}
+
+            {addAccountStep === 3 ? (
+              <div className="flex flex-col gap-4">
+                <div
+                  aria-live="polite"
+                  className="rounded-xl border border-border/70 bg-background/45 p-4"
+                >
+                  <p
+                    className={cn(
+                      "text-sm leading-6 text-muted-foreground",
+                      (linkState.status === "error" ||
+                        connectionAccess.status === "blocked" ||
+                        connectionAccess.status === "error") &&
+                        "text-destructive",
+                    )}
+                  >
+                    {linkState.message ||
+                      connectionAccess.message ||
+                      "Genera una KMFX Key, pégala en el EA y deja MT5 abierto hasta que llegue el histórico completo inicial."}
+                  </p>
+                  {linkState.connectionKey ? (
+                    <div className="mt-3 grid gap-2">
+                      <p className="text-xs font-medium uppercase text-muted-foreground">
+                        KMFX Key
+                      </p>
+                      <code className="block break-all rounded-lg border border-border/70 bg-muted/45 px-3 py-2 font-mono text-sm text-foreground">
+                        {linkState.connectionKey}
+                      </code>
+                      {linkState.accountId ? (
+                        <p className="text-xs text-muted-foreground">
+                          Cuenta pendiente: {linkState.accountId}
+                        </p>
+                      ) : null}
+                    </div>
                   ) : null}
                 </div>
-              ) : null}
-            </div>
 
-            <div className="rounded-xl border border-border/70 bg-background/45 p-4">
-              <p className="text-sm font-semibold">Descargas de conexión</p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Usa el Launcher como camino recomendado. El EA manual queda disponible
-                para instalaciones sin asistente.
-              </p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                {[
-                  {
-                    href: "/downloads/KMFX-Launcher-macOS.zip",
-                    label: "macOS",
-                  },
-                  {
-                    href: "/downloads/KMFX-Launcher-Windows.exe",
-                    label: "Windows",
-                  },
-                  {
-                    href: `/${["KMFX", "Connector.ex5"].join("")}`,
-                    label: "EA",
-                  },
-                ].map((download) => (
-                  connectionReady ? (
-                    <a
-                      className={buttonVariants({ size: "sm", variant: "outline" })}
-                      href={download.href}
-                      key={download.href}
-                    >
-                      <Download data-icon="inline-start" />
-                      Descargar {download.label}
-                    </a>
-                  ) : (
-                    <button
-                      className={buttonVariants({ size: "sm", variant: "outline" })}
-                      disabled
-                      key={download.href}
-                      type="button"
-                    >
-                      <Download data-icon="inline-start" />
-                      Descargar {download.label}
-                    </button>
-                  )
-                ))}
-              </div>
-            </div>
-
-            <div className="grid gap-3 rounded-xl border border-border/70 bg-background/45 p-4 sm:grid-cols-3">
-              {mt5FinishSteps.map((step, index) => (
-                <div className="flex items-start gap-3" key={step.title}>
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border/70 bg-muted/35">
-                    {linkState.connectionKey && index === 0 ? (
-                      <CheckCircle2 className="size-4 text-muted-foreground" />
-                    ) : (
-                      <span className="text-xs font-medium">{index + 1}</span>
-                    )}
-                  </span>
-                  <span>
-                    <span className="block text-sm font-medium text-foreground">
-                      {step.title}
-                    </span>
-                    <span className="mt-1 block text-xs leading-5 text-muted-foreground">
-                      {step.body}
-                    </span>
-                  </span>
+                <div className="grid gap-3 rounded-xl border border-border/70 bg-background/45 p-4 sm:grid-cols-3">
+                  {mt5FinishSteps.map((step, index) => (
+                    <div className="flex items-start gap-3" key={step.title}>
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border/70 bg-muted/35">
+                        {linkState.connectionKey && index === 0 ? (
+                          <CheckCircle2 data-icon="inline-start" />
+                        ) : (
+                          <span className="text-xs font-medium">{index + 1}</span>
+                        )}
+                      </span>
+                      <span>
+                        <span className="block text-sm font-medium text-foreground">
+                          {step.title}
+                        </span>
+                        <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                          {step.body}
+                        </span>
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            <p className="rounded-xl bg-muted/45 px-4 py-3 text-xs leading-5 text-muted-foreground">
-              No se guardan contraseñas ni se abre MT5 desde esta pantalla.
-              La cuenta queda pendiente hasta que el EA envíe la primera sincronización completa.
-            </p>
+                <p className="rounded-xl bg-muted/45 px-4 py-3 text-xs leading-5 text-muted-foreground">
+                  El primer envío debe ser completo. Después, el EA solo enviará
+                  actualizaciones para mantener bajo el consumo de datos.
+                </p>
+              </div>
+            ) : null}
 
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsAddAccountOpen(false)}
-              >
-                Cerrar
-              </Button>
-              <Button
-                disabled={linkPending || !connectionReady}
-                type="button"
-                onClick={() => void prepareLauncherAccount()}
-              >
-                {linkPending ? "Preparando..." : "Generar KMFX Key"}
-              </Button>
+              {addAccountStep === 1 ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsAddAccountOpen(false)}
+                  >
+                    Cerrar
+                  </Button>
+                  <Button
+                    disabled={!connectionReady}
+                    type="button"
+                    onClick={() => setAddAccountStep(2)}
+                  >
+                    Continuar con EA
+                  </Button>
+                </>
+              ) : null}
+              {addAccountStep === 2 ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setAddAccountStep(1)}
+                  >
+                    Atrás
+                  </Button>
+                  <Button
+                    disabled={!connectionReady}
+                    type="button"
+                    onClick={() => setAddAccountStep(3)}
+                  >
+                    Continuar
+                  </Button>
+                </>
+              ) : null}
+              {addAccountStep === 3 ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setAddAccountStep(2)}
+                  >
+                    Atrás
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsAddAccountOpen(false)}
+                  >
+                    Cerrar
+                  </Button>
+                  <Button
+                    disabled={linkPending || !connectionReady}
+                    type="button"
+                    onClick={() => void prepareLauncherAccount()}
+                  >
+                    {linkPending ? "Preparando..." : "Generar KMFX Key"}
+                  </Button>
+                </>
+              ) : null}
             </DialogFooter>
           </DialogContent>
         </Dialog>
