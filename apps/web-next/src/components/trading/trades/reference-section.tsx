@@ -548,7 +548,7 @@ export function TradesReferenceSection({
                   className="border-border/70 bg-background/40"
                 />
               </Field>
-              <Field className="col-span-2 min-w-0 sm:col-span-1">
+              <Field className="col-span-2 min-w-0 md:col-span-1">
                 <FieldLabel htmlFor="trades-date-from-filter">Desde</FieldLabel>
                 <Input
                   id="trades-date-from-filter"
@@ -558,7 +558,7 @@ export function TradesReferenceSection({
                   className="border-border/70 bg-background/40"
                 />
               </Field>
-              <Field className="col-span-2 min-w-0 sm:col-span-1">
+              <Field className="col-span-2 min-w-0 md:col-span-1">
                 <FieldLabel htmlFor="trades-date-to-filter">Hasta</FieldLabel>
                 <Input
                   id="trades-date-to-filter"
