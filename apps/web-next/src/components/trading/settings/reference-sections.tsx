@@ -693,6 +693,909 @@ function SignOutDialog({
   );
 }
 
+type BillingInterval = "monthly" | "yearly";
+type BillingActionState = {
+  status: "idle" | "pending" | "success" | "error";
+  message: string;
+  planKey?: PlanOptionKey;
+};
+type EntitlementRow = {
+  label: string;
+  values: string[];
+};
+type PlanChartItem = {
+  accountCapacity: number;
+  current: boolean;
+  key: PlanOptionKey;
+  name: string;
+  price: number;
+};
+type CurrentPlanDetail = {
+  label: string;
+  note: string;
+  value: string;
+};
+
+function SubscriptionWelcomeCard() {
+  return (
+    <Card className="overflow-hidden border-border/70 bg-card/80">
+      <CardHeader className="gap-4 border-b border-border/60 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase text-muted-foreground">
+            <LockKeyhole className="size-4" />
+            <span>Plan pendiente</span>
+          </div>
+          <CardTitle>Activa KMFX Edge para conectar MT5</CardTitle>
+          <CardDescription>
+            El panel ya está preparado. Activa un plan para añadir cuentas,
+            descargar launcher/EA y leer métricas reales desde MT5.
+          </CardDescription>
+        </div>
+        <CardAction className="flex flex-wrap gap-2">
+          <Button onClick={scrollToPlanOptions} type="button">
+            <CreditCard data-icon="inline-start" />
+            Elegir plan
+          </Button>
+          <Button
+            nativeButton={false}
+            render={<Link href="/dashboard?demo=1" />}
+            variant="outline"
+          >
+            <ExternalLink data-icon="inline-start" />
+            Ver ejemplo
+          </Button>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="grid gap-4 p-4 sm:grid-cols-3 sm:p-6">
+        {[
+          ["1", "Plan activo", "Desbloquea conexión, descargas y alta de cuentas."],
+          ["2", "Launcher y EA", "Instala la versión preparada para la beta."],
+          ["3", "Lectura completa", "La primera carga trae el historial y después solo cambios."],
+        ].map(([step, title, description]) => (
+          <div
+            key={step}
+            className="grid gap-2 border-l border-border/70 pl-4 first:border-l-0 first:pl-0 sm:first:border-l sm:first:pl-4"
+          >
+            <p className="font-mono text-xs text-muted-foreground">{step}</p>
+            <p className="font-semibold text-foreground">{title}</p>
+            <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function BillingIntervalToggle({
+  billingInterval,
+  onBillingIntervalChange,
+}: {
+  billingInterval: BillingInterval;
+  onBillingIntervalChange: (billingInterval: BillingInterval) => void;
+}) {
+  return (
+    <ToggleGroup
+      aria-label="Intervalo de facturación"
+      onValueChange={(value) => {
+        const nextValue = value[0] as BillingInterval | undefined;
+
+        if (nextValue) onBillingIntervalChange(nextValue);
+      }}
+      size="sm"
+      spacing={1}
+      value={[billingInterval]}
+      variant="outline"
+    >
+      <ToggleGroupItem className="h-11 min-w-20 sm:h-8" value="monthly">
+        Mensual
+      </ToggleGroupItem>
+      <ToggleGroupItem className="h-11 min-w-20 sm:h-8" value="yearly">
+        Anual
+      </ToggleGroupItem>
+    </ToggleGroup>
+  );
+}
+
+function PlanOptionCard({
+  billingAction,
+  billingPending,
+  canManageBilling,
+  capacityPercent,
+  current,
+  featured,
+  gradientConfig,
+  onManagePlan,
+  onSelectPlan,
+  option,
+  priceForInterval,
+  intervalCaption,
+}: {
+  billingAction: BillingActionState;
+  billingPending: boolean;
+  canManageBilling: boolean;
+  capacityPercent: number;
+  current: boolean;
+  featured: boolean;
+  gradientConfig: CustomConfig;
+  intervalCaption: string;
+  onManagePlan: () => void;
+  onSelectPlan: (planKey: PlanOptionKey) => void;
+  option: SettingsPlanOption;
+  priceForInterval: string;
+}) {
+  const visual = PLAN_CARD_VISUALS[option.key];
+  const actionLabel =
+    billingPending && billingAction.planKey === option.key
+      ? "Abriendo..."
+      : current
+        ? "Gestionar"
+        : "Seleccionar";
+  const footerActionLabel =
+    billingPending && billingAction.planKey === option.key
+      ? "Abriendo..."
+      : current
+        ? "Gestionar"
+        : "Elegir";
+  const handleAction = () => {
+    if (current) {
+      onManagePlan();
+      return;
+    }
+
+    onSelectPlan(option.key);
+  };
+
+  return (
+    <motion.div
+      className={cn(
+        "h-[500px] min-w-0",
+        featured && "order-first lg:order-none lg:-translate-y-2",
+      )}
+      whileHover={{ y: -10, transition: { duration: 0.3 } }}
+    >
+      <Card
+        className={cn(
+          "group relative h-full overflow-hidden rounded-3xl border-border/50 bg-card/30 p-0 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10",
+          featured && "border-primary/60 shadow-2xl shadow-primary/10",
+          current && "border-foreground/30",
+        )}
+      >
+        <div className="relative h-56 overflow-hidden">
+          <AnimatedGradient config={gradientConfig} />
+          <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-40" />
+
+          <div className="absolute left-4 top-4 z-20">
+            <Badge
+              variant="secondary"
+              className="border-white/10 bg-background/50 px-3 py-1 text-xs font-medium backdrop-blur-md"
+            >
+              {current ? "Actual" : featured ? "Recomendado" : visual.signal}
+            </Badge>
+          </div>
+          <div className="absolute right-4 top-4 z-20 rounded-full border border-white/10 bg-background/45 px-3 py-1 text-xs font-medium text-foreground backdrop-blur-md">
+            {visual.capacity}
+          </div>
+
+          <div className="absolute bottom-4 left-4 right-4 z-20">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/70">
+              KMFX Edge
+            </p>
+            <div className="mt-2 flex min-w-0 items-end justify-between gap-3">
+              <h3 className="min-w-0 truncate text-3xl font-bold leading-none tracking-tight text-white">
+                {visual.code}
+              </h3>
+              <p className="shrink-0 whitespace-nowrap text-right text-[clamp(1.35rem,1.7vw,1.5rem)] font-semibold leading-none tracking-tight text-white">
+                {priceForInterval}
+              </p>
+            </div>
+            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/20">
+              <div
+                className={cn(
+                  "h-full rounded-full bg-white/70",
+                  featured && "bg-primary",
+                )}
+                style={{ width: `${capacityPercent}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
+            <motion.button
+              className="min-h-10 rounded-full bg-white px-6 py-2 text-sm font-semibold text-black shadow-lg transition-transform duration-200 disabled:cursor-not-allowed disabled:opacity-70"
+              disabled={!canManageBilling || billingPending}
+              onClick={handleAction}
+              type="button"
+              whileHover={{ scale: canManageBilling && !billingPending ? 1.05 : 1 }}
+              whileTap={{ scale: canManageBilling && !billingPending ? 0.95 : 1 }}
+            >
+              {actionLabel}
+            </motion.button>
+          </div>
+        </div>
+
+        <div className="flex h-[calc(100%-14rem)] flex-col justify-between p-4">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-xl font-bold leading-tight tracking-tight text-foreground transition-colors group-hover:text-primary">
+                  {option.name}
+                </h3>
+                <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                  {option.recommendedFor}
+                </p>
+              </div>
+              {featured ? (
+                <Badge className="shrink-0 bg-foreground text-background hover:bg-foreground/90">
+                  <Sparkles data-icon="inline-start" />
+                  Top
+                </Badge>
+              ) : null}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-2xl border border-border/50 bg-background/35 p-3">
+                <p className="text-[11px] font-medium uppercase text-muted-foreground">
+                  Precio
+                </p>
+                <p className="mt-2 text-lg font-semibold leading-tight text-foreground">
+                  {priceForInterval}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  {intervalCaption}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border/50 bg-background/35 p-3">
+                <p className="text-[11px] font-medium uppercase text-muted-foreground">
+                  Capacidad
+                </p>
+                <p className="mt-2 text-lg font-semibold leading-tight text-foreground">
+                  {option.accountLimitLabel}
+                </p>
+                <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                  {option.key === "unlimited" ? "Escala total" : "Límite MT5"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between gap-3 border-t border-border/50 pt-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <Avatar className="size-8 border border-border/60">
+                <AvatarFallback className="bg-background/70 text-[11px] font-semibold">
+                  {visual.code.slice(0, 2)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-foreground">
+                  {current ? "Plan actual" : featured ? "Recomendado" : "Disponible"}
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {option.key === "unlimited" ? "Sin límite" : visual.signal}
+                </p>
+              </div>
+            </div>
+            <Button
+              className="min-h-10 shrink-0"
+              disabled={!canManageBilling || billingPending}
+              onClick={handleAction}
+              size="sm"
+              variant={current ? "secondary" : featured ? "default" : "outline"}
+            >
+              {footerActionLabel}
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </motion.div>
+  );
+}
+
+function PlanOptionsGrid({
+  billingAction,
+  billingPending,
+  canManageBilling,
+  maxAccountCapacity,
+  onManagePlan,
+  onSelectPlan,
+  planChartData,
+  planOptions,
+  billingInterval,
+}: {
+  billingAction: BillingActionState;
+  billingInterval: BillingInterval;
+  billingPending: boolean;
+  canManageBilling: boolean;
+  maxAccountCapacity: number;
+  onManagePlan: () => void;
+  onSelectPlan: (planKey: PlanOptionKey) => void;
+  planChartData: PlanChartItem[];
+  planOptions: SettingsPlanOption[];
+}) {
+  return (
+    <div id="kmfx-plan-options" className="scroll-mt-24 grid gap-5 lg:grid-cols-3">
+      {planOptions.map((option, index) => {
+        const featured = option.key === "pro";
+        const current = option.current;
+        const chartItem = planChartData.find((item) => item.key === option.key);
+        const capacityPercent = chartItem
+          ? Math.max(12, (chartItem.accountCapacity / maxAccountCapacity) * 100)
+          : 12;
+        const gradientConfig = planGradientConfigForOption(option.key, index);
+        const priceForInterval =
+          billingInterval === "monthly" ? option.priceLabel : option.yearlyLabel;
+        const intervalCaption =
+          billingInterval === "monthly" ? "Sin permanencia" : annualMonthlyEquivalentLabel(option);
+
+        return (
+          <PlanOptionCard
+            billingAction={billingAction}
+            billingPending={billingPending}
+            canManageBilling={canManageBilling}
+            capacityPercent={capacityPercent}
+            current={current}
+            featured={featured}
+            gradientConfig={gradientConfig}
+            intervalCaption={intervalCaption}
+            key={option.key}
+            onManagePlan={onManagePlan}
+            onSelectPlan={onSelectPlan}
+            option={option}
+            priceForInterval={priceForInterval}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function PriceCapacitySection({
+  maxAccountCapacity,
+  maxChartPrice,
+  planChartData,
+}: {
+  maxAccountCapacity: number;
+  maxChartPrice: number;
+  planChartData: PlanChartItem[];
+}) {
+  return (
+    <div className="grid content-start gap-4 py-2">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-medium text-foreground">Precio vs capacidad</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Comparativa rápida por intervalo.
+          </p>
+        </div>
+        <span className="text-xs font-medium text-muted-foreground">MT5</span>
+      </div>
+      <div className="mt-4 grid gap-4">
+        {planChartData.map((item) => (
+          <div key={item.key} className="grid gap-2">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="font-medium text-foreground">{item.name}</span>
+              <span className="font-mono text-xs text-muted-foreground">
+                {item.key === "unlimited" ? "Ilimitadas" : `${item.accountCapacity} cuentas`}
+              </span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-1">
+                <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                  <span>Precio</span>
+                  <span>{item.price} EUR</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-muted/45">
+                  <div
+                    className="h-full rounded-full bg-foreground/70"
+                    style={{
+                      width: `${Math.max(12, (item.price / maxChartPrice) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-1">
+                <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                  <span>Capacidad</span>
+                  <span>{item.key === "unlimited" ? "Escala" : "Límite"}</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-muted/45">
+                  <div
+                    className={cn(
+                      "h-full rounded-full bg-foreground/70",
+                      item.current && "bg-primary",
+                    )}
+                    style={{
+                      width: `${Math.max(12, (item.accountCapacity / maxAccountCapacity) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CurrentPlanDialogCard({
+  billingPending,
+  canManageBilling,
+  currentOption,
+  currentPlanDetails,
+  displayedAccountNote,
+  displayedIncludedAccountsLabel,
+  displayedUsagePercent,
+  gradientConfig,
+  includedFeatures,
+  onManagePlan,
+  onOpenChange,
+  open,
+  paymentRows,
+  usedAccountsLabel,
+}: {
+  billingPending: boolean;
+  canManageBilling: boolean;
+  currentOption: SettingsPlanOption;
+  currentPlanDetails: CurrentPlanDetail[];
+  displayedAccountNote: string;
+  displayedIncludedAccountsLabel: string;
+  displayedUsagePercent: number;
+  gradientConfig: CustomConfig;
+  includedFeatures: string[];
+  onManagePlan: () => void;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+  paymentRows: SettingsOverview["plan"]["paymentRows"];
+  usedAccountsLabel: string;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <button
+        type="button"
+        onClick={() => onOpenChange(true)}
+        className="group/plan-card relative h-full min-h-[13rem] overflow-hidden rounded-xl border border-border/70 bg-card/65 text-left shadow-sm transition-colors hover:border-foreground/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+      >
+        <AnimatedGradient config={gradientConfig} />
+        <span className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/62 to-background/20" />
+        <span className="relative flex h-full flex-col p-4">
+          <span className="flex items-start justify-between gap-3">
+            <span className="min-w-0">
+              <span className="text-xs font-medium uppercase text-white/70">
+                Plan actual
+              </span>
+              <span className="mt-2 block text-2xl font-semibold tracking-tight text-white">
+                {currentOption.name}
+              </span>
+              <span className="mt-1 block text-sm text-white/75">
+                {usedAccountsLabel}/{displayedIncludedAccountsLabel} cuentas conectadas
+              </span>
+            </span>
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/20 bg-background/35 text-white/75 transition-colors group-hover/plan-card:text-white">
+              <Plus className="size-4" />
+            </span>
+          </span>
+          <Progress
+            className="mt-4 [&_[data-slot=progress-indicator]]:bg-white/85 [&_[data-slot=progress-track]]:bg-white/20"
+            value={displayedUsagePercent}
+          />
+          <span className="mt-auto flex items-center justify-between gap-3 border-t border-white/20 pt-4">
+            <span className="text-sm leading-6 text-white/75">
+              {displayedAccountNote}
+            </span>
+            <span className="shrink-0 text-xs font-medium text-white">
+              Ver detalle
+            </span>
+          </span>
+        </span>
+      </button>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>{currentOption.name}</DialogTitle>
+          <DialogDescription>
+            Información del plan activo y límites disponibles.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4">
+          <div className="grid overflow-hidden rounded-lg border border-border/70 sm:grid-cols-2">
+            {currentPlanDetails.map((item, index) => (
+              <div
+                key={item.label}
+                className={cn(
+                  "min-w-0 border-border/70 bg-background/25 p-3",
+                  index < 2 && "border-b",
+                  index % 2 === 0 && "sm:border-r",
+                  index === 1 && "sm:border-b",
+                )}
+              >
+                <p className="text-xs font-medium uppercase text-muted-foreground">
+                  {item.label}
+                </p>
+                <p className="mt-2 text-lg font-semibold text-foreground">
+                  {item.value}
+                </p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  {item.note}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-foreground">Incluido</p>
+            <div className="mt-3 grid gap-2">
+              {includedFeatures.map((feature) => (
+                <div
+                  key={feature}
+                  className="flex items-start gap-3 rounded-lg border border-border/70 bg-background/25 px-3 py-2"
+                >
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  <span className="text-sm leading-6 text-muted-foreground">
+                    {feature}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="grid gap-2 text-sm">
+            {paymentRows.map((row) => (
+              <div
+                key={row.label}
+                className="flex items-start justify-between gap-3"
+              >
+                <span className="text-muted-foreground">{row.label}</span>
+                <span className="min-w-0 text-right">
+                  <span className="block font-medium text-foreground">
+                    {row.value}
+                  </span>
+                  <span className="block text-xs leading-5 text-muted-foreground">
+                    {row.note}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            Cerrar
+          </Button>
+          <Button
+            type="button"
+            disabled={!canManageBilling || billingPending}
+            onClick={onManagePlan}
+          >
+            <CreditCard data-icon="inline-start" />
+            Gestionar plan
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PlanSelectionCard({
+  billingAction,
+  billingInterval,
+  billingMessage,
+  billingPending,
+  currentOption,
+  currentPlanDetails,
+  currentPlanGradientConfig,
+  displayedAccountNote,
+  displayedIncludedAccountsLabel,
+  displayedUsagePercent,
+  includedFeatures,
+  maxAccountCapacity,
+  maxChartPrice,
+  onBillingIntervalChange,
+  onManagePlan,
+  onPlanDetailsOpenChange,
+  onSelectPlan,
+  overLimit,
+  paymentRows,
+  plan,
+  planChartData,
+  planDetailsOpen,
+  planOptions,
+  statusBadgeVariant,
+}: {
+  billingAction: BillingActionState;
+  billingInterval: BillingInterval;
+  billingMessage: string;
+  billingPending: boolean;
+  currentOption: SettingsPlanOption;
+  currentPlanDetails: CurrentPlanDetail[];
+  currentPlanGradientConfig: CustomConfig;
+  displayedAccountNote: string;
+  displayedIncludedAccountsLabel: string;
+  displayedUsagePercent: number;
+  includedFeatures: string[];
+  maxAccountCapacity: number;
+  maxChartPrice: number;
+  onBillingIntervalChange: (billingInterval: BillingInterval) => void;
+  onManagePlan: () => void;
+  onPlanDetailsOpenChange: (open: boolean) => void;
+  onSelectPlan: (planKey: PlanOptionKey) => void;
+  overLimit: boolean;
+  paymentRows: SettingsOverview["plan"]["paymentRows"];
+  plan: SettingsOverview["plan"];
+  planChartData: PlanChartItem[];
+  planDetailsOpen: boolean;
+  planOptions: SettingsPlanOption[];
+  statusBadgeVariant: "secondary" | "destructive";
+}) {
+  return (
+    <Card className="overflow-hidden border-border/70 bg-card/80">
+      <CardHeader className="border-b border-border/60">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase text-muted-foreground">
+              <CreditCard className="size-4" />
+              <span>Suscripción KMFX Edge</span>
+            </div>
+            <CardTitle>Elige el plan operativo</CardTitle>
+            <CardDescription>
+              Precio, límite MT5 y profundidad de análisis en una sola vista.
+            </CardDescription>
+          </div>
+          <CardAction className="flex flex-wrap items-center gap-2">
+            <Badge variant={statusBadgeVariant}>
+              {overLimit ? (
+                <ReceiptText data-icon="inline-start" />
+              ) : (
+                <CheckCircle2 data-icon="inline-start" />
+              )}
+              {plan.statusLabel}
+            </Badge>
+            <BillingIntervalToggle
+              billingInterval={billingInterval}
+              onBillingIntervalChange={onBillingIntervalChange}
+            />
+          </CardAction>
+        </div>
+        <p
+          aria-live="polite"
+          className={cn(
+            "col-span-full mt-3 text-sm",
+            billingAction.status === "error"
+              ? "text-destructive"
+              : billingAction.status === "success"
+                ? "text-profit"
+                : "text-muted-foreground",
+          )}
+        >
+          {billingMessage}
+        </p>
+      </CardHeader>
+      <CardContent className="grid gap-5 p-4 sm:p-6">
+        <PlanOptionsGrid
+          billingAction={billingAction}
+          billingInterval={billingInterval}
+          billingPending={billingPending}
+          canManageBilling={plan.managementReady}
+          maxAccountCapacity={maxAccountCapacity}
+          onManagePlan={onManagePlan}
+          onSelectPlan={onSelectPlan}
+          planChartData={planChartData}
+          planOptions={planOptions}
+        />
+
+        <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.38fr)]">
+          <PriceCapacitySection
+            maxAccountCapacity={maxAccountCapacity}
+            maxChartPrice={maxChartPrice}
+            planChartData={planChartData}
+          />
+
+          <CurrentPlanDialogCard
+            billingPending={billingPending}
+            canManageBilling={plan.managementReady}
+            currentOption={currentOption}
+            currentPlanDetails={currentPlanDetails}
+            displayedAccountNote={displayedAccountNote}
+            displayedIncludedAccountsLabel={displayedIncludedAccountsLabel}
+            displayedUsagePercent={displayedUsagePercent}
+            gradientConfig={currentPlanGradientConfig}
+            includedFeatures={includedFeatures}
+            onManagePlan={onManagePlan}
+            onOpenChange={onPlanDetailsOpenChange}
+            open={planDetailsOpen}
+            paymentRows={paymentRows}
+            usedAccountsLabel={plan.usedAccountsLabel}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BillingStatusCard({
+  billingAction,
+  billingPending,
+  onManagePlan,
+  paymentRows,
+  plan,
+}: {
+  billingAction: BillingActionState;
+  billingPending: boolean;
+  onManagePlan: () => void;
+  paymentRows: SettingsOverview["plan"]["paymentRows"];
+  plan: SettingsOverview["plan"];
+}) {
+  return (
+    <Card className="border-border/70 bg-card/70">
+      <CardHeader>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle>Estado y facturación</CardTitle>
+            <CardDescription>
+              Uso actual, renovación y estado de pagos.
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              disabled={!plan.managementReady || billingPending}
+              onClick={onManagePlan}
+            >
+              <CreditCard data-icon="inline-start" />
+              {billingPending && !billingAction.planKey
+                ? "Abriendo..."
+                : plan.primaryActionLabel}
+            </Button>
+            <Button variant="outline" render={<Link href="/accounts" />} nativeButton={false}>
+              <WalletCards data-icon="inline-start" />
+              Ver cuentas
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
+        <div className="grid content-start gap-4">
+          <div>
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              Renovación
+            </p>
+            <p className="mt-2 text-sm font-medium leading-6 text-foreground">
+              {plan.renewalLabel}
+            </p>
+          </div>
+          <Separator />
+          <div>
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              Gestión
+            </p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {plan.managementNote}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-0 border-l border-border/60 pl-5">
+          {paymentRows.map((row, index) => {
+            const Icon = PAYMENT_ICON_BY_TONE[row.tone];
+
+            return (
+              <React.Fragment key={row.label}>
+                {index > 0 ? <Separator /> : null}
+                <div className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-background/35">
+                    <Icon className="size-4 text-muted-foreground" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-start justify-between gap-3">
+                      <span className="font-medium text-foreground">{row.label}</span>
+                      <Badge variant={row.tone === "ready" ? "secondary" : "outline"}>
+                        {row.value}
+                      </Badge>
+                    </span>
+                    <span className="mt-1 block text-sm leading-6 text-muted-foreground">
+                      {row.note}
+                    </span>
+                  </span>
+                </div>
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PlanComparisonCard({
+  entitlementRows,
+  planOptions,
+}: {
+  entitlementRows: EntitlementRow[];
+  planOptions: SettingsPlanOption[];
+}) {
+  return (
+    <Card className="border-border/70 bg-card/70">
+      <CardHeader>
+        <CardTitle>Comparativa rápida</CardTitle>
+        <CardDescription>
+          Lo importante para decidir sin leer una tabla comercial larga.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-0">
+          <div className="grid grid-cols-[minmax(7rem,1fr)_repeat(3,minmax(0,0.9fr))] gap-3 pb-3 text-xs font-medium uppercase text-muted-foreground">
+            <span>Área</span>
+            {planOptions.map((option) => (
+              <span key={option.key}>
+                {option.name.replace("Edge ", "")}
+              </span>
+            ))}
+          </div>
+          {entitlementRows.map((row) => (
+            <div
+              key={row.label}
+              className="grid grid-cols-[minmax(7rem,1fr)_repeat(3,minmax(0,0.9fr))] gap-3 border-t border-border/60 py-3 text-sm"
+            >
+              <div className="font-medium text-foreground">{row.label}</div>
+              {row.values.map((value, index) => (
+                <div
+                  key={`${row.label}-${planOptions[index]?.key}`}
+                  className={cn(
+                    "min-w-0 text-muted-foreground",
+                    planOptions[index]?.current && "font-medium text-foreground",
+                  )}
+                >
+                  {value}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function IncludedNowCard({ includedFeatures }: { includedFeatures: string[] }) {
+  return (
+    <Card className="border-border/70 bg-card/70 xl:col-span-2">
+      <CardHeader>
+        <CardTitle>Incluido ahora</CardTitle>
+        <CardDescription>
+          Lo que ya está cubierto por tu plan actual.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
+        <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+          {includedFeatures.map((feature) => (
+            <div key={feature} className="flex items-start gap-3">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-background/35">
+                <CheckCircle2 className="size-4 text-muted-foreground" />
+              </span>
+              <span className="text-sm leading-6 text-muted-foreground">{feature}</span>
+            </div>
+          ))}
+        </div>
+        <div className="grid gap-3 border-t border-border/60 pt-5 sm:grid-cols-3 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
+          {PLAN_DECISION_ROWS.map((row) => (
+            <div key={row.label} className="min-w-0 text-sm">
+              <p className="text-xs font-medium uppercase text-muted-foreground">
+                {row.label}
+              </p>
+              <p className="mt-2 font-medium text-foreground">{row.value}</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{row.note}</p>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
 export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceState }) {
   const router = useRouter();
   const { setTheme, theme } = useTheme();
@@ -1099,637 +2002,50 @@ export function SubscriptionReferenceSection({
   return (
     <PageMotion>
       <div className="grid max-w-7xl gap-4">
-        {welcome ? (
-          <Card className="overflow-hidden border-border/70 bg-card/80">
-            <CardHeader className="gap-4 border-b border-border/60 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0">
-                <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase text-muted-foreground">
-                  <LockKeyhole className="size-4" />
-                  <span>Plan pendiente</span>
-                </div>
-                <CardTitle>Activa KMFX Edge para conectar MT5</CardTitle>
-                <CardDescription>
-                  El panel ya está preparado. Activa un plan para añadir cuentas,
-                  descargar launcher/EA y leer métricas reales desde MT5.
-                </CardDescription>
-              </div>
-              <CardAction className="flex flex-wrap gap-2">
-                <Button onClick={scrollToPlanOptions} type="button">
-                  <CreditCard data-icon="inline-start" />
-                  Elegir plan
-                </Button>
-                <Button
-                  nativeButton={false}
-                  render={<Link href="/dashboard?demo=1" />}
-                  variant="outline"
-                >
-                  <ExternalLink data-icon="inline-start" />
-                  Ver ejemplo
-                </Button>
-              </CardAction>
-            </CardHeader>
-            <CardContent className="grid gap-4 p-4 sm:grid-cols-3 sm:p-6">
-              {[
-                ["1", "Plan activo", "Desbloquea conexión, descargas y alta de cuentas."],
-                ["2", "Launcher y EA", "Instala la versión preparada para la beta."],
-                ["3", "Lectura completa", "La primera carga trae el historial y después solo cambios."],
-              ].map(([step, title, description]) => (
-                <div
-                  key={step}
-                  className="grid gap-2 border-l border-border/70 pl-4 first:border-l-0 first:pl-0 sm:first:border-l sm:first:pl-4"
-                >
-                  <p className="font-mono text-xs text-muted-foreground">{step}</p>
-                  <p className="font-semibold text-foreground">{title}</p>
-                  <p className="text-sm leading-6 text-muted-foreground">{description}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ) : null}
+        {welcome ? <SubscriptionWelcomeCard /> : null}
 
-        <Card className="overflow-hidden border-border/70 bg-card/80">
-          <CardHeader className="border-b border-border/60">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0">
-                <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase text-muted-foreground">
-                  <CreditCard className="size-4" />
-                  <span>Suscripción KMFX Edge</span>
-                </div>
-                <CardTitle>Elige el plan operativo</CardTitle>
-                <CardDescription>
-                  Precio, límite MT5 y profundidad de análisis en una sola vista.
-                </CardDescription>
-              </div>
-              <CardAction className="flex flex-wrap items-center gap-2">
-                <Badge variant={statusBadgeVariant}>
-                  {overLimit ? (
-                    <ReceiptText data-icon="inline-start" />
-                  ) : (
-                    <CheckCircle2 data-icon="inline-start" />
-                  )}
-                  {plan.statusLabel}
-                </Badge>
-                <ToggleGroup
-                  aria-label="Intervalo de facturación"
-                  onValueChange={(value) => {
-                    const nextValue = value[0] as "monthly" | "yearly" | undefined;
-
-                    if (nextValue) setBillingInterval(nextValue);
-                  }}
-                  size="sm"
-                  spacing={1}
-                  value={[billingInterval]}
-                  variant="outline"
-                >
-                  <ToggleGroupItem className="h-11 min-w-20 sm:h-8" value="monthly">
-                    Mensual
-                  </ToggleGroupItem>
-                  <ToggleGroupItem className="h-11 min-w-20 sm:h-8" value="yearly">
-                    Anual
-                  </ToggleGroupItem>
-                </ToggleGroup>
-              </CardAction>
-            </div>
-            <p
-              aria-live="polite"
-              className={cn(
-                "col-span-full mt-3 text-sm",
-                billingAction.status === "error"
-                  ? "text-destructive"
-                  : billingAction.status === "success"
-                    ? "text-profit"
-                    : "text-muted-foreground",
-              )}
-            >
-              {billingMessage}
-            </p>
-          </CardHeader>
-          <CardContent className="grid gap-5 p-4 sm:p-6">
-            <div id="kmfx-plan-options" className="scroll-mt-24 grid gap-5 lg:grid-cols-3">
-              {planOptions.map((option, index) => {
-                const featured = option.key === "pro";
-                const current = option.current;
-                const visual = PLAN_CARD_VISUALS[option.key];
-                const chartItem = planChartData.find((item) => item.key === option.key);
-                const capacityPercent = chartItem
-                  ? Math.max(12, (chartItem.accountCapacity / maxAccountCapacity) * 100)
-                  : 12;
-                const gradientConfig = planGradientConfigForOption(option.key, index);
-
-                return (
-                  <motion.div
-                    key={option.key}
-                    className={cn(
-                      "h-[500px] min-w-0",
-                      featured && "order-first lg:order-none lg:-translate-y-2",
-                    )}
-                    whileHover={{ y: -10, transition: { duration: 0.3 } }}
-                  >
-                    <Card
-                      className={cn(
-                        "group relative h-full overflow-hidden rounded-3xl border-border/50 bg-card/30 p-0 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10",
-                        featured && "border-primary/60 shadow-2xl shadow-primary/10",
-                        current && "border-foreground/30",
-                      )}
-                    >
-                      <div className="relative h-56 overflow-hidden">
-                        <AnimatedGradient config={gradientConfig} />
-                        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-40" />
-
-                        <div className="absolute left-4 top-4 z-20">
-                          <Badge
-                            variant="secondary"
-                            className="border-white/10 bg-background/50 px-3 py-1 text-xs font-medium backdrop-blur-md"
-                          >
-                            {current ? "Actual" : featured ? "Recomendado" : visual.signal}
-                          </Badge>
-                        </div>
-                        <div className="absolute right-4 top-4 z-20 rounded-full border border-white/10 bg-background/45 px-3 py-1 text-xs font-medium text-foreground backdrop-blur-md">
-                          {visual.capacity}
-                        </div>
-
-                        <div className="absolute bottom-4 left-4 right-4 z-20">
-                          <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/70">
-                            KMFX Edge
-                          </p>
-                          <div className="mt-2 flex min-w-0 items-end justify-between gap-3">
-                            <h3 className="min-w-0 truncate text-3xl font-bold leading-none tracking-tight text-white">
-                              {visual.code}
-                            </h3>
-                            <p className="shrink-0 whitespace-nowrap text-right text-[clamp(1.35rem,1.7vw,1.5rem)] font-semibold leading-none tracking-tight text-white">
-                              {priceForInterval(option)}
-                            </p>
-                          </div>
-                          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/20">
-                            <div
-                              className={cn(
-                                "h-full rounded-full bg-white/70",
-                                featured && "bg-primary",
-                              )}
-                              style={{ width: `${capacityPercent}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
-                          <motion.button
-                            className="min-h-10 rounded-full bg-white px-6 py-2 text-sm font-semibold text-black shadow-lg transition-transform duration-200 disabled:cursor-not-allowed disabled:opacity-70"
-                            disabled={!plan.managementReady || billingPending}
-                            onClick={() => {
-                              if (current) {
-                                void openBillingPortal();
-                                return;
-                              }
-
-                              void startCheckout(option.key);
-                            }}
-                            type="button"
-                            whileHover={{ scale: plan.managementReady && !billingPending ? 1.05 : 1 }}
-                            whileTap={{ scale: plan.managementReady && !billingPending ? 0.95 : 1 }}
-                          >
-                            {billingPending && billingAction.planKey === option.key
-                              ? "Abriendo..."
-                              : current
-                                ? "Gestionar"
-                                : "Seleccionar"}
-                          </motion.button>
-                        </div>
-                      </div>
-
-                      <div className="flex h-[calc(100%-14rem)] flex-col justify-between p-4">
-                        <div className="flex flex-col gap-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <h3 className="text-xl font-bold leading-tight tracking-tight text-foreground transition-colors group-hover:text-primary">
-                                {option.name}
-                              </h3>
-                              <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
-                                {option.recommendedFor}
-                              </p>
-                            </div>
-                            {featured ? (
-                              <Badge className="shrink-0 bg-foreground text-background hover:bg-foreground/90">
-                                <Sparkles data-icon="inline-start" />
-                                Top
-                              </Badge>
-                            ) : null}
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="rounded-2xl border border-border/50 bg-background/35 p-3">
-                              <p className="text-[11px] font-medium uppercase text-muted-foreground">
-                                Precio
-                              </p>
-                              <p className="mt-2 text-lg font-semibold leading-tight text-foreground">
-                                {priceForInterval(option)}
-                              </p>
-                              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                                {intervalCaptionForOption(option)}
-                              </p>
-                            </div>
-                            <div className="rounded-2xl border border-border/50 bg-background/35 p-3">
-                              <p className="text-[11px] font-medium uppercase text-muted-foreground">
-                                Capacidad
-                              </p>
-                              <p className="mt-2 text-lg font-semibold leading-tight text-foreground">
-                                {option.accountLimitLabel}
-                              </p>
-                              <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-                                {option.key === "unlimited" ? "Escala total" : "Límite MT5"}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 flex items-center justify-between gap-3 border-t border-border/50 pt-3">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <Avatar className="size-8 border border-border/60">
-                              <AvatarFallback className="bg-background/70 text-[11px] font-semibold">
-                                {visual.code.slice(0, 2)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-foreground">
-                                {current
-                                  ? "Plan actual"
-                                  : featured
-                                    ? "Recomendado"
-                                    : "Disponible"}
-                              </p>
-                              <p className="truncate text-xs text-muted-foreground">
-                                {option.key === "unlimited" ? "Sin límite" : visual.signal}
-                              </p>
-                            </div>
-                          </div>
-                          <Button
-                            className="min-h-10 shrink-0"
-                            disabled={!plan.managementReady || billingPending}
-                            onClick={() => {
-                              if (current) {
-                                void openBillingPortal();
-                                return;
-                              }
-
-                              void startCheckout(option.key);
-                            }}
-                            size="sm"
-                            variant={current ? "secondary" : featured ? "default" : "outline"}
-                          >
-                            {billingPending && billingAction.planKey === option.key
-                              ? "Abriendo..."
-                              : current
-                                ? "Gestionar"
-                                : "Elegir"}
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  </motion.div>
-                );
-              })}
-            </div>
-
-            <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.38fr)]">
-              <div className="grid content-start gap-4 py-2">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-foreground">Precio vs capacidad</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Comparativa rápida por intervalo.
-                    </p>
-                  </div>
-                  <span className="text-xs font-medium text-muted-foreground">MT5</span>
-                </div>
-                <div className="mt-4 grid gap-4">
-                  {planChartData.map((item) => (
-                    <div key={item.key} className="grid gap-2">
-                      <div className="flex items-center justify-between gap-3 text-sm">
-                        <span className="font-medium text-foreground">{item.name}</span>
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {item.key === "unlimited"
-                            ? "Ilimitadas"
-                            : `${item.accountCapacity} cuentas`}
-                        </span>
-                      </div>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <div className="grid gap-1">
-                          <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                            <span>Precio</span>
-                            <span>{item.price} EUR</span>
-                          </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-muted/45">
-                            <div
-                              className="h-full rounded-full bg-foreground/70"
-                              style={{
-                                width: `${Math.max(12, (item.price / maxChartPrice) * 100)}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                        <div className="grid gap-1">
-                          <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                            <span>Capacidad</span>
-                            <span>{item.key === "unlimited" ? "Escala" : "Límite"}</span>
-                          </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-muted/45">
-                            <div
-                              className={cn(
-                                "h-full rounded-full bg-foreground/70",
-                                item.current && "bg-primary",
-                              )}
-                              style={{
-                                width: `${Math.max(12, (item.accountCapacity / maxAccountCapacity) * 100)}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <Dialog open={planDetailsOpen} onOpenChange={setPlanDetailsOpen}>
-                <button
-                  type="button"
-                  onClick={() => setPlanDetailsOpen(true)}
-                  className="group/plan-card relative h-full min-h-[13rem] overflow-hidden rounded-xl border border-border/70 bg-card/65 text-left shadow-sm transition-colors hover:border-foreground/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-                >
-                  <AnimatedGradient config={currentPlanGradientConfig} />
-                  <span className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/62 to-background/20" />
-                  <span className="relative flex h-full flex-col p-4">
-                    <span className="flex items-start justify-between gap-3">
-                      <span className="min-w-0">
-                        <span className="text-xs font-medium uppercase text-white/70">
-                          Plan actual
-                        </span>
-                        <span className="mt-2 block text-2xl font-semibold tracking-tight text-white">
-                          {currentOption.name}
-                        </span>
-                        <span className="mt-1 block text-sm text-white/75">
-                          {plan.usedAccountsLabel}/{displayedIncludedAccountsLabel} cuentas conectadas
-                        </span>
-                      </span>
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/20 bg-background/35 text-white/75 transition-colors group-hover/plan-card:text-white">
-                        <Plus className="size-4" />
-                      </span>
-                    </span>
-                    <Progress
-                      className="mt-4 [&_[data-slot=progress-indicator]]:bg-white/85 [&_[data-slot=progress-track]]:bg-white/20"
-                      value={displayedUsagePercent}
-                    />
-                    <span className="mt-auto flex items-center justify-between gap-3 border-t border-white/20 pt-4">
-                      <span className="text-sm leading-6 text-white/75">
-                        {displayedAccountNote}
-                      </span>
-                      <span className="shrink-0 text-xs font-medium text-white">
-                        Ver detalle
-                      </span>
-                    </span>
-                  </span>
-                </button>
-                <DialogContent className="sm:max-w-xl">
-                  <DialogHeader>
-                    <DialogTitle>{currentOption.name}</DialogTitle>
-                    <DialogDescription>
-                      Información del plan activo y límites disponibles.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4">
-                    <div className="grid overflow-hidden rounded-lg border border-border/70 sm:grid-cols-2">
-                      {currentPlanDetails.map((item, index) => (
-                        <div
-                          key={item.label}
-                          className={cn(
-                            "min-w-0 border-border/70 bg-background/25 p-3",
-                            index < 2 && "border-b",
-                            index % 2 === 0 && "sm:border-r",
-                            index === 1 && "sm:border-b",
-                          )}
-                        >
-                          <p className="text-xs font-medium uppercase text-muted-foreground">
-                            {item.label}
-                          </p>
-                          <p className="mt-2 text-lg font-semibold text-foreground">
-                            {item.value}
-                          </p>
-                          <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                            {item.note}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Incluido</p>
-                      <div className="mt-3 grid gap-2">
-                        {includedFeatures.map((feature) => (
-                          <div
-                            key={feature}
-                            className="flex items-start gap-3 rounded-lg border border-border/70 bg-background/25 px-3 py-2"
-                          >
-                            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                            <span className="text-sm leading-6 text-muted-foreground">
-                              {feature}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="grid gap-2 text-sm">
-                      {plan.paymentRows.map((row) => (
-                        <div
-                          key={row.label}
-                          className="flex items-start justify-between gap-3"
-                        >
-                          <span className="text-muted-foreground">{row.label}</span>
-                          <span className="min-w-0 text-right">
-                            <span className="block font-medium text-foreground">
-                              {row.value}
-                            </span>
-                            <span className="block text-xs leading-5 text-muted-foreground">
-                              {row.note}
-                            </span>
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setPlanDetailsOpen(false)}
-                    >
-                      Cerrar
-                    </Button>
-                    <Button
-                      type="button"
-                      disabled={!plan.managementReady || billingPending}
-                      onClick={() => void openBillingPortal()}
-                    >
-                      <CreditCard data-icon="inline-start" />
-                      Gestionar plan
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardContent>
-        </Card>
+        <PlanSelectionCard
+          billingAction={billingAction}
+          billingInterval={billingInterval}
+          billingMessage={billingMessage}
+          billingPending={billingPending}
+          currentOption={currentOption}
+          currentPlanDetails={currentPlanDetails}
+          currentPlanGradientConfig={currentPlanGradientConfig}
+          displayedAccountNote={displayedAccountNote}
+          displayedIncludedAccountsLabel={displayedIncludedAccountsLabel}
+          displayedUsagePercent={displayedUsagePercent}
+          includedFeatures={includedFeatures}
+          maxAccountCapacity={maxAccountCapacity}
+          maxChartPrice={maxChartPrice}
+          onBillingIntervalChange={setBillingInterval}
+          onManagePlan={() => void openBillingPortal()}
+          onPlanDetailsOpenChange={setPlanDetailsOpen}
+          onSelectPlan={(planKey) => void startCheckout(planKey)}
+          overLimit={overLimit}
+          paymentRows={plan.paymentRows}
+          plan={plan}
+          planChartData={planChartData}
+          planDetailsOpen={planDetailsOpen}
+          planOptions={planOptions}
+          statusBadgeVariant={statusBadgeVariant}
+        />
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)]">
-          <Card className="border-border/70 bg-card/70">
-            <CardHeader>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <CardTitle>Estado y facturación</CardTitle>
-                  <CardDescription>
-                    Uso actual, renovación y estado de pagos.
-                  </CardDescription>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    disabled={!plan.managementReady || billingPending}
-                    onClick={() => void openBillingPortal()}
-                  >
-                    <CreditCard data-icon="inline-start" />
-                    {billingPending && !billingAction.planKey
-                      ? "Abriendo..."
-                      : plan.primaryActionLabel}
-                  </Button>
-                  <Button variant="outline" render={<Link href="/accounts" />} nativeButton={false}>
-                    <WalletCards data-icon="inline-start" />
-                    Ver cuentas
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
-              <div className="grid content-start gap-4">
-                <div>
-                  <p className="text-xs font-medium uppercase text-muted-foreground">
-                    Renovación
-                  </p>
-                  <p className="mt-2 text-sm font-medium leading-6 text-foreground">
-                    {plan.renewalLabel}
-                  </p>
-                </div>
-                <Separator />
-                <div>
-                  <p className="text-xs font-medium uppercase text-muted-foreground">
-                    Gestión
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    {plan.managementNote}
-                  </p>
-                </div>
-              </div>
+          <BillingStatusCard
+            billingAction={billingAction}
+            billingPending={billingPending}
+            onManagePlan={() => void openBillingPortal()}
+            paymentRows={plan.paymentRows}
+            plan={plan}
+          />
 
-              <div className="grid gap-0 border-l border-border/60 pl-5">
-                {plan.paymentRows.map((row, index) => {
-                  const Icon = PAYMENT_ICON_BY_TONE[row.tone];
+          <PlanComparisonCard
+            entitlementRows={entitlementRows}
+            planOptions={planOptions}
+          />
 
-                  return (
-                    <React.Fragment key={row.label}>
-                      {index > 0 ? <Separator /> : null}
-                      <div className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-background/35">
-                          <Icon className="size-4 text-muted-foreground" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-start justify-between gap-3">
-                            <span className="font-medium text-foreground">{row.label}</span>
-                            <Badge variant={row.tone === "ready" ? "secondary" : "outline"}>
-                              {row.value}
-                            </Badge>
-                          </span>
-                          <span className="mt-1 block text-sm leading-6 text-muted-foreground">
-                            {row.note}
-                          </span>
-                        </span>
-                      </div>
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/70 bg-card/70">
-            <CardHeader>
-              <CardTitle>Comparativa rápida</CardTitle>
-              <CardDescription>
-                Lo importante para decidir sin leer una tabla comercial larga.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-0">
-                <div className="grid grid-cols-[minmax(7rem,1fr)_repeat(3,minmax(0,0.9fr))] gap-3 pb-3 text-xs font-medium uppercase text-muted-foreground">
-                  <span>Área</span>
-                  {planOptions.map((option) => (
-                    <span key={option.key}>
-                      {option.name.replace("Edge ", "")}
-                    </span>
-                  ))}
-                </div>
-                {entitlementRows.map((row) => (
-                  <div
-                    key={row.label}
-                    className="grid grid-cols-[minmax(7rem,1fr)_repeat(3,minmax(0,0.9fr))] gap-3 border-t border-border/60 py-3 text-sm"
-                  >
-                    <div className="font-medium text-foreground">{row.label}</div>
-                    {row.values.map((value, index) => (
-                      <div
-                        key={`${row.label}-${planOptions[index]?.key}`}
-                        className={cn(
-                          "min-w-0 text-muted-foreground",
-                          planOptions[index]?.current && "font-medium text-foreground",
-                        )}
-                      >
-                        {value}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/70 bg-card/70 xl:col-span-2">
-            <CardHeader>
-              <CardTitle>Incluido ahora</CardTitle>
-              <CardDescription>
-                Lo que ya está cubierto por tu plan actual.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
-              <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-                {includedFeatures.map((feature) => (
-                  <div key={feature} className="flex items-start gap-3">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-background/35">
-                      <CheckCircle2 className="size-4 text-muted-foreground" />
-                    </span>
-                    <span className="text-sm leading-6 text-muted-foreground">{feature}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="grid gap-3 border-t border-border/60 pt-5 sm:grid-cols-3 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
-                {PLAN_DECISION_ROWS.map((row) => (
-                  <div key={row.label} className="min-w-0 text-sm">
-                    <p className="text-xs font-medium uppercase text-muted-foreground">
-                      {row.label}
-                    </p>
-                    <p className="mt-2 font-medium text-foreground">{row.value}</p>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{row.note}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <IncludedNowCard includedFeatures={includedFeatures} />
         </div>
       </div>
     </PageMotion>
