@@ -685,7 +685,7 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     worstPeriodDay: portfolioCalendarWorstDay,
   } = portfolioCalendarOverview;
   const baseCurrency = portfolio?.baseCurrency ?? accountRows[0]?.baseCurrency ?? "USD";
-  const portfolioCalendarValueMode =
+  const portfolioCalendarValueMode: "currency" | "percent" =
     portfolioDisplayMode === "capital" ? "currency" : "percent";
   const portfolioCalendarBaseCapital = Math.max(1, totalEquity);
   const portfolioCalendarMonthTitle =
@@ -798,7 +798,7 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     (portfolioDisplayMode === "capital" ? totalEquity : portfolioReturnPct);
   const portfolioComparisonSeries = allocationRows
     .slice(0, 4)
-    .map<LivelineSeries>((row, index) => {
+    .flatMap<LivelineSeries>((row, index) => {
       const accountCurve = getAccountPeriodCurve(row.account, comparisonPeriodStartMs);
       const accountBase = accountCurve[0]?.value ?? 0;
       const data =
@@ -809,15 +809,16 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
             }))
           : [];
 
-      return {
+      const series = {
         id: row.account.id,
         label: row.account.label,
         color: PORTFOLIO_SERIES_COLORS[index % PORTFOLIO_SERIES_COLORS.length],
         data: normalizeLivelinePoints(data, 60),
         value: data.at(-1)?.value ?? 0,
       };
-    })
-    .filter((series) => series.data.length >= 2);
+
+      return series.data.length >= 2 ? [series] : [];
+    });
   const portfolioComparisonData = normalizeLivelinePoints(
     portfolioComparisonSeries.flatMap((series) => series.data),
     60,
@@ -1124,34 +1125,21 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
 
   return {
     accountRows,
-    accountToReview,
     allocationFunnelData,
     allocationFunnelLegend,
-    allocationFunnelRows,
     allocationRows,
     allocationScore,
     allocationScoreLabel,
     baseCurrency,
-    bestContribution,
-    capitalCurveForChart,
-    comparisonPeriodStartMs,
-    concentrationRows,
-    concentrationScore,
-    connectedAccounts,
-    consistencyScore,
+    capitalCurveBase,
     contributionRows,
-    currentPeriodLosses,
     currentPeriodPnl,
     currentPeriodTrades,
     currentPeriodWinRate,
-    currentPeriodWins,
-    dataQualityScore,
     decisionContextRows,
     decisionRows,
     dispatchPortfolioUi,
     dominantAllocation,
-    dominantShare,
-    growthScore,
     handlePortfolioCalendarMonthSelect,
     healthMetricRows,
     heatShare,
@@ -1163,7 +1151,6 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     portfolioCalendarBaseCapital,
     portfolioCalendarBestDay,
     portfolioCalendarMonthTitle,
-    portfolioCalendarOverview,
     portfolioCalendarPnl,
     portfolioCalendarReviewDay,
     portfolioCalendarSelectedDayKey,
@@ -1180,13 +1167,11 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     portfolioComparisonData,
     portfolioComparisonEffectiveWindowSecs,
     portfolioComparisonLabelByTime,
-    portfolioComparisonLag,
     portfolioComparisonLatest,
     portfolioComparisonLeader,
     portfolioComparisonPeriod,
     portfolioComparisonSeries,
     portfolioComparisonSpread,
-    portfolioComparisonWindowSecs,
     portfolioDisplayMode,
     portfolioEffectiveWindowSecs,
     portfolioLabelByTime,
@@ -1215,34 +1200,21 @@ export function CapitalReferenceSection({
 }) {
   const {
     accountRows,
-    accountToReview,
     allocationFunnelData,
     allocationFunnelLegend,
-    allocationFunnelRows,
     allocationRows,
     allocationScore,
     allocationScoreLabel,
     baseCurrency,
-    bestContribution,
-    capitalCurveForChart,
-    comparisonPeriodStartMs,
-    concentrationRows,
-    concentrationScore,
-    connectedAccounts,
-    consistencyScore,
+    capitalCurveBase,
     contributionRows,
-    currentPeriodLosses,
     currentPeriodPnl,
     currentPeriodTrades,
     currentPeriodWinRate,
-    currentPeriodWins,
-    dataQualityScore,
     decisionContextRows,
     decisionRows,
     dispatchPortfolioUi,
     dominantAllocation,
-    dominantShare,
-    growthScore,
     handlePortfolioCalendarMonthSelect,
     healthMetricRows,
     heatShare,
@@ -1254,7 +1226,6 @@ export function CapitalReferenceSection({
     portfolioCalendarBaseCapital,
     portfolioCalendarBestDay,
     portfolioCalendarMonthTitle,
-    portfolioCalendarOverview,
     portfolioCalendarPnl,
     portfolioCalendarReviewDay,
     portfolioCalendarSelectedDayKey,
@@ -1271,31 +1242,22 @@ export function CapitalReferenceSection({
     portfolioComparisonData,
     portfolioComparisonEffectiveWindowSecs,
     portfolioComparisonLabelByTime,
-    portfolioComparisonLag,
     portfolioComparisonLatest,
     portfolioComparisonLeader,
     portfolioComparisonPeriod,
     portfolioComparisonSeries,
     portfolioComparisonSpread,
-    portfolioComparisonWindowSecs,
     portfolioDisplayMode,
     portfolioEffectiveWindowSecs,
     portfolioLabelByTime,
     portfolioLivelineData,
     portfolioPeriod,
     portfolioReadiness,
-    portfolioReturnPct,
     portfolioShouldExaggerate,
     portfolioStatusLabel,
-    portfolioWindowSecs,
     riskDuplicationRows,
-    riskScore,
     staleAccounts,
-    topExposure,
     totalEquity,
-    totalPnl,
-    visibleDailyRows,
-    weakestContribution,
   } = useCapitalReferenceModel(workspace);
 
   return (
