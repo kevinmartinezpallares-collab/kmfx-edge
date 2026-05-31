@@ -121,7 +121,7 @@ function authFormReducer(
   }
 }
 
-export function AuthPage({ nextPath = "/dashboard" }: { nextPath?: string }) {
+function useAuthPageModel(nextPath: string) {
   const router = useRouter();
   const [authForm, dispatchAuthForm] = React.useReducer(
     authFormReducer,
@@ -336,241 +336,338 @@ export function AuthPage({ nextPath = "/dashboard" }: { nextPath?: string }) {
 
   const messageIsSuccess = message.startsWith("Cuenta creada.");
 
+  const setAuthMode = React.useCallback(
+    (nextAuthMode: AuthMode) => {
+      dispatchAuthForm({
+        type: "setMode",
+        authMode: nextAuthMode,
+      });
+      resetTurnstile();
+    },
+    [resetTurnstile],
+  );
+
+  const setEmail = React.useCallback((nextEmail: string) => {
+    dispatchAuthForm({
+      type: "setEmail",
+      email: nextEmail,
+    });
+  }, []);
+
+  const setPassword = React.useCallback((nextPassword: string) => {
+    dispatchAuthForm({
+      type: "setPassword",
+      password: nextPassword,
+    });
+  }, []);
+
+  return {
+    authConfigured,
+    authMode,
+    email,
+    handlePasswordAuth,
+    message,
+    messageIsSuccess,
+    password,
+    setAuthMode,
+    setEmail,
+    setPassword,
+    signInWithProvider,
+    status,
+    turnstileContainerRef,
+    turnstileSiteKey,
+  };
+}
+
+type AuthPageModel = ReturnType<typeof useAuthPageModel>;
+
+function AuthHero() {
   return (
-    <main className="relative min-h-svh overflow-hidden bg-background text-foreground lg:grid lg:grid-cols-[1.05fr_0.95fr]">
-      <section className="relative hidden min-h-svh overflow-hidden border-r border-border/70 bg-[radial-gradient(circle_at_20%_20%,hsl(var(--muted))_0,transparent_32%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted)/0.28))] lg:flex">
-        <FloatingPaths position={1} />
-        <FloatingPaths position={-1} />
+    <section className="relative hidden min-h-svh overflow-hidden border-r border-border/70 bg-[radial-gradient(circle_at_20%_20%,hsl(var(--muted))_0,transparent_32%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted)/0.28))] lg:flex">
+      <FloatingPaths position={1} />
+      <FloatingPaths position={-1} />
 
-        <div className="relative z-10 flex min-h-svh w-full flex-col justify-between p-10 xl:p-12">
-          <div className="flex items-center gap-3">
-            <LogoMark
-              className="size-11 rounded-full ring-1 ring-border shadow-[0_20px_80px_rgba(0,0,0,0.25)]"
-              priority
-              sizes="44px"
-            />
-            <div className="flex flex-col">
-              <LogoWordmark className="text-lg" />
-            </div>
-          </div>
-
-          <div className="max-w-2xl">
-            <p className="mb-4 text-sm font-medium tracking-[0.28em] text-muted-foreground uppercase">
-              Acceso seguro
-            </p>
-            <h1 className="max-w-xl text-4xl leading-tight font-semibold tracking-tight text-balance xl:text-6xl">
-              Entra, revisa tu cuenta y decide sin ruido.
-            </h1>
-            <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground xl:text-lg">
-              KMFX centraliza cuenta, calendario, trades, portfolio e insights para que
-              el trader vea lo importante antes de tocar el botón de entrada.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-border bg-border/70">
-            {accessHighlights.map((item) => (
-              <div
-                className="flex min-h-36 flex-col justify-between bg-card/90 p-5"
-                key={item.title}
-              >
-                <item.icon className="size-5 text-muted-foreground" />
-                <div className="flex flex-col gap-1.5">
-                  <h2 className="text-sm font-semibold">{item.title}</h2>
-                  <p className="text-sm leading-5 text-muted-foreground">
-                    {item.description}
-                  </p>
-                </div>
-              </div>
-            ))}
+      <div className="relative z-10 flex min-h-svh w-full flex-col justify-between p-10 xl:p-12">
+        <div className="flex items-center gap-3">
+          <LogoMark
+            className="size-11 rounded-full ring-1 ring-border shadow-[0_20px_80px_rgba(0,0,0,0.25)]"
+            priority
+            sizes="44px"
+          />
+          <div className="flex flex-col">
+            <LogoWordmark className="text-lg" />
           </div>
         </div>
-      </section>
 
-      <section className="relative flex min-h-svh items-center justify-center px-5 py-10 sm:px-8 lg:px-10">
-        <Button
-          className="absolute top-5 left-5 text-muted-foreground"
-          render={<Link href="/dashboard" />}
-          nativeButton={false}
-          variant="ghost"
-        >
-          <ArrowLeftIcon data-icon="inline-start" />
-          Volver al panel
-        </Button>
-
-        <div className="flex w-full max-w-md flex-col gap-8">
-          <div className="flex flex-col gap-3 text-center">
-            <LogoMark
-              className="mx-auto size-12 rounded-full ring-1 ring-border"
-              priority
-              sizes="48px"
-            />
-            <div className="flex flex-col gap-2">
-              <h2 className="text-3xl font-semibold tracking-tight">
-                {authMode === "sign-up" ? "Crea tu cuenta" : "Inicia sesión"}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {authMode === "sign-up"
-                  ? "Regístrate con un email nuevo para probar la beta."
-                  : "Accede a tu panel de trading y gestión de cuentas."}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <Button
-              disabled={status === "loading"}
-              onClick={() => void signInWithProvider("google")}
-              type="button"
-              variant="outline"
-            >
-              <GoogleIcon data-icon="inline-start" />
-              Continuar con Google
-            </Button>
-            <Button
-              disabled={status === "loading"}
-              onClick={() => void signInWithProvider("apple")}
-              type="button"
-              variant="outline"
-            >
-              <AppleIcon data-icon="inline-start" />
-              Continuar con Apple
-            </Button>
-            <Button
-              disabled={status === "loading"}
-              onClick={() => void signInWithProvider("github")}
-              type="button"
-              variant="outline"
-            >
-              <GithubIcon data-icon="inline-start" />
-              Continuar con GitHub
-            </Button>
-          </div>
-
-          <AuthDivider>o</AuthDivider>
-
-          <div
-            aria-label="Modo de acceso"
-            className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted/30 p-1"
-            role="tablist"
-          >
-            {[
-              { label: "Entrar", mode: "sign-in" as const },
-              { label: "Crear cuenta", mode: "sign-up" as const },
-            ].map((option) => (
-              <button
-                aria-selected={authMode === option.mode}
-                className="h-9 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm"
-                disabled={status === "loading"}
-                key={option.mode}
-                onClick={() => {
-                  dispatchAuthForm({
-                    type: "setMode",
-                    authMode: option.mode,
-                  });
-                  resetTurnstile();
-                }}
-                role="tab"
-                type="button"
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-
-          <form className="flex flex-col gap-5" onSubmit={handlePasswordAuth}>
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
-                <InputGroup className="h-10 rounded-xl">
-                  <InputGroupAddon align="inline-start">
-                    <AtSignIcon className="size-4" />
-                  </InputGroupAddon>
-                  <InputGroupInput
-                    autoComplete="email"
-                    disabled={status === "loading"}
-                    id="email"
-                    onChange={(event) =>
-                      dispatchAuthForm({
-                        type: "setEmail",
-                        email: event.target.value,
-                      })
-                    }
-                    placeholder="tu@email.com"
-                    required
-                    type="email"
-                    value={email}
-                  />
-                </InputGroup>
-                <FieldDescription>
-                  {authMode === "sign-up"
-                    ? "Usaremos este email para crear tu acceso de beta."
-                    : "Usaremos este email para validar el acceso a tu cuenta."}
-                </FieldDescription>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="password">Contraseña</FieldLabel>
-                <InputGroup className="h-10 rounded-xl">
-                  <InputGroupAddon align="inline-start">
-                    <LockKeyholeIcon className="size-4" />
-                  </InputGroupAddon>
-                  <InputGroupInput
-                    autoComplete={authMode === "sign-up" ? "new-password" : "current-password"}
-                    disabled={status === "loading"}
-                    id="password"
-                    onChange={(event) =>
-                      dispatchAuthForm({
-                        type: "setPassword",
-                        password: event.target.value,
-                      })
-                    }
-                    placeholder="Tu contraseña"
-                    required
-                    type="password"
-                    value={password}
-                  />
-                </InputGroup>
-              </Field>
-            </FieldGroup>
-
-            {message ? (
-              <p
-                className={
-                  messageIsSuccess
-                    ? "flex items-center gap-2 text-sm text-emerald-500"
-                    : "flex items-center gap-2 text-sm text-destructive"
-                }
-              >
-                <AlertCircleIcon className="size-4" />
-                {message}
-              </p>
-            ) : null}
-
-            {authConfigured && turnstileSiteKey ? (
-              <div
-                ref={turnstileContainerRef}
-                className="min-h-[65px] overflow-hidden rounded-xl"
-              />
-            ) : null}
-
-            <Button
-              className="h-10 rounded-xl"
-              disabled={status === "loading"}
-              type="submit"
-            >
-              {status === "loading"
-                ? "Validando..."
-                : authMode === "sign-up"
-                  ? "Crear cuenta con email"
-                  : "Continuar con email"}
-              <ChevronRightIcon data-icon="inline-end" />
-            </Button>
-          </form>
-
-          <p className="text-center text-sm leading-6 text-muted-foreground">
-            Al continuar aceptas los términos de KMFX Edge y la política de privacidad.
+        <div className="max-w-2xl">
+          <p className="mb-4 text-sm font-medium tracking-[0.28em] text-muted-foreground uppercase">
+            Acceso seguro
+          </p>
+          <h1 className="max-w-xl text-4xl leading-tight font-semibold tracking-tight text-balance xl:text-6xl">
+            Entra, revisa tu cuenta y decide sin ruido.
+          </h1>
+          <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground xl:text-lg">
+            KMFX centraliza cuenta, calendario, trades, portfolio e insights para que
+            el trader vea lo importante antes de tocar el botón de entrada.
           </p>
         </div>
-      </section>
+
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-border bg-border/70">
+          {accessHighlights.map((item) => (
+            <div
+              className="flex min-h-36 flex-col justify-between bg-card/90 p-5"
+              key={item.title}
+            >
+              <item.icon className="size-5 text-muted-foreground" />
+              <div className="flex flex-col gap-1.5">
+                <h2 className="text-sm font-semibold">{item.title}</h2>
+                <p className="text-sm leading-5 text-muted-foreground">
+                  {item.description}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProviderButtons({
+  signInWithProvider,
+  status,
+}: Pick<AuthPageModel, "signInWithProvider" | "status">) {
+  return (
+    <div className="flex flex-col gap-3">
+      <Button
+        disabled={status === "loading"}
+        onClick={() => void signInWithProvider("google")}
+        type="button"
+        variant="outline"
+      >
+        <GoogleIcon data-icon="inline-start" />
+        Continuar con Google
+      </Button>
+      <Button
+        disabled={status === "loading"}
+        onClick={() => void signInWithProvider("apple")}
+        type="button"
+        variant="outline"
+      >
+        <AppleIcon data-icon="inline-start" />
+        Continuar con Apple
+      </Button>
+      <Button
+        disabled={status === "loading"}
+        onClick={() => void signInWithProvider("github")}
+        type="button"
+        variant="outline"
+      >
+        <GithubIcon data-icon="inline-start" />
+        Continuar con GitHub
+      </Button>
+    </div>
+  );
+}
+
+function AuthModeTabs({
+  authMode,
+  setAuthMode,
+  status,
+}: Pick<AuthPageModel, "authMode" | "setAuthMode" | "status">) {
+  return (
+    <div
+      aria-label="Modo de acceso"
+      className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted/30 p-1"
+      role="tablist"
+    >
+      {[
+        { label: "Entrar", mode: "sign-in" as const },
+        { label: "Crear cuenta", mode: "sign-up" as const },
+      ].map((option) => (
+        <button
+          aria-selected={authMode === option.mode}
+          className="h-9 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm"
+          disabled={status === "loading"}
+          key={option.mode}
+          onClick={() => setAuthMode(option.mode)}
+          role="tab"
+          type="button"
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function EmailPasswordForm({
+  authConfigured,
+  authMode,
+  email,
+  handlePasswordAuth,
+  message,
+  messageIsSuccess,
+  password,
+  setEmail,
+  setPassword,
+  status,
+  turnstileContainerRef,
+  turnstileSiteKey,
+}: Pick<
+  AuthPageModel,
+  | "authConfigured"
+  | "authMode"
+  | "email"
+  | "handlePasswordAuth"
+  | "message"
+  | "messageIsSuccess"
+  | "password"
+  | "setEmail"
+  | "setPassword"
+  | "status"
+  | "turnstileContainerRef"
+  | "turnstileSiteKey"
+>) {
+  return (
+    <form className="flex flex-col gap-5" onSubmit={handlePasswordAuth}>
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="email">Email</FieldLabel>
+          <InputGroup className="h-10 rounded-xl">
+            <InputGroupAddon align="inline-start">
+              <AtSignIcon className="size-4" />
+            </InputGroupAddon>
+            <InputGroupInput
+              autoComplete="email"
+              disabled={status === "loading"}
+              id="email"
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="tu@email.com"
+              required
+              type="email"
+              value={email}
+            />
+          </InputGroup>
+          <FieldDescription>
+            {authMode === "sign-up"
+              ? "Usaremos este email para crear tu acceso de beta."
+              : "Usaremos este email para validar el acceso a tu cuenta."}
+          </FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="password">Contraseña</FieldLabel>
+          <InputGroup className="h-10 rounded-xl">
+            <InputGroupAddon align="inline-start">
+              <LockKeyholeIcon className="size-4" />
+            </InputGroupAddon>
+            <InputGroupInput
+              autoComplete={authMode === "sign-up" ? "new-password" : "current-password"}
+              disabled={status === "loading"}
+              id="password"
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Tu contraseña"
+              required
+              type="password"
+              value={password}
+            />
+          </InputGroup>
+        </Field>
+      </FieldGroup>
+
+      {message ? (
+        <p
+          className={
+            messageIsSuccess
+              ? "flex items-center gap-2 text-sm text-emerald-500"
+              : "flex items-center gap-2 text-sm text-destructive"
+          }
+        >
+          <AlertCircleIcon className="size-4" />
+          {message}
+        </p>
+      ) : null}
+
+      {authConfigured && turnstileSiteKey ? (
+        <div
+          ref={turnstileContainerRef}
+          className="min-h-[65px] overflow-hidden rounded-xl"
+        />
+      ) : null}
+
+      <Button
+        className="h-10 rounded-xl"
+        disabled={status === "loading"}
+        type="submit"
+      >
+        {status === "loading"
+          ? "Validando..."
+          : authMode === "sign-up"
+            ? "Crear cuenta con email"
+            : "Continuar con email"}
+        <ChevronRightIcon data-icon="inline-end" />
+      </Button>
+    </form>
+  );
+}
+
+function AuthPanel(model: AuthPageModel) {
+  const { authMode } = model;
+
+  return (
+    <section className="relative flex min-h-svh items-center justify-center px-5 py-10 sm:px-8 lg:px-10">
+      <Button
+        className="absolute top-5 left-5 text-muted-foreground"
+        render={<Link href="/dashboard" />}
+        nativeButton={false}
+        variant="ghost"
+      >
+        <ArrowLeftIcon data-icon="inline-start" />
+        Volver al panel
+      </Button>
+
+      <div className="flex w-full max-w-md flex-col gap-8">
+        <div className="flex flex-col gap-3 text-center">
+          <LogoMark
+            className="mx-auto size-12 rounded-full ring-1 ring-border"
+            priority
+            sizes="48px"
+          />
+          <div className="flex flex-col gap-2">
+            <h2 className="text-3xl font-semibold tracking-tight">
+              {authMode === "sign-up" ? "Crea tu cuenta" : "Inicia sesión"}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {authMode === "sign-up"
+                ? "Regístrate con un email nuevo para probar la beta."
+                : "Accede a tu panel de trading y gestión de cuentas."}
+            </p>
+          </div>
+        </div>
+
+        <ProviderButtons {...model} />
+
+        <AuthDivider>o</AuthDivider>
+
+        <AuthModeTabs {...model} />
+
+        <EmailPasswordForm {...model} />
+
+        <p className="text-center text-sm leading-6 text-muted-foreground">
+          Al continuar aceptas los términos de KMFX Edge y la política de privacidad.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+export function AuthPage({ nextPath = "/dashboard" }: { nextPath?: string }) {
+  const model = useAuthPageModel(nextPath);
+
+  return (
+    <main className="relative min-h-svh overflow-hidden bg-background text-foreground lg:grid lg:grid-cols-[1.05fr_0.95fr]">
+      <AuthHero />
+      <AuthPanel {...model} />
     </main>
   );
 }

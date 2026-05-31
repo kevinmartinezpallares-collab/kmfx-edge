@@ -99,7 +99,7 @@ function calculatorReducer(
   }
 }
 
-export function LotSizeCalculator({
+function useLotSizeCalculatorModel({
   accounts,
   risk,
 }: {
@@ -223,307 +223,423 @@ export function LotSizeCalculator({
     dispatch({ type: "setSymbol", symbol: value });
   }, []);
 
+  const updateRiskPctInput = React.useCallback((value: string) => {
+    dispatch({ type: "setRiskPctInput", value });
+  }, []);
+
+  const updateStopPipsInput = React.useCallback((value: string) => {
+    dispatch({ type: "setStopPipsInput", value });
+  }, []);
+
+  const updatePointValueInput = React.useCallback((value: string) => {
+    dispatch({ type: "setPointValueInput", value });
+  }, []);
+
+  const selectAccountRisk = React.useCallback(
+    (accountId: string, riskPctInputValue: string) => {
+      dispatch({
+        type: "setAccountRisk",
+        accountId,
+        riskPctInput: riskPctInputValue,
+      });
+    },
+    [],
+  );
+
+  return {
+    accounts,
+    applyRecommendedRisk,
+    dailyRoomMoney,
+    displayedAppliedRiskMoney,
+    displayedLotSize,
+    displayedRequestedRiskMoney,
+    handleAccountChange,
+    handleSymbolChange,
+    heatRoomMoney,
+    instrument,
+    pointValueInput,
+    recommendations,
+    result,
+    risk,
+    riskPctInput,
+    safetyMessage,
+    safetyTone,
+    selectAccountRisk,
+    selectedAccount,
+    stopPipsInput,
+    symbol,
+    updatePointValueInput,
+    updateRiskPctInput,
+    updateStopPipsInput,
+  };
+}
+
+type LotSizeCalculatorModel = ReturnType<typeof useLotSizeCalculatorModel>;
+
+function CalculatorInputPanel({
+  accounts,
+  applyRecommendedRisk,
+  handleAccountChange,
+  handleSymbolChange,
+  instrument,
+  pointValueInput,
+  result,
+  riskPctInput,
+  selectedAccount,
+  stopPipsInput,
+  symbol,
+  updatePointValueInput,
+  updateRiskPctInput,
+  updateStopPipsInput,
+}: Pick<
+  LotSizeCalculatorModel,
+  | "accounts"
+  | "applyRecommendedRisk"
+  | "handleAccountChange"
+  | "handleSymbolChange"
+  | "instrument"
+  | "pointValueInput"
+  | "result"
+  | "riskPctInput"
+  | "selectedAccount"
+  | "stopPipsInput"
+  | "symbol"
+  | "updatePointValueInput"
+  | "updateRiskPctInput"
+  | "updateStopPipsInput"
+>) {
+  return (
+    <div className="grid content-start gap-4">
+      <div className="grid gap-4">
+        <Field>
+          <FieldLabel htmlFor="calculator-account">Cuenta</FieldLabel>
+          <select
+            id="calculator-account"
+            className={calculatorInputClass}
+            value={selectedAccount?.id ?? ""}
+            onChange={(event) => handleAccountChange(event.currentTarget.value)}
+          >
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.label}
+              </option>
+            ))}
+          </select>
+          <FieldDescription>
+            {selectedAccount
+              ? `${formatCurrency(selectedAccount.equity, selectedAccount.baseCurrency)} equity`
+              : "Sin cuenta"}
+          </FieldDescription>
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="calculator-symbol">Instrumento</FieldLabel>
+          <select
+            aria-label="Instrumento"
+            id="calculator-symbol"
+            className={calculatorInputClass}
+            value={symbol}
+            onChange={(event) => handleSymbolChange(event.currentTarget.value)}
+          >
+            {CALCULATOR_INSTRUMENT_SYMBOLS.map((item) => (
+              <option key={item} value={item}>
+                {getInstrumentProfile(item).label}
+              </option>
+            ))}
+          </select>
+          <FieldDescription>
+            {instrument.kind === "fx"
+              ? `${result.instrument.quoteCurrency} -> ${result.accountCurrency}`
+              : `${result.instrument.valueSourceLabel}`}
+          </FieldDescription>
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="calculator-risk-pct">Risk %</FieldLabel>
+          <input
+            aria-label="Risk %"
+            id="calculator-risk-pct"
+            className={calculatorInputClass}
+            inputMode="decimal"
+            suppressHydrationWarning
+            value={riskPctInput}
+            onChange={(event) => updateRiskPctInput(event.currentTarget.value)}
+          />
+          <FieldDescription>
+            Recomendado:{" "}
+            {selectedAccount
+              ? formatPercent(getRecommendedRiskPct(selectedAccount))
+              : "0.50%"}
+          </FieldDescription>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={applyRecommendedRisk}
+              className="min-h-11 rounded-md border border-border/70 px-3 py-1 text-xs text-foreground transition-colors hover:bg-background/50 sm:min-h-7 sm:px-2"
+            >
+              Rec.
+            </button>
+            {RISK_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => updateRiskPctInput(preset.toFixed(2))}
+                className="min-h-11 rounded-md border border-border/70 px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-background/50 hover:text-foreground sm:min-h-7 sm:px-2"
+              >
+                {formatPercent(preset)}
+              </button>
+            ))}
+          </div>
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="calculator-stop-pips">Stop</FieldLabel>
+          <input
+            aria-label="Stop"
+            id="calculator-stop-pips"
+            className={calculatorInputClass}
+            inputMode="decimal"
+            suppressHydrationWarning
+            value={stopPipsInput}
+            onChange={(event) => updateStopPipsInput(event.currentTarget.value)}
+          />
+          <FieldDescription>
+            {instrument.kind === "fx" ? "Pips hasta SL." : "Puntos hasta SL."}
+          </FieldDescription>
+        </Field>
+
+        {instrument.kind !== "fx" ? (
+          <Field>
+            <FieldLabel htmlFor="calculator-point-value">Valor punto / lote</FieldLabel>
+            <input
+              aria-label="Valor punto / lote"
+              id="calculator-point-value"
+              className={calculatorInputClass}
+              inputMode="decimal"
+              suppressHydrationWarning
+              value={pointValueInput}
+              onChange={(event) => updatePointValueInput(event.currentTarget.value)}
+            />
+            <FieldDescription>
+              {instrument.unitLabel} / editable según broker.
+            </FieldDescription>
+          </Field>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function CalculatorResultPanel({
+  dailyRoomMoney,
+  displayedAppliedRiskMoney,
+  displayedLotSize,
+  displayedRequestedRiskMoney,
+  heatRoomMoney,
+  instrument,
+  result,
+  risk,
+  safetyMessage,
+  safetyTone,
+}: Pick<
+  LotSizeCalculatorModel,
+  | "dailyRoomMoney"
+  | "displayedAppliedRiskMoney"
+  | "displayedLotSize"
+  | "displayedRequestedRiskMoney"
+  | "heatRoomMoney"
+  | "instrument"
+  | "result"
+  | "risk"
+  | "safetyMessage"
+  | "safetyTone"
+>) {
+  return (
+    <aside className="grid content-start gap-5 border-t border-border/70 pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div>
+          <p className="text-xs uppercase text-muted-foreground">Lotaje</p>
+          <p className="mt-2 text-7xl font-semibold leading-[0.9] tabular-nums text-foreground sm:text-8xl lg:text-[7rem]">
+            {formatLot(displayedLotSize)}
+          </p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Lotes estándar / {formatLot(displayedLotSize * 10)} mini /{" "}
+            {formatLot(displayedLotSize * 100)} micro
+          </p>
+          {instrument.kind !== "fx" ? (
+            <p className="mt-2 text-xs text-risk">
+              Estimado CFD con valor punto editable, no spec oficial MT5.
+            </p>
+          ) : null}
+        </div>
+
+        <div
+          className={cn(
+            "border-t border-border/70 pt-4 xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0",
+            safetyTone === "danger" && "text-destructive",
+            safetyTone === "warning" && "text-risk",
+            safetyTone === "safe" && "text-profit",
+          )}
+        >
+          <p className="text-xs uppercase">Riesgo</p>
+          <p className="mt-2 text-sm font-medium text-foreground">{safetyMessage}</p>
+          <div className="mt-4 grid gap-2 text-xs text-muted-foreground">
+            <div className="flex justify-between gap-3">
+              <span>Margen diario</span>
+              <span className="tabular-nums text-foreground">
+                {formatCurrency(dailyRoomMoney, result.accountCurrency)}
+              </span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span>Room por heat</span>
+              <span className="tabular-nums text-foreground">
+                {formatCurrency(heatRoomMoney, result.accountCurrency)}
+              </span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span>Riesgo abierto</span>
+              <span className="tabular-nums text-foreground">
+                {formatPercent(risk.totalOpenRiskPct)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 border-t border-border/70 pt-5 md:grid-cols-3">
+        <div>
+          <p className="text-xs uppercase text-muted-foreground">Pérdida al stop</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
+            {formatCurrency(displayedAppliedRiskMoney, result.accountCurrency)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Solicitado: {formatCurrency(displayedRequestedRiskMoney, result.accountCurrency)}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs uppercase text-muted-foreground">Risk usado</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
+            {formatPercent(result.appliedRiskPct)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {result.safeCapPct
+              ? `Cap cuenta ${formatPercent(result.safeCapPct)}`
+              : "Sin cap externo"}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs uppercase text-muted-foreground">Valor punto / lote</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
+            {result.pipValuePerLot
+              ? formatCurrency(result.pipValuePerLot, result.accountCurrency, 2)
+              : "Sin dato"}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {instrument.kind === "fx"
+              ? result.conversion?.source === "identity"
+                ? "Misma divisa"
+                : "Conversión estimada"
+              : instrument.unitLabel}
+          </p>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function CalculatorRecommendations({
+  recommendations,
+  selectAccountRisk,
+  selectedAccount,
+}: Pick<
+  LotSizeCalculatorModel,
+  "recommendations" | "selectAccountRisk" | "selectedAccount"
+>) {
+  return (
+    <section className="border-t border-border/70 pt-4">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <p className="text-sm font-medium text-foreground">Recomendaciones por cuenta</p>
+          <p className="text-xs text-muted-foreground">
+            Mismo par y stop / cada cuenta usa su risk recomendado.
+          </p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          FX spot + oro/índices CFD estimados / lot step 0.01.
+        </p>
+      </div>
+      <div className="grid gap-2">
+        {recommendations.map((item) => (
+          <button
+            key={item.account.id}
+            type="button"
+            onClick={() =>
+              selectAccountRisk(item.account.id, item.recommendedRiskPct.toFixed(2))
+            }
+            className={cn(
+              "grid gap-3 rounded-md border border-border/70 bg-background/25 p-3 text-left transition-colors hover:bg-background/45 md:grid-cols-[minmax(180px,1fr)_110px_110px_100px]",
+              item.account.id === selectedAccount?.id && "border-foreground/40 bg-background/50",
+            )}
+          >
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium text-foreground">
+                {item.account.label}
+              </span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {item.sourceLabel}
+                {item.dailyRoomPct !== null ? ` / room ${formatPercent(item.dailyRoomPct)}` : ""}
+              </span>
+              <span
+                className={cn(
+                  "mt-1 block text-[11px]",
+                  item.needsFreshData ? "text-risk" : "text-muted-foreground",
+                )}
+              >
+                {item.freshnessLabel}
+              </span>
+            </span>
+            <span>
+              <span className="block text-xs text-muted-foreground">Risk</span>
+              <span className="text-sm font-medium tabular-nums text-foreground">
+                {formatPercent(item.result.appliedRiskPct)}
+              </span>
+            </span>
+            <span>
+              <span className="block text-xs text-muted-foreground">Pérdida</span>
+              <span className="text-sm font-medium tabular-nums text-foreground">
+                {formatCurrency(item.result.appliedRiskMoney, item.result.accountCurrency)}
+              </span>
+            </span>
+            <span>
+              <span className="block text-xs text-muted-foreground">Lotaje</span>
+              <span className="text-sm font-semibold tabular-nums text-foreground">
+                {formatLot(item.result.lotSize)}
+              </span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function LotSizeCalculator({
+  accounts,
+  risk,
+}: {
+  accounts: TradingAccount[];
+  risk: RiskSnapshot;
+}) {
+  const model = useLotSizeCalculatorModel({ accounts, risk });
+
   return (
     <div className="grid gap-5">
       <div className="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="grid content-start gap-4">
-          <div className="grid gap-4">
-            <Field>
-              <FieldLabel htmlFor="calculator-account">Cuenta</FieldLabel>
-              <select
-                id="calculator-account"
-                className={calculatorInputClass}
-                value={selectedAccount?.id ?? ""}
-                onChange={(event) => handleAccountChange(event.currentTarget.value)}
-              >
-                {accounts.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.label}
-                  </option>
-                ))}
-              </select>
-              <FieldDescription>
-                {selectedAccount
-                  ? `${formatCurrency(selectedAccount.equity, selectedAccount.baseCurrency)} equity`
-                  : "Sin cuenta"}
-              </FieldDescription>
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="calculator-symbol">Instrumento</FieldLabel>
-              <select
-                aria-label="Instrumento"
-                id="calculator-symbol"
-                className={calculatorInputClass}
-                value={symbol}
-                onChange={(event) => handleSymbolChange(event.currentTarget.value)}
-              >
-                {CALCULATOR_INSTRUMENT_SYMBOLS.map((item) => (
-                  <option key={item} value={item}>
-                    {getInstrumentProfile(item).label}
-                  </option>
-                ))}
-              </select>
-              <FieldDescription>
-                {instrument.kind === "fx"
-                  ? `${result.instrument.quoteCurrency} -> ${result.accountCurrency}`
-                  : `${result.instrument.valueSourceLabel}`}
-              </FieldDescription>
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="calculator-risk-pct">Risk %</FieldLabel>
-              <input
-                aria-label="Risk %"
-                id="calculator-risk-pct"
-                className={calculatorInputClass}
-                inputMode="decimal"
-                suppressHydrationWarning
-                value={riskPctInput}
-                onChange={(event) =>
-                  dispatch({
-                    type: "setRiskPctInput",
-                    value: event.currentTarget.value,
-                  })
-                }
-              />
-              <FieldDescription>
-                Recomendado:{" "}
-                {selectedAccount
-                  ? formatPercent(getRecommendedRiskPct(selectedAccount))
-                  : "0.50%"}
-              </FieldDescription>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                <button
-                  type="button"
-                  onClick={applyRecommendedRisk}
-                  className="min-h-11 rounded-md border border-border/70 px-3 py-1 text-xs text-foreground transition-colors hover:bg-background/50 sm:min-h-7 sm:px-2"
-                >
-                  Rec.
-                </button>
-                {RISK_PRESETS.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() =>
-                      dispatch({
-                        type: "setRiskPctInput",
-                        value: preset.toFixed(2),
-                      })
-                    }
-                    className="min-h-11 rounded-md border border-border/70 px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-background/50 hover:text-foreground sm:min-h-7 sm:px-2"
-                  >
-                    {formatPercent(preset)}
-                  </button>
-                ))}
-              </div>
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="calculator-stop-pips">Stop</FieldLabel>
-              <input
-                aria-label="Stop"
-                id="calculator-stop-pips"
-                className={calculatorInputClass}
-                inputMode="decimal"
-                suppressHydrationWarning
-                value={stopPipsInput}
-                onChange={(event) =>
-                  dispatch({
-                    type: "setStopPipsInput",
-                    value: event.currentTarget.value,
-                  })
-                }
-              />
-              <FieldDescription>
-                {instrument.kind === "fx" ? "Pips hasta SL." : "Puntos hasta SL."}
-              </FieldDescription>
-            </Field>
-
-            {instrument.kind !== "fx" ? (
-              <Field>
-                <FieldLabel htmlFor="calculator-point-value">Valor punto / lote</FieldLabel>
-                <input
-                  aria-label="Valor punto / lote"
-                  id="calculator-point-value"
-                  className={calculatorInputClass}
-                  inputMode="decimal"
-                  suppressHydrationWarning
-                  value={pointValueInput}
-                  onChange={(event) =>
-                    dispatch({
-                      type: "setPointValueInput",
-                      value: event.currentTarget.value,
-                    })
-                  }
-                />
-                <FieldDescription>
-                  {instrument.unitLabel} / editable según broker.
-                </FieldDescription>
-              </Field>
-            ) : null}
-          </div>
-        </div>
-
-        <aside className="grid content-start gap-5 border-t border-border/70 pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
-            <div>
-              <p className="text-xs uppercase text-muted-foreground">Lotaje</p>
-              <p className="mt-2 text-7xl font-semibold leading-[0.9] tabular-nums text-foreground sm:text-8xl lg:text-[7rem]">
-                {formatLot(displayedLotSize)}
-              </p>
-              <p className="mt-3 text-sm text-muted-foreground">
-                Lotes estándar / {formatLot(displayedLotSize * 10)} mini /{" "}
-                {formatLot(displayedLotSize * 100)} micro
-              </p>
-              {instrument.kind !== "fx" ? (
-                <p className="mt-2 text-xs text-risk">
-                  Estimado CFD con valor punto editable, no spec oficial MT5.
-                </p>
-              ) : null}
-            </div>
-
-            <div
-              className={cn(
-                "border-t border-border/70 pt-4 xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0",
-                safetyTone === "danger" && "text-destructive",
-                safetyTone === "warning" && "text-risk",
-                safetyTone === "safe" && "text-profit",
-              )}
-            >
-              <p className="text-xs uppercase">Riesgo</p>
-              <p className="mt-2 text-sm font-medium text-foreground">{safetyMessage}</p>
-              <div className="mt-4 grid gap-2 text-xs text-muted-foreground">
-                <div className="flex justify-between gap-3">
-                  <span>Margen diario</span>
-                  <span className="tabular-nums text-foreground">
-                    {formatCurrency(dailyRoomMoney, result.accountCurrency)}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <span>Room por heat</span>
-                  <span className="tabular-nums text-foreground">
-                    {formatCurrency(heatRoomMoney, result.accountCurrency)}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <span>Riesgo abierto</span>
-                  <span className="tabular-nums text-foreground">
-                    {formatPercent(risk.totalOpenRiskPct)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-4 border-t border-border/70 pt-5 md:grid-cols-3">
-            <div>
-              <p className="text-xs uppercase text-muted-foreground">Pérdida al stop</p>
-              <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
-                {formatCurrency(displayedAppliedRiskMoney, result.accountCurrency)}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Solicitado: {formatCurrency(displayedRequestedRiskMoney, result.accountCurrency)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs uppercase text-muted-foreground">Risk usado</p>
-              <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
-                {formatPercent(result.appliedRiskPct)}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {result.safeCapPct
-                  ? `Cap cuenta ${formatPercent(result.safeCapPct)}`
-                  : "Sin cap externo"}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs uppercase text-muted-foreground">Valor punto / lote</p>
-              <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
-                {result.pipValuePerLot
-                  ? formatCurrency(result.pipValuePerLot, result.accountCurrency, 2)
-                  : "Sin dato"}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {instrument.kind === "fx"
-                  ? result.conversion?.source === "identity"
-                    ? "Misma divisa"
-                    : "Conversión estimada"
-                  : instrument.unitLabel}
-              </p>
-            </div>
-          </div>
-        </aside>
+        <CalculatorInputPanel {...model} />
+        <CalculatorResultPanel {...model} />
       </div>
 
-      <section className="border-t border-border/70 pt-4">
-        <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <p className="text-sm font-medium text-foreground">Recomendaciones por cuenta</p>
-            <p className="text-xs text-muted-foreground">
-              Mismo par y stop / cada cuenta usa su risk recomendado.
-            </p>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            FX spot + oro/índices CFD estimados / lot step 0.01.
-          </p>
-        </div>
-        <div className="grid gap-2">
-          {recommendations.map((item) => (
-            <button
-              key={item.account.id}
-              type="button"
-              onClick={() => {
-                dispatch({
-                  type: "setAccountRisk",
-                  accountId: item.account.id,
-                  riskPctInput: item.recommendedRiskPct.toFixed(2),
-                });
-              }}
-              className={cn(
-                "grid gap-3 rounded-md border border-border/70 bg-background/25 p-3 text-left transition-colors hover:bg-background/45 md:grid-cols-[minmax(180px,1fr)_110px_110px_100px]",
-                item.account.id === selectedAccount?.id && "border-foreground/40 bg-background/50",
-              )}
-            >
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium text-foreground">
-                  {item.account.label}
-                </span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  {item.sourceLabel}
-                  {item.dailyRoomPct !== null ? ` / room ${formatPercent(item.dailyRoomPct)}` : ""}
-                </span>
-                <span
-                  className={cn(
-                    "mt-1 block text-[11px]",
-                    item.needsFreshData ? "text-risk" : "text-muted-foreground",
-                  )}
-                >
-                  {item.freshnessLabel}
-                </span>
-              </span>
-              <span>
-                <span className="block text-xs text-muted-foreground">Risk</span>
-                <span className="text-sm font-medium tabular-nums text-foreground">
-                  {formatPercent(item.result.appliedRiskPct)}
-                </span>
-              </span>
-              <span>
-                <span className="block text-xs text-muted-foreground">Pérdida</span>
-                <span className="text-sm font-medium tabular-nums text-foreground">
-                  {formatCurrency(item.result.appliedRiskMoney, item.result.accountCurrency)}
-                </span>
-              </span>
-              <span>
-                <span className="block text-xs text-muted-foreground">Lotaje</span>
-                <span className="text-sm font-semibold tabular-nums text-foreground">
-                  {formatLot(item.result.lotSize)}
-                </span>
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
+      <CalculatorRecommendations {...model} />
     </div>
   );
 }
