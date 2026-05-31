@@ -141,6 +141,12 @@ interface ChartInnerProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
+interface BarAnimationState {
+  isLoaded: boolean;
+  revealEpoch: number;
+  revealKey: string;
+}
+
 function ChartInner({
   width,
   height,
@@ -160,9 +166,25 @@ function ChartInner({
   containerRef,
 }: ChartInnerProps) {
   const [tooltipData, setTooltipData] = useState<TooltipData | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [revealEpoch, setRevealEpoch] = useState(0);
+  const revealKey = `${animationDuration}:${revealSignature}`;
+  const [animationState, setAnimationState] = useState<BarAnimationState>(() => ({
+    isLoaded: false,
+    revealEpoch: 1,
+    revealKey,
+  }));
   const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(null);
+  let currentAnimationState = animationState;
+
+  if (currentAnimationState.revealKey !== revealKey) {
+    currentAnimationState = {
+      isLoaded: false,
+      revealEpoch: currentAnimationState.revealEpoch + 1,
+      revealKey,
+    };
+    setAnimationState(currentAnimationState);
+  }
+
+  const { isLoaded, revealEpoch } = currentAnimationState;
 
   const isHorizontal = orientation === "horizontal";
 
@@ -310,16 +332,19 @@ function ChartInner({
     return scale;
   }, [categoryScale, innerWidth, data.length]);
 
-  // Animation timing — replay when motion settings change
-  // biome-ignore lint/correctness/useExhaustiveDependencies: revealSignature
+  // Animation timing — replay when motion settings change.
   useEffect(() => {
-    setRevealEpoch((n) => n + 1);
-    setIsLoaded(false);
+    if (isLoaded) {
+      return;
+    }
+
     const timer = setTimeout(() => {
-      setIsLoaded(true);
+      setAnimationState((state) =>
+        state.revealKey === revealKey ? { ...state, isLoaded: true } : state,
+      );
     }, animationDuration);
     return () => clearTimeout(timer);
-  }, [animationDuration, revealSignature]);
+  }, [animationDuration, isLoaded, revealKey]);
 
   // Mouse move handler
   const handleMouseMove = useCallback(

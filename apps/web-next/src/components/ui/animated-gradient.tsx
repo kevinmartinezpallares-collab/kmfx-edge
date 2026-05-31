@@ -191,6 +191,11 @@ export function AnimatedGradient({
             speed: config.speed ?? preset.speed,
         };
     }, [config]);
+    const paramsRef = useRef(params);
+
+    useEffect(() => {
+        paramsRef.current = params;
+    }, [params]);
 
     useEffect(() => {
         if (hasWebGLError) return;
@@ -305,31 +310,32 @@ export function AnimatedGradient({
             startTimeRef.current = performance.now();
 
             const animate = (time: number) => {
+                const currentParams = paramsRef.current;
                 const elapsed = (time - startTimeRef.current) / 1000;
-                const speed = (params.speed / 100) * 5;
+                const speed = (currentParams.speed / 100) * 5;
 
-                gl.uniform1f(uniforms.u_time, elapsed * speed + params.offset * 0.01);
+                gl.uniform1f(uniforms.u_time, elapsed * speed + currentParams.offset * 0.01);
                 gl.uniform2f(uniforms.u_resolution, canvas.width, canvas.height);
                 gl.uniform1f(uniforms.u_pixelRatio, window.devicePixelRatio || 1);
-                gl.uniform1f(uniforms.u_scale, params.scale);
-                gl.uniform1f(uniforms.u_rotation, (params.rotation * Math.PI) / 180);
+                gl.uniform1f(uniforms.u_scale, currentParams.scale);
+                gl.uniform1f(uniforms.u_rotation, (currentParams.rotation * Math.PI) / 180);
 
-                const c1 = hexToRgba(params.color1);
-                const c2 = hexToRgba(params.color2);
-                const c3 = hexToRgba(params.color3);
+                const c1 = hexToRgba(currentParams.color1);
+                const c2 = hexToRgba(currentParams.color2);
+                const c3 = hexToRgba(currentParams.color3);
                 gl.uniform4f(uniforms.u_color1, c1[0], c1[1], c1[2], c1[3]);
                 gl.uniform4f(uniforms.u_color2, c2[0], c2[1], c2[2], c2[3]);
                 gl.uniform4f(uniforms.u_color3, c3[0], c3[1], c3[2], c3[3]);
 
-                gl.uniform1f(uniforms.u_proportion, params.proportion / 100);
-                gl.uniform1f(uniforms.u_softness, params.softness / 100);
-                gl.uniform1f(uniforms.u_shape, PatternShapes[params.shape]);
-                gl.uniform1f(uniforms.u_shapeScale, params.shapeSize / 100);
-                gl.uniform1f(uniforms.u_distortion, params.distortion / 50);
-                gl.uniform1f(uniforms.u_swirl, params.swirl / 100);
+                gl.uniform1f(uniforms.u_proportion, currentParams.proportion / 100);
+                gl.uniform1f(uniforms.u_softness, currentParams.softness / 100);
+                gl.uniform1f(uniforms.u_shape, PatternShapes[currentParams.shape]);
+                gl.uniform1f(uniforms.u_shapeScale, currentParams.shapeSize / 100);
+                gl.uniform1f(uniforms.u_distortion, currentParams.distortion / 50);
+                gl.uniform1f(uniforms.u_swirl, currentParams.swirl / 100);
                 gl.uniform1f(
                     uniforms.u_swirlIterations,
-                    params.swirl === 0 ? 0 : params.swirlIterations
+                    currentParams.swirl === 0 ? 0 : currentParams.swirlIterations
                 );
 
                 gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -353,7 +359,7 @@ export function AnimatedGradient({
             reportWebGLError();
             return;
         }
-    }, [hasWebGLError, params]);
+    }, [hasWebGLError]);
 
     if (hasWebGLError) {
         return <WebGLFallback className={cn("absolute inset-0 overflow-hidden", className)} />;
