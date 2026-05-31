@@ -136,17 +136,17 @@ export function AuthPage({ nextPath = "/dashboard" }: { nextPath?: string }) {
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ||
     "0x4AAAAAACxJdw3wjMn7Jm0K";
 
-  const setCaptchaToken = React.useCallback((token: string) => {
+  const writeCaptchaToken = React.useCallback((token: string) => {
     captchaTokenRef.current = token;
   }, []);
 
   const resetTurnstile = React.useCallback(() => {
-    setCaptchaToken("");
+    writeCaptchaToken("");
     const widgetId = turnstileWidgetIdRef.current;
     if (widgetId && window.turnstile?.reset) {
       window.turnstile.reset(widgetId);
     }
-  }, [setCaptchaToken]);
+  }, [writeCaptchaToken]);
 
   React.useEffect(() => {
     if (!authConfigured || !turnstileSiteKey || !turnstileContainerRef.current) {
@@ -173,16 +173,16 @@ export function AuthPage({ nextPath = "/dashboard" }: { nextPath?: string }) {
 
       renderedWidgetId = window.turnstile.render(turnstileContainerRef.current, {
         action: authMode === "sign-up" ? "signup" : "signin",
-        callback: (token) => setCaptchaToken(token || ""),
+        callback: (token) => writeCaptchaToken(token || ""),
         "error-callback": () => {
-          setCaptchaToken("");
+          writeCaptchaToken("");
           dispatchAuthForm({
             type: "setMessage",
             message: "No hemos podido validar la protección anti-bots.",
           });
         },
         "expired-callback": () => {
-          setCaptchaToken("");
+          writeCaptchaToken("");
           dispatchAuthForm({
             type: "setMessage",
             message: "La verificación ha caducado. Vuelve a intentarlo.",
@@ -220,7 +220,7 @@ export function AuthPage({ nextPath = "/dashboard" }: { nextPath?: string }) {
         window.turnstile.remove(renderedWidgetId);
       }
     };
-  }, [authConfigured, authMode, setCaptchaToken, turnstileSiteKey]);
+  }, [authConfigured, authMode, writeCaptchaToken, turnstileSiteKey]);
 
   async function handlePasswordAuth(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

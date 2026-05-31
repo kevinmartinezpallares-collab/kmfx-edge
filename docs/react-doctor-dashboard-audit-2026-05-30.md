@@ -5,7 +5,7 @@
 - App: `apps/web-next`
 - Ruta verificada: `http://localhost:3000/dashboard`
 - React Doctor inicial: `62 / 100`, `481 issues`
-- React Doctor final: `95 / 100`, `114 issues`
+- React Doctor final: `97 / 100`, `110 issues`
 - Estado final: `Great`
 - Captura antes: `/tmp/kmfx-dashboard-before.png`
 - Captura despues: `/tmp/kmfx-dashboard-react-doctor-149-wait.png`
@@ -39,6 +39,9 @@
 - Captura cuentas despues de usar flecha del carrusel: `/tmp/kmfx-accounts-after-carousel-arrow.png`
 - Captura cuentas despues de estabilizar `AnimatedGradient`: `/tmp/kmfx-accounts-after-animated-gradient-ref.png`
 - Captura trades despues de estabilizar animacion de barras: `/tmp/kmfx-trades-after-bar-animation-state.png`
+- Captura login despues del cierre seguro: `/tmp/kmfx-login-after-closeout-safe-fixes.png`
+- Captura analytics despues del cierre seguro: `/tmp/kmfx-analytics-after-closeout-safe-fixes.png`
+- Captura trades despues del cierre seguro: `/tmp/kmfx-trades-after-closeout-safe-fixes.png`
 - Captura calculadora despues: `/tmp/kmfx-calculator-react-doctor-149.png`
 
 ## Cambios aplicados sin intencion visual
@@ -99,6 +102,9 @@
 - Se alineo el working tree local con `origin/codex/next-beta-readiness`: quedan incorporados los fixes moviles de sidebar, Trades y mapa diario de Analytics que ya estaban en la beta remota.
 - Se estabilizo `AnimatedGradient` para no reiniciar WebGL ante cambios de config: el loop lee los parametros desde un ref actualizado en efecto, manteniendo el mismo fallback si WebGL falla.
 - Se cambio el estado de replay de `BarChart` a una clave de animacion ajustada durante render y un unico timer de finalizacion, manteniendo el replay cuando cambian `animationDuration` o `revealSignature`.
+- Se separaron subcomponentes de `InputGroup` y `Resizable` en archivos dedicados, manteniendo las mismas clases y exportaciones publicas desde sus modulos originales.
+- Se retiraron `role="group"` de wrappers visuales sin nombre accesible en `Field`/`InputGroup` y se cambio el gauge CSS de Analytics a `<figure aria-label>` con `m-0`.
+- Se renombro el writer del token Turnstile de `setCaptchaToken` a `writeCaptchaToken`, aclarando que no dispara render y eliminando el falso positivo de cascada de estado.
 - Se eliminaron copias accidentales untracked con sufijo ` 2` que eran identicas a sus originales y contaminaban React Doctor como archivos no usados.
 - Cambio visible menor: `Calculando tipo de cambio...` ahora usa el caracter tipografico `…`.
 - Cambio visual de microanimacion: entradas con `scale: 0` pasan a iniciar desde `scale: 0.95` con opacidad, para evitar apariciones desde un punto.
@@ -110,8 +116,8 @@
 - `npm run build`: OK
 - `npm run test -- action-safety-contract`: OK
 - `npm run test -- funding review risk liveline trades`: OK, `8` archivos y `33` tests
-- `npx react-doctor@latest`: `95 / 100`, `114 issues`
-- `npx react-doctor@latest --verbose --diff`: `97 / 100`, `25 issues`
+- `npx react-doctor@latest`: `97 / 100`, `110 issues`
+- `npx react-doctor@latest --verbose --diff`: `99 / 100`, `16 issues`
 - Browser/Playwright local: `http://localhost:3000/dashboard` carga con titulo `KMFX Edge`, contenido de `Panel` visible y sin error de aplicacion.
 - Playwright local: captura dashboard posterior tomada tras esperar `h1`, SVG de liveline y `6000ms` extra para evitar capturas borrosas o a medio cargar.
 - Playwright local: captura posterior a la extraccion del logo tomada con `Panel` visible, SVG de liveline visible y `6000ms` extra; sin error de aplicacion.
@@ -135,6 +141,7 @@
 - Playwright local: `http://localhost:3000/dashboard?account=mt5-beta-20000002` carga FTMO desde query, y al elegir `Darwinex Zero 100K` desde el selector cambia a `?account=mt5-alpha-10000001` sin errores de aplicacion; solo quedan warnings preexistentes de preload de fuentes.
 - Browser in-app: `http://localhost:3000/accounts` carga con titulo `Cuentas / KMFX Edge`, contenido visible tras `8000ms`, sin logs `error`/`warn`, y la flecha `Ver cuentas siguientes` desplaza el carrusel hasta las ultimas cuentas.
 - Browser in-app: tras estabilizar `AnimatedGradient` y `BarChart`, `http://localhost:3000/accounts` y `http://localhost:3000/trades` cargan tras `8500ms`, sin overlays ni logs `error`/`warn`.
+- Browser in-app: tras separar componentes base y ajustar semantica, `http://localhost:3000/login?next=/dashboard`, `/analytics` y `/trades` cargan tras `8500ms`, sin overlays ni logs `error`/`warn`.
 - Browser/Playwright local: `http://localhost:3000/tools/calculator` carga con titulo `KMFX Edge`, contenido de `Calculadora / Lotaje` visible, sin error de aplicacion, y el input `Risk %` acepta `0.50`.
 
 La suite completa de tests sigue bloqueada por una regla preexistente de migracion que detecta `KMFXConnector` en `src/components/trading/accounts/reference-section.tsx`. Ese archivo ya estaba modificado fuera de este pase, asi que no se revirtio ni se mezclo con el trabajo de React Doctor.
@@ -145,7 +152,7 @@ La suite completa de tests sigue bloqueada por una regla preexistente de migraci
 - `react-doctor/use-lazy-motion`: aplicado. La familia de avisos desaparecio.
 - `no-adjust-state-on-prop-change`: aplicado en el slider de cuentas, `AnimatedGradient` y `BarChart`; ya no aparece en el diff de React Doctor.
 - `bar-chart`: el primer intento rapido se revirtio porque bajo React Doctor a `87 / 100`; el pase final usa estado de replay con clave y mantiene QA visual en `/trades`.
-- `no-multi-comp`: aplicado en `logo.tsx`; se probo extraer `input-group` y `resizable`, pero se revirtio porque subia el global a `149 issues` por `unused-file/unused-export`.
+- `no-multi-comp`: aplicado en `logo.tsx`, `input-group` y `resizable`; ya no aparece en el diff de React Doctor.
 - `only-export-components`: aplicado en `button`, `tabs` y `toggle`; quedan las variantes en modulos dedicados.
 - `rerender-memo-before-early-return`: aplicado en `ui/chart` y `ui/field`.
 - `exhaustive-deps`: aplicado en `auth-page` quitando el toque del ref durante cleanup.
@@ -154,8 +161,8 @@ La suite completa de tests sigue bloqueada por una regla preexistente de migraci
 - `label-has-associated-control`: se corrigieron labels concretos de filtros en Trades; React Doctor mantiene un aviso en el componente base `label.tsx`, tratado como pendiente de revision/manual porque el componente generico puede usarse correctamente con `htmlFor`.
 - `prefer-useReducer`: aplicado en `auth-page`, `trades/reference-section`, `calendar/reference-section`, `settings/reference-sections`, `capital/reference-section` y `accounts/reference-section`.
 - `nextjs-no-use-search-params-without-suspense`: aplicado en `auth-page` y `workspace-shell`, leyendo `next` desde `/login` server y observando `location.search` en el shell cliente.
-- `prefer-tag-over-role`: quedan avisos en componentes base (`field`, `input-group`) y en un gauge CSS con `role="img"`; se tratan como pendientes/manuales porque cambiarlos puede empeorar semantica accesible.
-- `no-cascading-set-state`: queda solo en Turnstile (`auth-page`); depende de callbacks externos de captcha y conviene tratarlo con QA de login/captcha dedicada.
+- `prefer-tag-over-role`: aplicado en wrappers genericos y gauge CSS; ya no aparece en el diff de React Doctor.
+- `no-cascading-set-state`: el aviso de Turnstile se elimino renombrando el writer de token, que solo actualiza un ref y no es setState.
 - `accounts/reference-section`: aplicado `prefer-useReducer`, y retirada la comprobacion de billing desde `useEffect`; sus avisos de `no-fetch-in-effect` y `nextjs-no-client-side-redirect` ya no aparecen en el diff de React Doctor.
 - `settings/reference-sections`: eliminado el `fetch` inicial en effect para leer billing status dentro de `SubscriptionReferenceSection`; el plan inicial llega desde server y los eventos de Checkout/Portal siguen en cliente.
 - `workspace-shell`: eliminado el fetch/redirect global desde effect. El `proxy` comprueba billing antes de pintar rutas workspace, excluye `/subscription`, `/settings/subscription` y `?demo=1`, y no bloquea si billing status esta temporalmente no disponible.

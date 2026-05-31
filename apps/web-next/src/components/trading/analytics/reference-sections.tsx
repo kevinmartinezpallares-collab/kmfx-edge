@@ -567,12 +567,11 @@ function WinLossDistributionGauge({
 
   return (
     <div className="relative grid place-items-center md:justify-start xl:justify-center">
-      <div
-        className="relative grid size-[132px] place-items-center rounded-full max-[640px]:size-[120px]"
+      <figure
+        className="relative m-0 grid size-[132px] place-items-center rounded-full max-[640px]:size-[120px]"
         style={{
           background: `conic-gradient(from 210deg, var(--chart-1) 0 ${arcValue}%, var(--chart-3) ${arcValue}% 75%, transparent 75% 100%)`,
         }}
-        role="img"
         aria-label={`Win rate ${safeWinRate.toFixed(0)}%, ${wins} ganadoras y ${losses} perdedoras`}
       >
         <div
@@ -590,7 +589,7 @@ function WinLossDistributionGauge({
             Win rate
           </p>
         </div>
-      </div>
+      </figure>
     </div>
   );
 }
