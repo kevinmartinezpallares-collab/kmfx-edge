@@ -726,11 +726,11 @@ export function CalendarReferenceSection({
                                 <span className="text-sm font-medium text-foreground">
                                   {cell.dayNumber}
                                 </span>
-                                <span className="min-w-5 rounded-full bg-background/55 px-1 py-0.5 text-center font-mono text-[10px] leading-none whitespace-nowrap text-muted-foreground">
+                                <span className="hidden min-w-5 rounded-full bg-background/55 px-1 py-0.5 text-center font-mono text-[10px] leading-none whitespace-nowrap text-muted-foreground sm:inline-block">
                                   {cell.trades ? (
                                     <>
                                       {cell.trades}
-                                      <span className="hidden sm:inline"> op</span>
+                                      <span> op</span>
                                     </>
                                   ) : null}
                                 </span>
