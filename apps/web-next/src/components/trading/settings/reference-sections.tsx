@@ -369,6 +369,330 @@ function settingsUiReducer(
   }
 }
 
+type SettingsOverview = ReturnType<typeof getSettingsOverview>;
+type SettingsProfile = SettingsOverview["profile"];
+type SettingsPreference = SettingsOverview["preferences"][number];
+type SettingsHelpLink = SettingsOverview["helpLinks"][number];
+type SettingsAccessRow = {
+  icon: typeof ShieldCheck;
+  label: string;
+  note: string;
+  value: string;
+};
+
+function SettingsProfileCard({
+  onOpenProfileDialog,
+  onOpenSignOutDialog,
+  profile,
+  profileInitials,
+  profileView,
+  statusMessage,
+  visibleEmail,
+}: {
+  onOpenProfileDialog: () => void;
+  onOpenSignOutDialog: () => void;
+  profile: SettingsProfile;
+  profileInitials: string;
+  profileView: SettingsProfileView;
+  statusMessage: string | null;
+  visibleEmail: string;
+}) {
+  return (
+    <Card className="col-span-full border-border/70 bg-card/70">
+      <CardContent className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-background/50 text-base font-semibold text-foreground">
+            {profileInitials}
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              <span>Perfil</span>
+              <span className="text-primary">/</span>
+              <span>{profile.role}</span>
+              <span className="text-primary">/</span>
+              <span>{visibleEmail}</span>
+            </div>
+            <h2 className="mt-1 truncate text-2xl font-semibold tracking-tight text-foreground">
+              {profileView.displayName}
+            </h2>
+            <p className="mt-1 truncate text-sm text-muted-foreground">
+              {profile.activeAccountLabel} / {profile.activeAccountMeta}
+            </p>
+            {statusMessage ? (
+              <p className="mt-2 text-xs text-primary" aria-live="polite">
+                {statusMessage}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 md:justify-end">
+          <Button variant="outline" onClick={onOpenProfileDialog}>
+            <UserRound data-icon="inline-start" />
+            Editar perfil
+          </Button>
+          <Button
+            variant="outline"
+            className="border-destructive/35 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive"
+            onClick={onOpenSignOutDialog}
+          >
+            <LogOut data-icon="inline-start" />
+            Cerrar sesión
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function preferenceIconForLabel(label: string) {
+  if (label === "Idioma") return Globe2;
+  if (label === "Tema") return Palette;
+  if (label === "Formato monetario") return CircleDollarSign;
+  if (label === "Avisos visuales") return Bell;
+  return ShieldCheck;
+}
+
+function SettingsPreferencesCard({
+  onUpdateSetting,
+  preferences,
+  settingsValues,
+  theme,
+}: {
+  onUpdateSetting: (label: string, value: string) => void;
+  preferences: SettingsPreference[];
+  settingsValues: Record<string, string>;
+  theme: "light" | "dark" | "system";
+}) {
+  return (
+    <Card className="border-border/70 bg-card/70">
+      <CardHeader>
+        <CardTitle>Preferencias</CardTitle>
+        <CardDescription>
+          Ajustes básicos visibles para esta versión.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="divide-y divide-border/60 border-y border-border/60">
+          {preferences.map((preference) => {
+            const Icon = preferenceIconForLabel(preference.label);
+
+            return (
+              <div
+                key={preference.label}
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3"
+              >
+                <div className="flex min-w-0 items-start gap-3">
+                  <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="font-medium text-foreground">{preference.label}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{preference.note}</p>
+                  </div>
+                </div>
+                <SettingsPreferenceControl
+                  preference={preference}
+                  value={
+                    preference.label === "Tema"
+                      ? themeToPreferenceLabel(theme)
+                      : settingsValues[preference.label] ?? preference.value
+                  }
+                  onValueChange={(value) => onUpdateSetting(preference.label, value)}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SettingsAccessCard({ accessRows }: { accessRows: SettingsAccessRow[] }) {
+  return (
+    <Card id="subscription" className="scroll-mt-20 border-border/70 bg-card/70">
+      <CardHeader>
+        <CardTitle>Acceso</CardTitle>
+        <CardDescription>
+          Contexto básico de tu sesión.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        <div className="grid gap-3">
+          {accessRows.map((row) => {
+            const Icon = row.icon;
+
+            return (
+              <div key={row.label} className="flex min-w-0 items-start gap-3">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-background/35">
+                  <Icon className="size-4 text-muted-foreground" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs text-muted-foreground">
+                    {row.label}
+                  </span>
+                  <span className="mt-0.5 block truncate font-medium text-foreground">
+                    {row.value}
+                  </span>
+                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                    {row.note}
+                  </span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <Separator />
+        <Link
+          href="/subscription"
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "w-full justify-center bg-background/35",
+          )}
+        >
+          <CreditCard data-icon="inline-start" />
+          Ver suscripción
+        </Link>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SettingsHelpLegalBar({ helpLinks }: { helpLinks: SettingsHelpLink[] }) {
+  return (
+    <div className="col-span-full flex flex-col gap-3 rounded-lg border border-border/70 bg-card/45 p-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <p className="font-medium text-foreground">Ayuda y legal</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Soporte y documentos públicos de KMFX Edge.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2 sm:justify-end">
+        {helpLinks.map((item) => {
+          const Icon = item.kind === "help" ? LifeBuoy : FileText;
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "bg-background/35",
+              )}
+            >
+              <Icon data-icon="inline-start" />
+              {item.label}
+              <ExternalLink data-icon="inline-end" />
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ProfileDialog({
+  onClose,
+  onDraftChange,
+  onOpenChange,
+  onSubmit,
+  open,
+  profileDraft,
+}: {
+  onClose: () => void;
+  onDraftChange: (field: keyof SettingsProfileView, value: string) => void;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  open: boolean;
+  profileDraft: SettingsProfileView;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <form onSubmit={onSubmit} className="grid gap-4">
+          <DialogHeader>
+            <DialogTitle>Editar perfil</DialogTitle>
+            <DialogDescription>
+              Nombre y email visibles en tu espacio de trabajo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <Field>
+              <FieldLabel htmlFor="settings-profile-name">Nombre</FieldLabel>
+              <Input
+                id="settings-profile-name"
+                value={profileDraft.displayName}
+                onChange={(event) =>
+                  onDraftChange("displayName", event.target.value)
+                }
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="settings-profile-email">Email</FieldLabel>
+              <Input
+                id="settings-profile-email"
+                type="email"
+                placeholder="tu@email.com"
+                value={profileDraft.email}
+                onChange={(event) => onDraftChange("email", event.target.value)}
+              />
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit">Guardar cambios</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SignOutDialog({
+  onConfirm,
+  onOpenChange,
+  open,
+}: {
+  onConfirm: () => void;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Cerrar sesión</DialogTitle>
+          <DialogDescription>
+            Confirma para salir de este espacio de trabajo.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={onConfirm}
+          >
+            Cerrar sesión
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceState }) {
   const router = useRouter();
   const { setTheme, theme } = useTheme();
@@ -377,7 +701,7 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
   const [settingsUiState, dispatchSettingsUi] = React.useReducer(
     settingsUiReducer,
     { profile, preferences: settingsOverview.preferences, theme },
-    ({ profile: initialProfile, preferences, theme: initialTheme }) => {
+    ({ profile: initialProfile, preferences, theme }) => {
       const initialValues = Object.fromEntries(
         preferences.map((preference) => [
           preference.label,
@@ -389,7 +713,7 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
         email: initialProfile.email ?? "",
       };
 
-      initialValues.Tema = themeToPreferenceLabel(initialTheme);
+      initialValues.Tema = themeToPreferenceLabel(theme);
 
       return {
         profileDialogOpen: false,
@@ -441,6 +765,36 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
     dispatchSettingsUi({ type: "openProfileDialog" });
   }
 
+  function closeProfileDialog() {
+    dispatchSettingsUi({ type: "closeProfileDialog" });
+  }
+
+  function handleProfileDialogOpenChange(open: boolean) {
+    if (open) {
+      dispatchSettingsUi({ type: "openProfileDialog" });
+      return;
+    }
+
+    closeProfileDialog();
+  }
+
+  function setProfileDraftField(field: keyof SettingsProfileView, value: string) {
+    dispatchSettingsUi({
+      type: "setProfileDraftField",
+      field,
+      value,
+    });
+  }
+
+  function setSignOutDialogOpen(open: boolean) {
+    dispatchSettingsUi({ type: "setSignOutDialogOpen", open });
+  }
+
+  function confirmSignOut() {
+    setSignOutDialogOpen(false);
+    router.push("/login");
+  }
+
   function updateSetting(label: string, value: string) {
     dispatchSettingsUi({ type: "setSetting", label, value });
 
@@ -462,290 +816,42 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
   return (
     <PageMotion>
       <div className="grid max-w-5xl gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
-        <Card className="col-span-full border-border/70 bg-card/70">
-          <CardContent className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
-            <div className="flex min-w-0 items-center gap-4">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-background/50 text-base font-semibold text-foreground">
-                {profileInitials}
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                  <span>Perfil</span>
-                  <span className="text-primary">/</span>
-                  <span>{profile.role}</span>
-                  <span className="text-primary">/</span>
-                  <span>{visibleEmail}</span>
-                </div>
-                <h2 className="mt-1 truncate text-2xl font-semibold tracking-tight text-foreground">
-                  {profileView.displayName}
-                </h2>
-                <p className="mt-1 truncate text-sm text-muted-foreground">
-                  {profile.activeAccountLabel} / {profile.activeAccountMeta}
-                </p>
-                {statusMessage ? (
-                  <p className="mt-2 text-xs text-primary" aria-live="polite">
-                    {statusMessage}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 md:justify-end">
-              <Button variant="outline" onClick={openProfileDialog}>
-                <UserRound data-icon="inline-start" />
-                Editar perfil
-              </Button>
-              <Button
-                variant="outline"
-                className="border-destructive/35 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive"
-                onClick={() =>
-                  dispatchSettingsUi({
-                    type: "setSignOutDialogOpen",
-                    open: true,
-                  })
-                }
-              >
-                <LogOut data-icon="inline-start" />
-                Cerrar sesión
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <SettingsProfileCard
+          onOpenProfileDialog={openProfileDialog}
+          onOpenSignOutDialog={() => setSignOutDialogOpen(true)}
+          profile={profile}
+          profileInitials={profileInitials}
+          profileView={profileView}
+          statusMessage={statusMessage}
+          visibleEmail={visibleEmail}
+        />
 
-        <Card className="border-border/70 bg-card/70">
-          <CardHeader>
-            <CardTitle>Preferencias</CardTitle>
-            <CardDescription>
-              Ajustes básicos visibles para esta versión.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="divide-y divide-border/60 border-y border-border/60">
-              {settingsOverview.preferences.map((preference) => {
-                const Icon =
-                  preference.label === "Idioma"
-                    ? Globe2
-                    : preference.label === "Tema"
-                      ? Palette
-                      : preference.label === "Formato monetario"
-                        ? CircleDollarSign
-                        : preference.label === "Avisos visuales"
-                          ? Bell
-                          : ShieldCheck;
+        <SettingsPreferencesCard
+          onUpdateSetting={updateSetting}
+          preferences={settingsOverview.preferences}
+          settingsValues={settingsValues}
+          theme={theme}
+        />
 
-                return (
-                  <div
-                    key={preference.label}
-                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3"
-                  >
-                    <div className="flex min-w-0 items-start gap-3">
-                      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                      <div className="min-w-0">
-                        <p className="font-medium text-foreground">{preference.label}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{preference.note}</p>
-                      </div>
-                    </div>
-                    <SettingsPreferenceControl
-                      preference={preference}
-                      value={
-                        preference.label === "Tema"
-                          ? themeToPreferenceLabel(theme)
-                          : settingsValues[preference.label] ?? preference.value
-                      }
-                      onValueChange={(value) => updateSetting(preference.label, value)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+        <SettingsAccessCard accessRows={accessRows} />
 
-        <Card id="subscription" className="scroll-mt-20 border-border/70 bg-card/70">
-          <CardHeader>
-            <CardTitle>Acceso</CardTitle>
-            <CardDescription>
-              Contexto básico de tu sesión.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            <div className="grid gap-3">
-              {accessRows.map((row) => {
-                const Icon = row.icon;
-
-                return (
-                  <div key={row.label} className="flex min-w-0 items-start gap-3">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-background/35">
-                      <Icon className="size-4 text-muted-foreground" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-xs text-muted-foreground">
-                        {row.label}
-                      </span>
-                      <span className="mt-0.5 block truncate font-medium text-foreground">
-                        {row.value}
-                      </span>
-                      <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                        {row.note}
-                      </span>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <Separator />
-            <Link
-              href="/subscription"
-              className={cn(
-                buttonVariants({ variant: "outline", size: "sm" }),
-                "w-full justify-center bg-background/35",
-              )}
-            >
-              <CreditCard data-icon="inline-start" />
-              Ver suscripción
-            </Link>
-          </CardContent>
-        </Card>
-
-        <div className="col-span-full flex flex-col gap-3 rounded-lg border border-border/70 bg-card/45 p-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="font-medium text-foreground">Ayuda y legal</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Soporte y documentos públicos de KMFX Edge.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 sm:justify-end">
-            {settingsOverview.helpLinks.map((item) => {
-              const Icon = item.kind === "help" ? LifeBuoy : FileText;
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "bg-background/35",
-                  )}
-                >
-                  <Icon data-icon="inline-start" />
-                  {item.label}
-                  <ExternalLink data-icon="inline-end" />
-                </Link>
-              );
-            })}
-          </div>
-        </div>
+        <SettingsHelpLegalBar helpLinks={settingsOverview.helpLinks} />
       </div>
 
-      <Dialog
+      <ProfileDialog
+        onClose={closeProfileDialog}
+        onDraftChange={setProfileDraftField}
+        onOpenChange={handleProfileDialogOpenChange}
+        onSubmit={saveProfile}
         open={profileDialogOpen}
-        onOpenChange={(open) => {
-          if (open) {
-            dispatchSettingsUi({ type: "openProfileDialog" });
-          } else {
-            dispatchSettingsUi({ type: "closeProfileDialog" });
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <form onSubmit={saveProfile} className="grid gap-4">
-            <DialogHeader>
-              <DialogTitle>Editar perfil</DialogTitle>
-              <DialogDescription>
-                Nombre y email visibles en tu espacio de trabajo.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-3">
-              <Field>
-                <FieldLabel htmlFor="settings-profile-name">Nombre</FieldLabel>
-                <Input
-	                  id="settings-profile-name"
-	                  value={profileDraft.displayName}
-	                  onChange={(event) =>
-	                    dispatchSettingsUi({
-	                      type: "setProfileDraftField",
-	                      field: "displayName",
-	                      value: event.target.value,
-	                    })
-	                  }
-	                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="settings-profile-email">Email</FieldLabel>
-                <Input
-                  id="settings-profile-email"
-                  type="email"
-	                  placeholder="tu@email.com"
-	                  value={profileDraft.email}
-	                  onChange={(event) =>
-	                    dispatchSettingsUi({
-	                      type: "setProfileDraftField",
-	                      field: "email",
-	                      value: event.target.value,
-	                    })
-	                  }
-	                />
-              </Field>
-            </div>
-            <DialogFooter>
-              <Button
-	                type="button"
-	                variant="outline"
-	                onClick={() =>
-	                  dispatchSettingsUi({ type: "closeProfileDialog" })
-	                }
-	              >
-                Cancelar
-              </Button>
-              <Button type="submit">Guardar cambios</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+        profileDraft={profileDraft}
+      />
 
-      <Dialog
+      <SignOutDialog
+        onConfirm={confirmSignOut}
+        onOpenChange={setSignOutDialogOpen}
         open={signOutDialogOpen}
-        onOpenChange={(open) =>
-          dispatchSettingsUi({ type: "setSignOutDialogOpen", open })
-        }
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Cerrar sesión</DialogTitle>
-            <DialogDescription>
-              Confirma para salir de este espacio de trabajo.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-	              type="button"
-	              variant="outline"
-	              onClick={() =>
-	                dispatchSettingsUi({
-	                  type: "setSignOutDialogOpen",
-	                  open: false,
-	                })
-	              }
-	            >
-              Cancelar
-            </Button>
-            <Button
-	              type="button"
-	              variant="destructive"
-	              onClick={() => {
-	                dispatchSettingsUi({
-	                  type: "setSignOutDialogOpen",
-	                  open: false,
-	                });
-	                router.push("/login");
-	              }}
-            >
-              Cerrar sesión
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      />
     </PageMotion>
   );
 }
@@ -1167,7 +1273,7 @@ export function SubscriptionReferenceSection({
 
                         <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
                           <motion.button
-                            className="rounded-full bg-white px-6 py-2 text-sm font-semibold text-black shadow-lg transition-transform duration-200 disabled:cursor-not-allowed disabled:opacity-70"
+                            className="min-h-10 rounded-full bg-white px-6 py-2 text-sm font-semibold text-black shadow-lg transition-transform duration-200 disabled:cursor-not-allowed disabled:opacity-70"
                             disabled={!plan.managementReady || billingPending}
                             onClick={() => {
                               if (current) {
@@ -1256,7 +1362,7 @@ export function SubscriptionReferenceSection({
                             </div>
                           </div>
                           <Button
-                            className="shrink-0"
+                            className="min-h-10 shrink-0"
                             disabled={!plan.managementReady || billingPending}
                             onClick={() => {
                               if (current) {
