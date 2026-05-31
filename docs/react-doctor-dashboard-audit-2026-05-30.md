@@ -47,6 +47,8 @@
 - Captura trades despues de extraer secciones internas: `/tmp/kmfx-trades-after-reference-section-extract.png`
 - Captura login despues de extraer AuthPage: `/tmp/kmfx-login-after-auth-page-extract.png`
 - Captura calculadora despues de extraer lot sizing: `/tmp/kmfx-calculator-after-lot-size-extract.png`
+- Captura cuentas antes de extraer seccion de referencia: `/tmp/kmfx-accounts-before-reference-section-extract.png`
+- Captura cuentas despues de extraer seccion de referencia y corregir Label: `/tmp/kmfx-accounts-after-reference-section-label-fix.png`
 - Captura calculadora despues: `/tmp/kmfx-calculator-react-doctor-149.png`
 
 ## Cambios aplicados sin intencion visual
@@ -113,10 +115,12 @@
 - Se extrajo `AuthPage` en un hook de modelo y piezas visuales (`AuthHero`, `ProviderButtons`, `AuthModeTabs`, `EmailPasswordForm`, `AuthPanel`), manteniendo flujo Supabase/Turnstile y los mismos textos/clases visibles.
 - Se separaron subcomponentes de `InputGroup` y `Resizable` en archivos dedicados, manteniendo las mismas clases y exportaciones publicas desde sus modulos originales.
 - Se retiraron `role="group"` de wrappers visuales sin nombre accesible en `Field`/`InputGroup` y se cambio el gauge CSS de Analytics a `<figure aria-label>` con `m-0`.
+- Se hizo explicito `htmlFor` en el wrapper base `Label`, manteniendo las mismas clases y el mismo contrato para labels asociados a controles.
 - Se renombro el writer del token Turnstile de `setCaptchaToken` a `writeCaptchaToken`, aclarando que no dispara render y eliminando el falso positivo de cascada de estado.
 - Se eliminaron copias accidentales untracked con sufijo ` 2` que eran identicas a sus originales y contaminaban React Doctor como archivos no usados.
 - Cambio visible menor: `Calculando tipo de cambio...` ahora usa el caracter tipografico `…`.
 - Cambio visual de microanimacion: entradas con `scale: 0` pasan a iniciar desde `scale: 0.95` con opacidad, para evitar apariciones desde un punto.
+- Se dividio `AccountsReferenceSection` en tarjeta resumen, dialogo de alta por pasos y hook de modelo; mantiene textos, clases y flujo de conexion, y deja de aparecer como componente gigante en React Doctor.
 
 ## Verificacion
 
@@ -126,7 +130,7 @@
 - `npm run test -- action-safety-contract`: OK
 - `npm run test -- funding review risk liveline trades`: OK, `8` archivos y `33` tests
 - `npx react-doctor@latest`: `95 / 100`, `111 issues` en working tree local con la ruta untracked `/notes`; no se usa como baseline del commit de este lote.
-- `npx react-doctor@latest --verbose --diff`: `99 / 100`, `12 issues`
+- `npx react-doctor@latest --verbose --diff`: `100 / 100`, `10 issues`
 - Browser/Playwright local: `http://localhost:3000/dashboard` carga con titulo `KMFX Edge`, contenido de `Panel` visible y sin error de aplicacion.
 - Playwright local: captura dashboard posterior tomada tras esperar `h1`, SVG de liveline y `6000ms` extra para evitar capturas borrosas o a medio cargar.
 - Playwright local: captura posterior a la extraccion del logo tomada con `Panel` visible, SVG de liveline visible y `6000ms` extra; sin error de aplicacion.
@@ -156,6 +160,8 @@
 - Browser in-app: tras extraer `AuthPage` y `LotSizeCalculator`, `http://localhost:3000/login?next=/dashboard` y `http://localhost:3000/tools/calculator` cargan tras `8500ms`, con contenido esperado y sin `Application error`.
 - Playwright local: capturas posteriores tomadas en login y calculadora tras `8500ms`; la composicion visual se mantiene.
 - Browser/Playwright local: `http://localhost:3000/tools/calculator` carga con titulo `KMFX Edge`, contenido de `Calculadora / Lotaje` visible, sin error de aplicacion, y el input `Risk %` acepta `0.50`.
+- Browser in-app: tras extraer `AccountsReferenceSection` y ajustar `Label`, `http://localhost:3000/accounts` carga tras `8500ms` con titulo `Cuentas / KMFX Edge`, contenido visible y sin `Application error`.
+- Playwright local: captura posterior de `/accounts` tomada con `8500ms` de espera; comparada con la captura anterior no hay cambio visual apreciable.
 
 La suite completa de tests sigue bloqueada por una regla preexistente de migracion que detecta `KMFXConnector` en `src/components/trading/accounts/reference-section.tsx`. Ese archivo ya estaba modificado fuera de este pase, asi que no se revirtio ni se mezclo con el trabajo de React Doctor.
 
@@ -174,12 +180,13 @@ La suite completa de tests sigue bloqueada por una regla preexistente de migraci
 - `exhaustive-deps`: aplicado en `auth-page` quitando el toque del ref durante cleanup.
 - `no-autofocus`: aplicado en `command-palette`.
 - `no-many-boolean-props`: aplicado en `funnel-chart` agrupando flags internos en `display`.
-- `label-has-associated-control`: se corrigieron labels concretos de filtros en Trades; React Doctor mantiene un aviso en el componente base `label.tsx`, tratado como pendiente de revision/manual porque el componente generico puede usarse correctamente con `htmlFor`.
+- `label-has-associated-control`: aplicado tambien en el wrapper base `label.tsx` haciendo explicito `htmlFor`; ya no aparece en el diff de React Doctor.
 - `prefer-useReducer`: aplicado en `auth-page`, `trades/reference-section`, `calendar/reference-section`, `settings/reference-sections`, `capital/reference-section` y `accounts/reference-section`.
 - `nextjs-no-use-search-params-without-suspense`: aplicado en `auth-page` y `workspace-shell`, leyendo `next` desde `/login` server y observando `location.search` en el shell cliente.
 - `prefer-tag-over-role`: aplicado en wrappers genericos y gauge CSS; ya no aparece en el diff de React Doctor.
 - `no-cascading-set-state`: el aviso de Turnstile se elimino renombrando el writer de token, que solo actualiza un ref y no es setState.
 - `accounts/reference-section`: aplicado `prefer-useReducer`, y retirada la comprobacion de billing desde `useEffect`; sus avisos de `no-fetch-in-effect` y `nextjs-no-client-side-redirect` ya no aparecen en el diff de React Doctor.
+- `accounts/reference-section`: aplicado split de modelo/UI; ya no aparece como `no-giant-component` en el diff de React Doctor.
 - `settings/reference-sections`: eliminado el `fetch` inicial en effect para leer billing status dentro de `SubscriptionReferenceSection`; el plan inicial llega desde server y los eventos de Checkout/Portal siguen en cliente.
 - `workspace-shell`: eliminado el fetch/redirect global desde effect. El `proxy` comprueba billing antes de pintar rutas workspace, excluye `/subscription`, `/settings/subscription` y `?demo=1`, y no bloquea si billing status esta temporalmente no disponible.
 - `prefer-dynamic-import`: aplicado para los imports directos de `recharts` dentro de Analytics y `src/components/ui/chart.tsx`; ya no aparece en el diff de React Doctor.
