@@ -1,4 +1,5 @@
 import { SubscriptionReferenceSection } from "@/components/trading/settings";
+import { requestBillingPlanKey } from "@/lib/api/billing-status";
 import {
   getWorkspaceStateForSearchParams,
   type WorkspaceSearchParams,
@@ -9,7 +10,15 @@ type WorkspacePageProps = {
 };
 
 export default async function SettingsSubscriptionPage({ searchParams }: WorkspacePageProps) {
-  const workspace = await getWorkspaceStateForSearchParams(searchParams);
+  const [workspace, billingPlanKey] = await Promise.all([
+    getWorkspaceStateForSearchParams(searchParams),
+    requestBillingPlanKey(),
+  ]);
 
-  return <SubscriptionReferenceSection workspace={workspace} />;
+  return (
+    <SubscriptionReferenceSection
+      initialBillingPlanKey={billingPlanKey}
+      workspace={workspace}
+    />
+  );
 }

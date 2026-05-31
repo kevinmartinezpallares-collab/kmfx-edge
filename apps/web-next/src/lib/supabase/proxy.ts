@@ -8,6 +8,7 @@ import {
 } from "@/lib/supabase/config";
 
 type SupabaseSessionResult = {
+  accessToken?: string;
   authenticated: boolean;
   configured: boolean;
   response: NextResponse;
@@ -44,9 +45,12 @@ export async function updateSupabaseSession(
   );
 
   const { data, error } = await supabase.auth.getClaims();
+  const authenticated = Boolean(data?.claims && !error);
+  const session = authenticated ? await supabase.auth.getSession() : null;
 
   return {
-    authenticated: Boolean(data?.claims && !error),
+    accessToken: session?.data.session?.access_token,
+    authenticated,
     configured: true,
     response,
   };

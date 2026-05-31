@@ -1,7 +1,28 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { buildKmfxApiUrl } from "@/lib/api/kmfx-api-config";
+import { resolveConnectionAccess } from "@/lib/billing/connection-access";
 import { isSupabaseAuthEnabled } from "@/lib/supabase/config";
 import { updateSupabaseSession } from "@/lib/supabase/proxy";
+
+const BILLING_GUARDED_PREFIXES = [
+  "/accounts",
+  "/analytics",
+  "/calendar",
+  "/capital",
+  "/dashboard",
+  "/debug",
+  "/execution",
+  "/funding",
+  "/journal",
+  "/market",
+  "/risk",
+  "/settings",
+  "/strategies",
+  "/study",
+  "/tools",
+  "/trades",
+] as const;
 
 function betaGateEnabled() {
   return Boolean(process.env.KMFX_BETA_GATE_PASSWORD?.trim());
@@ -43,6 +64,40 @@ function isAuthRoute(pathname: string) {
   return pathname === "/login" || pathname.startsWith("/auth/");
 }
 
+function isBillingGuardedWorkspaceRoute(pathname: string) {
+  if (pathname === "/subscription" || pathname === "/settings/subscription") {
+    return false;
+  }
+
+  return BILLING_GUARDED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+async function hasBlockedBillingAccess(accessToken: string | undefined) {
+  if (!accessToken) return false;
+
+  try {
+    const response = await fetch(buildKmfxApiUrl("/api/billing/status"), {
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const payload = await response.json().catch(() => ({}));
+    const access = resolveConnectionAccess(response.ok ? payload : { ok: false });
+
+    return (
+      !access.allowed &&
+      access.reason !== "auth_required" &&
+      access.reason !== "billing_status_unavailable"
+    );
+  } catch {
+    return false;
+  }
+}
+
 export async function proxy(request: NextRequest) {
   if (
     request.nextUrl.pathname.startsWith("/debug") &&
@@ -78,6 +133,20 @@ export async function proxy(request: NextRequest) {
     dashboardUrl.pathname = "/dashboard";
     dashboardUrl.search = "";
     return NextResponse.redirect(dashboardUrl);
+  }
+
+  if (
+    session.authenticated &&
+    request.nextUrl.searchParams.get("demo") !== "1" &&
+    isBillingGuardedWorkspaceRoute(pathname) &&
+    await hasBlockedBillingAccess(session.accessToken)
+  ) {
+    const subscriptionUrl = request.nextUrl.clone();
+    subscriptionUrl.pathname = "/subscription";
+    subscriptionUrl.search = "";
+    subscriptionUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+    subscriptionUrl.searchParams.set("welcome", "1");
+    return NextResponse.redirect(subscriptionUrl);
   }
 
   return session.response;

@@ -39,7 +39,7 @@ export function getExecutionQuality(workspace: WorkspaceState): ExecutionQuality
           acc[trade.session] = (acc[trade.session] ?? 0) + 1;
           return acc;
         }, {}),
-    ).sort((a, b) => b[1] - a[1])[0]?.[0] as TradeSession | undefined;
+    ).toSorted((a, b) => b[1] - a[1])[0]?.[0] as TradeSession | undefined;
   const tagCoveragePct = percent(taggedTrades, trades.length);
   const hints = [
     fastLosses > 0

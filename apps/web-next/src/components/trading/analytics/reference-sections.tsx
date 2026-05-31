@@ -2,17 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +39,21 @@ import {
 import { signedTextClass } from "@/lib/domain/semantic-colors";
 import { cn } from "@/lib/utils";
 
+const AnalyticsCumulativeChart = dynamic(
+  () =>
+    import("@/components/trading/analytics/analytics-cumulative-chart").then(
+      (mod) => mod.AnalyticsCumulativeChart,
+    ),
+  {
+    loading: () => (
+      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+        Cargando curva…
+      </div>
+    ),
+    ssr: false,
+  },
+);
+
 type PageMotionProps = {
   children: React.ReactNode;
 };
@@ -56,15 +62,21 @@ function PageMotion({ children }: PageMotionProps) {
   return <div>{children}</div>;
 }
 
+const SHORT_DAY_LABEL_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  day: "numeric",
+  month: "short",
+});
+const MONTH_TITLE_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
 
 function shortDayLabel(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Sin fecha";
 
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "numeric",
-    month: "short",
-  }).format(date);
+  return SHORT_DAY_LABEL_FORMATTER.format(date);
 }
 
 
@@ -102,6 +114,27 @@ const insightChartColors = {
   lossMuted: "var(--loss-muted)",
 };
 
+const SESSION_SIGNAL_PALETTE = [
+  insightChartColors.neutralStrong,
+  insightChartColors.neutral,
+  insightChartColors.neutralMuted,
+];
+const RISK_LOSS_BUDGET_PALETTE = [
+  insightChartColors.neutralStrong,
+  insightChartColors.neutral,
+  insightChartColors.neutralMuted,
+  insightChartColors.inactive,
+];
+const WEEK_DAY_ROWS = [
+  { key: 1, label: "Lun" },
+  { key: 2, label: "Mar" },
+  { key: 3, label: "Mié" },
+  { key: 4, label: "Jue" },
+  { key: 5, label: "Vie" },
+  { key: 6, label: "Sáb" },
+  { key: 0, label: "Dom" },
+];
+
 function SessionSignalMap({
   rows,
 }: {
@@ -112,17 +145,15 @@ function SessionSignalMap({
     visibleRows.reduce((sum, row) => sum + Math.abs(row.pnl), 0),
     1,
   );
-  const orderedRows = [...visibleRows].sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl));
-  const palette = [
-    insightChartColors.neutralStrong,
-    insightChartColors.neutral,
-    insightChartColors.neutralMuted,
-  ];
+  const orderedRows = [...visibleRows].toSorted((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl));
   const chartRows = orderedRows.map((row, index) => ({
     ...row,
     value: Math.max(Math.abs(row.pnl), 0.01),
     sharePct: (Math.abs(row.pnl) / totalAbs) * 100,
-    color: row.pnl < 0 ? insightChartColors.loss : palette[index] ?? insightChartColors.neutralMuted,
+    color:
+      row.pnl < 0
+        ? insightChartColors.loss
+        : SESSION_SIGNAL_PALETTE[index] ?? insightChartColors.neutralMuted,
   }));
   const [selectedSessionLabel, setSelectedSessionLabel] = React.useState(
     chartRows[0]?.label ?? "",
@@ -341,13 +372,6 @@ function RiskLossBudgetChart({
           },
         ]
       : topRows;
-  const palette = [
-    insightChartColors.neutralStrong,
-    insightChartColors.neutral,
-    insightChartColors.neutralMuted,
-    insightChartColors.inactive,
-  ];
-
   if (totalLoss <= 0 || chartRows.length === 0) {
     return (
       <div className="border-y border-border/60 py-5 text-sm text-muted-foreground">
@@ -377,7 +401,14 @@ function RiskLossBudgetChart({
               <p className="mb-3 font-mono text-sm text-muted-foreground">
                 {formatPercent(row.lossSharePct, 0)}
               </p>
-              <div className="h-8 rounded-full" style={{ background: palette[chartRows.indexOf(row)] ?? palette.at(-1) }} />
+              <div
+                className="h-8 rounded-full"
+                style={{
+                  background:
+                    RISK_LOSS_BUDGET_PALETTE[chartRows.indexOf(row)] ??
+                    RISK_LOSS_BUDGET_PALETTE.at(-1),
+                }}
+              />
             </div>
           ))}
         </div>
@@ -386,7 +417,10 @@ function RiskLossBudgetChart({
             <div key={row.label} className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
               <span
                 className="size-3 shrink-0 rounded-full"
-                style={{ background: palette[index] ?? palette.at(-1) }}
+                style={{
+                  background:
+                    RISK_LOSS_BUDGET_PALETTE[index] ?? RISK_LOSS_BUDGET_PALETTE.at(-1),
+                }}
               />
               <span className="truncate">{row.label}</span>
               <span className="ml-auto font-mono text-xs text-foreground">
@@ -403,7 +437,7 @@ function RiskLossBudgetChart({
 function InsightsDailyTracker({ days }: { days: DailyTradeBucket[] }) {
   const recentDays = [...days]
     .filter((day) => day.trades > 0)
-    .sort((a, b) => a.tradingDayKey.localeCompare(b.tradingDayKey))
+    .toSorted((a, b) => a.tradingDayKey.localeCompare(b.tradingDayKey))
     .slice(-14);
   const totalPnl = recentDays.reduce((sum, day) => sum + day.pnl, 0);
   const totalTrades = recentDays.reduce((sum, day) => sum + day.trades, 0);
@@ -411,7 +445,7 @@ function InsightsDailyTracker({ days }: { days: DailyTradeBucket[] }) {
   const negativeDays = recentDays.filter((day) => day.pnl < 0);
   const positivePnl = positiveDays.reduce((sum, day) => sum + day.pnl, 0);
   const lossAbs = Math.abs(negativeDays.reduce((sum, day) => sum + day.pnl, 0));
-  const topDays = [...positiveDays].sort((a, b) => b.pnl - a.pnl).slice(0, 3);
+  const topDays = [...positiveDays].toSorted((a, b) => b.pnl - a.pnl).slice(0, 3);
   const topPositivePnl = topDays.reduce((sum, day) => sum + day.pnl, 0);
   const restPositivePnl = Math.max(0, positivePnl - topPositivePnl);
   const grossMovement = Math.max(topPositivePnl + restPositivePnl + lossAbs, 1);
@@ -681,7 +715,7 @@ export function AnalyticsOverviewSection({
   const worstSession =
     [...insights.sessionRows]
       .filter((session) => session.pnl < 0)
-      .sort((a, b) => a.pnl - b.pnl)[0] ?? null;
+      .toSorted((a, b) => a.pnl - b.pnl)[0] ?? null;
   const symbolRows = Object.values(
     trades.reduce<
       Record<
@@ -703,10 +737,10 @@ export function AnalyticsOverviewSection({
       acc[trade.symbol] = current;
       return acc;
     }, {}),
-  ).sort((a, b) => b.pnl - a.pnl);
+  ).toSorted((a, b) => b.pnl - a.pnl);
   const bestSymbol = symbolRows.find((symbol) => symbol.pnl > 0) ?? symbolRows[0] ?? null;
   const worstSymbol =
-    [...symbolRows].filter((symbol) => symbol.pnl < 0).sort((a, b) => a.pnl - b.pnl)[0] ??
+    [...symbolRows].filter((symbol) => symbol.pnl < 0).toSorted((a, b) => a.pnl - b.pnl)[0] ??
     null;
   const hourMap = new Map(hourlyOverview.hours.map((hour) => [hour.hour, hour]));
   const timeline = Array.from({ length: 24 }, (_, hour) => {
@@ -724,9 +758,9 @@ export function AnalyticsOverviewSection({
   });
   const activeHours = timeline.filter((hour) => hour.trades > 0);
   const bestHour =
-    activeHours.length > 0 ? [...activeHours].sort((a, b) => b.pnl - a.pnl)[0] : null;
+    activeHours.length > 0 ? [...activeHours].toSorted((a, b) => b.pnl - a.pnl)[0] : null;
   const worstHour =
-    activeHours.length > 0 ? [...activeHours].sort((a, b) => a.pnl - b.pnl)[0] : null;
+    activeHours.length > 0 ? [...activeHours].toSorted((a, b) => a.pnl - b.pnl)[0] : null;
   const bestWindow = Array.from({ length: 22 }, (_, start) => {
     const windowHours = timeline.slice(start, start + 3);
     return {
@@ -737,7 +771,7 @@ export function AnalyticsOverviewSection({
     };
   })
     .filter((window) => window.trades > 0)
-    .sort((a, b) => b.pnl - a.pnl)[0];
+    .toSorted((a, b) => b.pnl - a.pnl)[0];
   const bestWindowLabel = bestWindow
     ? `${String(bestWindow.start).padStart(2, "0")}:00-${String(bestWindow.end).padStart(2, "0")}:00`
     : "Sin ventana";
@@ -1081,66 +1115,7 @@ export function PerformanceReferenceSection({
             <CardContent>
               <div className="h-[280px] min-h-0 min-w-0 rounded-2xl border border-border/70 bg-background/35 p-4">
                 {insights.cumulativeCurve.length > 0 ? (
-                  <ResponsiveContainer height="100%" minHeight={0} minWidth={0} width="100%">
-                    <AreaChart
-                      data={insights.cumulativeCurve}
-                      margin={{ left: 8, right: 18, top: 12, bottom: 0 }}
-                    >
-                      <defs>
-                        <linearGradient id="insightsPnlFill" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.26} />
-                          <stop offset="90%" stopColor="var(--chart-1)" stopOpacity={0.02} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        stroke="var(--chart-grid)"
-                        strokeDasharray="3 6"
-                        vertical={false}
-                        opacity={0.45}
-                      />
-                      <XAxis
-                        dataKey="label"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: "var(--chart-label)", fontSize: 12 }}
-                      />
-                      <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: "var(--chart-label)", fontSize: 12 }}
-                        tickFormatter={(value) => formatSignedCurrency(Number(value))}
-                        width={86}
-                      />
-                      <Tooltip
-                        cursor={{ stroke: "var(--chart-crosshair)", strokeDasharray: "4 4" }}
-                        contentStyle={{
-                          background: "var(--chart-tooltip-background)",
-                          border: "1px solid var(--border)",
-                          borderRadius: 12,
-                          color: "var(--chart-tooltip-foreground)",
-                        }}
-                        formatter={(value) => [
-                          formatSignedCurrency(Number(value)),
-                          "PnL acumulado",
-                        ]}
-                      />
-                      <ReferenceLine y={0} stroke="var(--chart-crosshair)" strokeDasharray="4 4" />
-                      <Area
-                        type="monotone"
-                        dataKey="pnl"
-                        stroke="var(--chart-1)"
-                        strokeWidth={2}
-                        fill="url(#insightsPnlFill)"
-                        dot={false}
-                        activeDot={{
-                          r: 5,
-                          fill: "var(--chart-marker-background)",
-                          stroke: "var(--chart-marker-border)",
-                          strokeWidth: 2,
-                        }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <AnalyticsCumulativeChart data={insights.cumulativeCurve} />
                 ) : (
                   <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                     Sin cierres suficientes para pintar una curva.
@@ -1287,14 +1262,14 @@ export function AnalyticsDailyReferenceSection({
   const negativeDays = activeDays.filter((day) => day.pnl < 0);
   const reviewDay =
     negativeDays.length > 0
-      ? [...negativeDays].sort((a, b) => a.pnl - b.pnl)[0]
-      : [...activeDays].sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))[0] ?? null;
-  const dayRows = [...days].sort((a, b) =>
+      ? [...negativeDays].toSorted((a, b) => a.pnl - b.pnl)[0]
+      : [...activeDays].toSorted((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))[0] ?? null;
+  const dayRows = [...days].toSorted((a, b) =>
     a.tradingDayKey.localeCompare(b.tradingDayKey),
   );
   const operatedMonthKeys = Array.from(
     new Set(dayRows.map((day) => day.tradingDayKey.slice(0, 7))),
-  ).sort();
+  ).toSorted();
   const buildDailyMonthRange = () => {
     if (operatedMonthKeys.length === 0) return [];
 
@@ -1329,15 +1304,15 @@ export function AnalyticsDailyReferenceSection({
   const positiveMonthDays = monthActiveDays.filter((day) => day.pnl > 0);
   const negativeMonthDays = monthActiveDays.filter((day) => day.pnl < 0);
   const monthBestDay =
-    [...monthActiveDays].sort((a, b) => b.pnl - a.pnl)[0] ?? null;
+    [...monthActiveDays].toSorted((a, b) => b.pnl - a.pnl)[0] ?? null;
   const monthWorstDay =
-    [...monthActiveDays].sort((a, b) => a.pnl - b.pnl)[0] ?? null;
+    [...monthActiveDays].toSorted((a, b) => a.pnl - b.pnl)[0] ?? null;
   const monthReviewDay =
     negativeMonthDays.length > 0
-      ? [...negativeMonthDays].sort((a, b) => a.pnl - b.pnl)[0]
-      : [...monthActiveDays].sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))[0] ?? null;
+      ? [...negativeMonthDays].toSorted((a, b) => a.pnl - b.pnl)[0]
+      : [...monthActiveDays].toSorted((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))[0] ?? null;
   const keyDays = [...monthActiveDays]
-    .sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))
+    .toSorted((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))
     .slice(0, 5);
   const [selectedDayKey, setSelectedDayKey] = React.useState(
     monthReviewDay?.tradingDayKey ??
@@ -1359,14 +1334,14 @@ export function AnalyticsDailyReferenceSection({
         acc[trade.session] = (acc[trade.session] ?? 0) + 1;
         return acc;
       }, {}),
-    ).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Sin sesión";
+    ).toSorted((a, b) => b[1] - a[1])[0]?.[0] ?? "Sin sesión";
   const dominantSymbol =
     Object.entries(
       selectedDayTrades.reduce<Record<string, number>>((acc, trade) => {
         acc[trade.symbol] = (acc[trade.symbol] ?? 0) + 1;
         return acc;
       }, {}),
-    ).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Sin símbolo";
+    ).toSorted((a, b) => b[1] - a[1])[0]?.[0] ?? "Sin símbolo";
   const selectedDayLabel = selectedDay
     ? shortDayLabel(`${selectedDay.tradingDayKey}T00:00:00Z`)
     : "Sin día";
@@ -1375,11 +1350,7 @@ export function AnalyticsDailyReferenceSection({
     : null;
   const selectedMonthTitle =
     selectedMonthDate && !Number.isNaN(selectedMonthDate.getTime())
-      ? new Intl.DateTimeFormat("es-ES", {
-          month: "long",
-          year: "numeric",
-          timeZone: "UTC",
-        }).format(selectedMonthDate)
+      ? MONTH_TITLE_FORMATTER.format(selectedMonthDate)
       : "Sin mes";
   const calendarCells = (() => {
     if (!selectedMonthDate || Number.isNaN(selectedMonthDate.getTime())) return [];
@@ -1762,7 +1733,7 @@ export function AnalyticsHourlyReferenceSection({
   });
   const activeHours = timeline.filter((hour) => hour.trades > 0);
   const worstHour =
-    activeHours.length > 0 ? [...activeHours].sort((a, b) => a.pnl - b.pnl)[0] : null;
+    activeHours.length > 0 ? [...activeHours].toSorted((a, b) => a.pnl - b.pnl)[0] : null;
   const totalHourlyPnl = activeHours.reduce((sum, hour) => sum + hour.pnl, 0);
   const totalHourlyTrades = activeHours.reduce((sum, hour) => sum + hour.trades, 0);
   const totalHourlyWins = activeHours.reduce((sum, hour) => sum + hour.wins, 0);
@@ -1782,7 +1753,7 @@ export function AnalyticsHourlyReferenceSection({
     };
   })
     .filter((window) => window.trades > 0)
-    .sort((a, b) => b.pnl - a.pnl)[0];
+    .toSorted((a, b) => b.pnl - a.pnl)[0];
   const bestWindowLabel = bestWindow
     ? `${String(bestWindow.start).padStart(2, "0")}:00-${String(bestWindow.end).padStart(2, "0")}:00`
     : "Sin ventana";
@@ -1792,16 +1763,7 @@ export function AnalyticsHourlyReferenceSection({
       : [],
   );
   const [hourValueMode, setHourValueMode] = React.useState<"currency" | "percent">("currency");
-  const weekDayRows = [
-    { key: 1, label: "Lun" },
-    { key: 2, label: "Mar" },
-    { key: 3, label: "Mié" },
-    { key: 4, label: "Jue" },
-    { key: 5, label: "Vie" },
-    { key: 6, label: "Sáb" },
-    { key: 0, label: "Dom" },
-  ];
-  const hourlyHeatmapCells = weekDayRows.flatMap((day) =>
+  const hourlyHeatmapCells = WEEK_DAY_ROWS.flatMap((day) =>
     Array.from({ length: 24 }, (_, hour) => {
       const tradesInCell = workspace.trades.filter((trade) => {
         const closedAt = new Date(trade.closedAt);
@@ -1829,6 +1791,18 @@ export function AnalyticsHourlyReferenceSection({
       };
     }),
   );
+  const hourlyHeatmapCellsByDay = hourlyHeatmapCells.reduce<
+    Map<number, typeof hourlyHeatmapCells>
+  >((cellsByDay, cell) => {
+    const cells = cellsByDay.get(cell.dayKey);
+    if (cells) {
+      cells.push(cell);
+    } else {
+      cellsByDay.set(cell.dayKey, [cell]);
+    }
+
+    return cellsByDay;
+  }, new Map());
   const maxCellPnl = Math.max(
     ...hourlyHeatmapCells.map((cell) => Math.abs(cell.pnl)),
     1,
@@ -1836,10 +1810,10 @@ export function AnalyticsHourlyReferenceSection({
   const defaultSelectedHeatmapCell =
     [...hourlyHeatmapCells]
       .filter((cell) => cell.trades > 0)
-      .sort((a, b) => b.pnl - a.pnl)[0] ??
+      .toSorted((a, b) => b.pnl - a.pnl)[0] ??
     [...hourlyHeatmapCells]
       .filter((cell) => cell.trades > 0)
-      .sort((a, b) => a.pnl - b.pnl)[0] ??
+      .toSorted((a, b) => a.pnl - b.pnl)[0] ??
     null;
   const [selectedHeatmapCellKey, setSelectedHeatmapCellKey] = React.useState(
     defaultSelectedHeatmapCell?.key ?? "",
@@ -1857,18 +1831,32 @@ export function AnalyticsHourlyReferenceSection({
     bestWindow && bestWindow.pnl > 0
       ? `${bestWindowLabel} concentra el mejor tramo horario.`
       : "Todavía no hay una ventana positiva clara.";
+  const supportingWindowHours = bestWindow
+    ? timeline.flatMap((hour) =>
+        windowHourSet.has(hour.hour) && hour.trades > 0 && hour.hour !== bestHour?.hour
+          ? [{ ...hour, reason: "Sostiene la ventana" }]
+          : [],
+      )
+    : [];
+  const secondaryActiveHours = activeHours
+    .flatMap((hour) =>
+      hour.hour !== bestHour?.hour &&
+      hour.hour !== worstHour?.hour &&
+      !windowHourSet.has(hour.hour)
+        ? [
+            {
+              ...hour,
+              reason: hour.pnl >= 0 ? "Aporte secundario" : "Revisar timing",
+            },
+          ]
+        : [],
+    )
+    .toSorted((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl));
   const keyHours = [
     ...(bestHour ? [{ ...bestHour, reason: "Mayor aporte" }] : []),
-    ...(bestWindow
-      ? timeline
-          .filter((hour) => windowHourSet.has(hour.hour) && hour.trades > 0 && hour.hour !== bestHour?.hour)
-          .map((hour) => ({ ...hour, reason: "Sostiene la ventana" }))
-      : []),
+    ...supportingWindowHours,
     ...(worstHour ? [{ ...worstHour, reason: "Hora a revisar" }] : []),
-    ...activeHours
-      .filter((hour) => hour.hour !== bestHour?.hour && hour.hour !== worstHour?.hour && !windowHourSet.has(hour.hour))
-      .sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))
-      .map((hour) => ({ ...hour, reason: hour.pnl >= 0 ? "Aporte secundario" : "Revisar timing" })),
+    ...secondaryActiveHours,
   ]
     .filter((hour, index, list) => list.findIndex((item) => item.hour === hour.hour) === index)
     .slice(0, 5);
@@ -1987,7 +1975,7 @@ export function AnalyticsHourlyReferenceSection({
                   {timeline.map((hour) => {
                     const hourCells = hourlyHeatmapCells
                       .filter((cell) => cell.hour === hour.hour && cell.trades > 0)
-                      .sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl));
+                      .toSorted((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl));
                     const representative = hourCells[0] ?? null;
                     const pnl = representative?.pnl ?? hour.pnl;
                     const trades = representative?.trades ?? hour.trades;
@@ -2049,14 +2037,12 @@ export function AnalyticsHourlyReferenceSection({
                         {hour === 0 ? "0" : hour}
                       </div>
                     ))}
-                    {weekDayRows.map((day) => (
+                    {WEEK_DAY_ROWS.map((day) => (
                       <React.Fragment key={day.key}>
                         <div className="flex h-8 items-center text-xs font-medium text-muted-foreground">
                           {day.label}
                         </div>
-                        {hourlyHeatmapCells
-                          .filter((cell) => cell.dayKey === day.key)
-                          .map((cell) => {
+                        {(hourlyHeatmapCellsByDay.get(day.key) ?? []).map((cell) => {
                             const intensity =
                               cell.trades > 0
                                 ? Math.max(0.14, Math.min(0.88, Math.abs(cell.pnl) / maxCellPnl))
@@ -2242,15 +2228,15 @@ export function AnalyticsRiskReferenceSection({
       avgLoss: row.losses > 0 ? row.lossAmount / row.losses : 0,
     }));
 
-  const sessionRiskRows = groupRiskRows((trade) => trade.session).sort(
+  const sessionRiskRows = groupRiskRows((trade) => trade.session).toSorted(
     (a, b) => b.lossSharePct - a.lossSharePct || a.pnl - b.pnl,
   );
-  const symbolRiskRows = groupRiskRows((trade) => trade.symbol).sort(
+  const symbolRiskRows = groupRiskRows((trade) => trade.symbol).toSorted(
     (a, b) => b.lossSharePct - a.lossSharePct || a.pnl - b.pnl,
   );
   const dayRiskRows = groupRiskRows((trade) =>
     shortDayLabel(`${trade.tradingDayKey}T00:00:00Z`),
-  ).sort((a, b) => b.lossSharePct - a.lossSharePct || a.pnl - b.pnl);
+  ).toSorted((a, b) => b.lossSharePct - a.lossSharePct || a.pnl - b.pnl);
   const worstSession = sessionRiskRows.find((row) => row.losses > 0) ?? null;
   const worstSymbol = symbolRiskRows.find((row) => row.losses > 0) ?? null;
   const worstDay = dayRiskRows.find((row) => row.losses > 0) ?? null;

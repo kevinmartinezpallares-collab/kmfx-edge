@@ -95,7 +95,7 @@ export type CalendarPeriodOverview = {
 };
 
 function getDominantMapKey<T extends string>(map: Map<T, number>, fallback: T | "Pend.") {
-  return [...map.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? fallback;
+  return [...map.entries()].toSorted((a, b) => b[1] - a[1])[0]?.[0] ?? fallback;
 }
 
 export function buildCalendarRows(workspace: WorkspaceState): CalendarDayRow[] {
@@ -154,7 +154,7 @@ export function buildCalendarRows(workspace: WorkspaceState): CalendarDayRow[] {
   }, new Map());
 
   return [...workspace.analytics.daily]
-    .sort((a, b) => b.tradingDayKey.localeCompare(a.tradingDayKey))
+    .toSorted((a, b) => b.tradingDayKey.localeCompare(a.tradingDayKey))
     .map((day) => {
       const detail = tradeDetails.get(day.tradingDayKey);
 
@@ -172,6 +172,16 @@ export function buildCalendarRows(workspace: WorkspaceState): CalendarDayRow[] {
     });
 }
 
+const MONTH_KEY_LABEL_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+const CALENDAR_MONTH_LONG_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  month: "long",
+  timeZone: "UTC",
+});
+
 export function tradingDayKeyToUtcDate(value: string) {
   const date = new Date(`${value}T00:00:00Z`);
   return Number.isNaN(date.getTime()) ? null : date;
@@ -184,11 +194,7 @@ export function monthKeyFromTradingDayKey(value: string) {
 export function monthKeyLabel(value: string) {
   const date = tradingDayKeyToUtcDate(`${value}-01`);
   if (!date) return value;
-  return new Intl.DateTimeFormat("es-ES", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(date);
+  return MONTH_KEY_LABEL_FORMATTER.format(date);
 }
 
 export function monthKeyFromYearMonth(year: number, monthIndex: number) {
@@ -204,10 +210,7 @@ export function shiftMonthKey(monthKey: string, delta: number) {
 }
 
 export function calendarMonthLongLabel(monthIndex: number) {
-  return new Intl.DateTimeFormat("es-ES", {
-    month: "long",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(2026, monthIndex, 1)));
+  return CALENDAR_MONTH_LONG_FORMATTER.format(new Date(Date.UTC(2026, monthIndex, 1)));
 }
 
 export function buildCalendarMonthCells<
@@ -379,8 +382,8 @@ export function getCalendarPeriodOverview(
   const days = buildCalendarRows(workspace);
   const monthlyRows = buildMonthlyCalendarRows(days);
   const yearlyRows = buildYearlyCalendarRows(days);
-  const monthly = [...monthlyRows].sort((a, b) => b.key.localeCompare(a.key));
-  const yearly = [...yearlyRows].sort((a, b) => b.key.localeCompare(a.key));
+  const monthly = [...monthlyRows].toSorted((a, b) => b.key.localeCompare(a.key));
+  const yearly = [...yearlyRows].toSorted((a, b) => b.key.localeCompare(a.key));
   const tradesByDay = buildTradesByDay(workspace.trades);
   const monthlyByKey = new Map(monthly.map((month) => [month.key, month]));
   const latestDay = days[0] ?? null;
@@ -419,11 +422,11 @@ export function getCalendarPeriodOverview(
   const activeDaysInMonth = activeMonthDays.filter((day) => day.trades > 0);
   const bestPeriodDay =
     activeMonthDays.length > 0
-      ? [...activeMonthDays].sort((a, b) => b.pnl - a.pnl)[0] ?? null
+      ? [...activeMonthDays].toSorted((a, b) => b.pnl - a.pnl)[0] ?? null
       : null;
   const worstPeriodDay =
     activeMonthDays.length > 0
-      ? [...activeMonthDays].sort((a, b) => a.pnl - b.pnl)[0] ?? null
+      ? [...activeMonthDays].toSorted((a, b) => a.pnl - b.pnl)[0] ?? null
       : null;
   const reviewDay =
     activeMonthDays.find((day) => day.reviewCount > 0) ??

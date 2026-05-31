@@ -1,8 +1,10 @@
 "use client";
 
-import { motion, useSpring } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
-import { chartCssVars, useChart } from "../chart-context";
+import { m as motion, useSpring } from "motion/react";
+import { useMemo } from "react";
+import { useClientReady } from "@/hooks/use-client-ready";
+import { useChart } from "../chart-context";
+import { chartCssVars } from "../chart-theme";
 import { DateTicker } from "./date-ticker";
 import { TooltipBox } from "./tooltip-box";
 import { TooltipContent, type TooltipRow } from "./tooltip-content";
@@ -64,12 +66,7 @@ export function ChartTooltip({
 
   const isHorizontal = orientation === "horizontal";
 
-  const [mounted, setMounted] = useState(false);
-
-  // Only render portals on client side after mount
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const clientReady = useClientReady();
 
   const visible = tooltipData !== null;
   const x = tooltipData?.x ?? 0;
@@ -138,7 +135,7 @@ export function ChartTooltip({
   // Use portal to render into the chart container
   // Only render after mount on client side
   const container = containerRef.current;
-  if (!(mounted && container)) {
+  if (!(clientReady && container)) {
     return null;
   }
 

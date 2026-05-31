@@ -1,0 +1,9 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">KMFX Edge concept 04 - Risk Gate</title>
+  <desc id="desc">Risk-control gate with equity path crossing a disciplined boundary.</desc>
+  <path d="M42 124V52C42 42.1 50.1 34 60 34H118" stroke="#8D95A3" stroke-width="8" stroke-linecap="round" opacity=".5"/>
+  <path d="M42 124H116" stroke="#8D95A3" stroke-width="8" stroke-linecap="round" opacity=".5"/>
+  <path d="M51 105C68 102 79 90 88 76C97 62 108 51 124 50" stroke="#F6F8FB" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="51" cy="105" r="8" fill="#F6F8FB"/>
+  <path d="M88 76C97 62 108 51 124 50" stroke="#30D158" stroke-width="4" stroke-linecap="round" opacity=".75"/>
+</svg>

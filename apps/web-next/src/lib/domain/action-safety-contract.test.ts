@@ -41,11 +41,12 @@ describe("V1 action safety contract", () => {
 
       expect(logout).toMatch(/text-red|destructive/);
       if (logout.includes("/auth/signout")) {
-        expect(logout).toContain('href="/auth/signout"');
+        expect(logout).toContain('action="/auth/signout"');
+        expect(logout).toContain('method="post"');
       } else {
         expect(logout).not.toMatch(/href=/i);
       }
-      expect(logout).not.toMatch(/signOut|fetch\(|window\.location|router\./i);
+      expect(logout).not.toMatch(/\bsignOut\b|fetch\(|window\.location|router\./);
     }
   });
 

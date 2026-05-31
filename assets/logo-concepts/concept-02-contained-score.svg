@@ -1,0 +1,10 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">KMFX Edge concept 02 - Contained Score</title>
+  <desc id="desc">Contained app icon with point, equity stroke, and score arc.</desc>
+  <rect x="16" y="16" width="128" height="128" rx="32" fill="#111318"/>
+  <rect x="16.5" y="16.5" width="127" height="127" rx="31.5" stroke="#F6F8FB" stroke-opacity=".08"/>
+  <circle cx="50" cy="58" r="9" fill="#F6F8FB"/>
+  <path d="M63 108L88 50" stroke="#F6F8FB" stroke-width="13" stroke-linecap="round"/>
+  <path d="M92 108C92 87.6 108.6 71 129 71" stroke="#2F6BFF" stroke-width="13" stroke-linecap="round"/>
+  <path d="M30 126H130" stroke="#8D95A3" stroke-width="2" stroke-linecap="round" opacity=".22"/>
+</svg>

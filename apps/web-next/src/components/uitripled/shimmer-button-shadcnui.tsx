@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { motion, useReducedMotion } from "framer-motion";
+import { m as motion, useReducedMotion } from "motion/react";
 
 type ShimmerButtonProps = React.ComponentProps<typeof Button> & {
   shimmerClassName?: string;

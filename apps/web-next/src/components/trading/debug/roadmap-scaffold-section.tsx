@@ -9,12 +9,12 @@ import {
 
 export function RoadmapScaffoldSection({
   title,
-  role,
+  badgeLabel,
   description,
   bullets,
 }: {
   title: string;
-  role: string;
+  badgeLabel: string;
   description: string;
   bullets: string[];
 }) {
@@ -26,7 +26,7 @@ export function RoadmapScaffoldSection({
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <Badge variant="outline" className="w-fit">
-          {role}
+          {badgeLabel}
         </Badge>
         {bullets.map((bullet) => (
           <div
@@ -40,4 +40,3 @@ export function RoadmapScaffoldSection({
     </Card>
   );
 }
-

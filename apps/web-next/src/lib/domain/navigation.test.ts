@@ -88,8 +88,8 @@ describe("navigation route coverage", () => {
   });
 
   it("renders every disabled product route through the upcoming section", () => {
-    const disabledHrefs = Array.from(new Set(collectDisabledNavigationHrefs())).sort();
-    const upcomingHrefs = upcomingRouteList.map((route) => route.href).sort();
+    const disabledHrefs = Array.from(new Set(collectDisabledNavigationHrefs())).toSorted();
+    const upcomingHrefs = upcomingRouteList.map((route) => route.href).toSorted();
     const routesWithoutUpcomingPage = disabledHrefs.filter((href) => {
       const source = fs.readFileSync(routePagePath(href), "utf8");
       return !source.includes("UpcomingSection") || !source.includes("upcomingRoutes");
@@ -104,16 +104,16 @@ describe("navigation route coverage", () => {
     const adminHrefs = Object.entries(routeAccessLevels)
       .filter(([, access]) => access === "admin")
       .map(([href]) => href)
-      .sort();
+      .toSorted();
     const expectedV1SmokeRoutes = Object.keys(routeTitles)
       .filter((href) => getRouteAccessLevel(href) === "user")
       .filter((href) => !disabledHrefs.has(href))
-      .sort();
-    const expectedUpcomingSmokeRoutes = Array.from(disabledHrefs).sort();
+      .toSorted();
+    const expectedUpcomingSmokeRoutes = Array.from(disabledHrefs).toSorted();
 
-    expect(collectSmokeRoutes("v1Routes").sort()).toEqual(expectedV1SmokeRoutes);
-    expect(collectSmokeRoutes("upcomingRoutes").sort()).toEqual(expectedUpcomingSmokeRoutes);
-    expect(collectSmokeRoutes("adminBlockedRoutes").sort()).toEqual(adminHrefs);
+    expect(collectSmokeRoutes("v1Routes").toSorted()).toEqual(expectedV1SmokeRoutes);
+    expect(collectSmokeRoutes("upcomingRoutes").toSorted()).toEqual(expectedUpcomingSmokeRoutes);
+    expect(collectSmokeRoutes("adminBlockedRoutes").toSorted()).toEqual(adminHrefs);
   });
 });
 

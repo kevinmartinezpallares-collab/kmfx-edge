@@ -20,7 +20,7 @@ export type ReviewReadiness = {
 
 export function buildReviewPriorityRows(workspace: WorkspaceState): ReviewPriorityRow[] {
   return workspace.trades
-    .map((trade) => {
+    .reduce<ReviewPriorityRow[]>((rows, trade) => {
       const reasons: ReviewReason[] = [];
       let score = 0;
 
@@ -41,14 +41,17 @@ export function buildReviewPriorityRows(workspace: WorkspaceState): ReviewPriori
         reasons.push("Parcial / multi-exec");
       }
 
-      return {
-        trade,
-        score,
-        reasons,
-      };
-    })
-    .filter((item) => item.score > 0)
-    .sort((a, b) => {
+      if (score > 0) {
+        rows.push({
+          trade,
+          score,
+          reasons,
+        });
+      }
+
+      return rows;
+    }, [])
+    .toSorted((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       return b.trade.closedAt.localeCompare(a.trade.closedAt);
     });

@@ -20,7 +20,8 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import {
   Card,
   CardContent,
@@ -66,8 +67,72 @@ import { cn } from "@/lib/utils";
 const PORTFOLIO_PERIOD_OPTIONS = ["7D", "30D", "90D", "YTD"] as const;
 type PortfolioPeriodOption = (typeof PORTFOLIO_PERIOD_OPTIONS)[number];
 type PortfolioDisplayMode = "capital" | "percent";
+type PortfolioUiState = {
+  comparisonPeriod: PortfolioPeriodOption;
+  displayMode: PortfolioDisplayMode;
+  period: PortfolioPeriodOption;
+  selectedCalendarDayKey: string;
+  selectedCalendarMonthKey: string;
+};
+type PortfolioUiAction =
+  | { type: "selectCalendarDay"; dayKey: string }
+  | { type: "selectCalendarMonth"; dayKey: string; monthKey: string }
+  | { type: "setComparisonPeriod"; comparisonPeriod: PortfolioPeriodOption }
+  | { type: "setDisplayMode"; displayMode: PortfolioDisplayMode }
+  | { type: "setPeriod"; period: PortfolioPeriodOption };
+
+function createInitialPortfolioUiState({
+  selectedCalendarDayKey,
+  selectedCalendarMonthKey,
+}: {
+  selectedCalendarDayKey: string;
+  selectedCalendarMonthKey: string;
+}): PortfolioUiState {
+  return {
+    comparisonPeriod: "30D",
+    displayMode: "capital",
+    period: "30D",
+    selectedCalendarDayKey,
+    selectedCalendarMonthKey,
+  };
+}
+
+function portfolioUiReducer(
+  state: PortfolioUiState,
+  action: PortfolioUiAction,
+): PortfolioUiState {
+  switch (action.type) {
+    case "selectCalendarDay":
+      return { ...state, selectedCalendarDayKey: action.dayKey };
+    case "selectCalendarMonth":
+      return {
+        ...state,
+        selectedCalendarDayKey: action.dayKey,
+        selectedCalendarMonthKey: action.monthKey,
+      };
+    case "setComparisonPeriod":
+      return { ...state, comparisonPeriod: action.comparisonPeriod };
+    case "setDisplayMode":
+      return { ...state, displayMode: action.displayMode };
+    case "setPeriod":
+      return { ...state, period: action.period };
+  }
+}
 const PORTFOLIO_FALLBACK_EPOCH_SECONDS = 1_777_593_600;
 const PORTFOLIO_SERIES_COLORS = ["#8b5cf6", "#22c55e", "#38bdf8", "#f59e0b", "#f43f5e"];
+const PORTFOLIO_READINESS_STATUS_LABELS = {
+  empty: "Sin cuentas",
+  partial: "Reglas parciales",
+  requires_review: "Requiere revisión",
+  ready: "Lista",
+} as const;
+const ALLOCATION_FUNNEL_STEPS = [100, 53, 23, 8];
+const ALLOCATION_FUNNEL_COLORS = [
+  "oklch(0.84 0 0)",
+  "oklch(0.47 0 0)",
+  "oklch(0.31 0 0)",
+  "oklch(0.28 0 0)",
+];
 const LIVELINE_ACCENT_BY_THEME = {
   dark: "#f5f5f5",
   light: "#171717",
@@ -130,12 +195,18 @@ function tradingDayKeyToTime(tradingDayKey: string) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+const SHORT_DATE_LABEL_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  day: "2-digit",
+  month: "short",
+  timeZone: "UTC",
+});
+const SHORT_DAY_LABEL_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  day: "numeric",
+  month: "short",
+});
+
 function shortDateLabel(epochMs: number) {
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "2-digit",
-    month: "short",
-    timeZone: "UTC",
-  }).format(new Date(epochMs));
+  return SHORT_DATE_LABEL_FORMATTER.format(new Date(epochMs));
 }
 
 function getPeriodCapitalCurve(
@@ -240,10 +311,7 @@ function shortDayLabel(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Sin fecha";
 
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "numeric",
-    month: "short",
-  }).format(date);
+  return SHORT_DAY_LABEL_FORMATTER.format(date);
 }
 
 type PortfolioGradientTheme = Omit<CustomConfig, "preset" | "speed">;
@@ -530,22 +598,27 @@ export function CapitalReferenceSection({
   workspace: WorkspaceState;
 }) {
   const portfolioChartTheme = useReferenceLivelineTheme();
-  const [portfolioPeriod, setPortfolioPeriod] =
-    React.useState<PortfolioPeriodOption>("30D");
-  const [portfolioComparisonPeriod, setPortfolioComparisonPeriod] =
-    React.useState<PortfolioPeriodOption>("30D");
-  const [portfolioDisplayMode, setPortfolioDisplayMode] =
-    React.useState<PortfolioDisplayMode>("capital");
   const initialPortfolioCalendarOverview = React.useMemo(
     () => getCalendarPeriodOverview(workspace),
     [workspace],
   );
-  const [portfolioCalendarMonthKey, setPortfolioCalendarMonthKey] = React.useState(
-    initialPortfolioCalendarOverview.selectedMonthKey,
+  const [portfolioUiState, dispatchPortfolioUi] = React.useReducer(
+    portfolioUiReducer,
+    {
+      selectedCalendarDayKey:
+        initialPortfolioCalendarOverview.latestDay?.tradingDayKey ?? "",
+      selectedCalendarMonthKey:
+        initialPortfolioCalendarOverview.selectedMonthKey,
+    },
+    createInitialPortfolioUiState,
   );
-  const [portfolioCalendarDayKey, setPortfolioCalendarDayKey] = React.useState(
-    initialPortfolioCalendarOverview.latestDay?.tradingDayKey ?? "",
-  );
+  const {
+    comparisonPeriod: portfolioComparisonPeriod,
+    displayMode: portfolioDisplayMode,
+    period: portfolioPeriod,
+    selectedCalendarDayKey: portfolioCalendarDayKey,
+    selectedCalendarMonthKey: portfolioCalendarMonthKey,
+  } = portfolioUiState;
   const portfolioCalendarOverview = React.useMemo(
     () =>
       getCalendarPeriodOverview(workspace, {
@@ -595,20 +668,17 @@ export function CapitalReferenceSection({
     portfolioCalendarSelectedMonth.label.slice(1);
   const handlePortfolioCalendarMonthSelect = React.useCallback(
     (monthKey: string) => {
-      setPortfolioCalendarMonthKey(monthKey);
       const nextDay = portfolioCalendarOverview.days.find(
         (day) => monthKeyFromTradingDayKey(day.tradingDayKey) === monthKey,
       );
-      setPortfolioCalendarDayKey(nextDay?.tradingDayKey ?? "");
+      dispatchPortfolioUi({
+        type: "selectCalendarMonth",
+        dayKey: nextDay?.tradingDayKey ?? "",
+        monthKey,
+      });
     },
     [portfolioCalendarOverview.days],
   );
-  const readinessStatusLabel: Record<typeof portfolioReadiness.status, string> = {
-    empty: "Sin cuentas",
-    partial: "Reglas parciales",
-    requires_review: "Requiere revisión",
-    ready: "Lista",
-  };
   const portfolioStatusLabel = portfolio
     ? {
         active: "Activo",
@@ -632,7 +702,7 @@ export function CapitalReferenceSection({
     [...workspace.analytics.daily]
       .map((day) => tradingDayKeyToTime(day.tradingDayKey))
       .filter((time): time is number => time !== null)
-      .sort((a, b) => b - a)[0] ??
+      .toSorted((a, b) => b - a)[0] ??
     (capitalCurveDisplaySeries.at(-1)?.time ?? PORTFOLIO_FALLBACK_EPOCH_SECONDS) * 1000;
   const periodStartMs = periodStartFromLatest(latestDailyTime, portfolioPeriod);
   const periodDailyRows = workspace.analytics.daily.filter((day) => {
@@ -761,9 +831,9 @@ export function CapitalReferenceSection({
   );
   const portfolioComparisonLatest = portfolioComparisonSeries[0]?.value ?? 0;
   const portfolioComparisonLeader =
-    [...portfolioComparisonSeries].sort((a, b) => b.value - a.value)[0] ?? null;
+    [...portfolioComparisonSeries].toSorted((a, b) => b.value - a.value)[0] ?? null;
   const portfolioComparisonLag =
-    [...portfolioComparisonSeries].sort((a, b) => a.value - b.value)[0] ?? null;
+    [...portfolioComparisonSeries].toSorted((a, b) => a.value - b.value)[0] ?? null;
   const portfolioComparisonSpread =
     portfolioComparisonLeader && portfolioComparisonLag
       ? portfolioComparisonLeader.value - portfolioComparisonLag.value
@@ -961,25 +1031,18 @@ export function CapitalReferenceSection({
     tone: string;
   } => Boolean(row));
   const allocationFunnelRows = [...allocationRows]
-    .sort((left, right) => right.allocationPct - left.allocationPct)
+    .toSorted((left, right) => right.allocationPct - left.allocationPct)
     .slice(0, 4);
-  const referenceFunnelSteps = [100, 53, 23, 8];
   const allocationFunnelData = allocationFunnelRows.map((row, index) => ({
     label: row.account.label,
-    value: referenceFunnelSteps[index] ?? Math.max(8, 100 - index * 24),
+    value: ALLOCATION_FUNNEL_STEPS[index] ?? Math.max(8, 100 - index * 24),
     displayValue: formatCurrency(row.account.equity, row.account.baseCurrency),
-    color:
-      [
-        "oklch(0.84 0 0)",
-        "oklch(0.47 0 0)",
-        "oklch(0.31 0 0)",
-        "oklch(0.28 0 0)",
-      ][index] ?? "oklch(0.28 0 0)",
+    color: ALLOCATION_FUNNEL_COLORS[index] ?? "oklch(0.28 0 0)",
   }));
   const allocationFunnelLegend = allocationFunnelRows.map((row, index) => ({
     account: row.account,
     allocationPct: row.allocationPct,
-    visualPct: referenceFunnelSteps[index] ?? Math.max(8, 100 - index * 24),
+    visualPct: ALLOCATION_FUNNEL_STEPS[index] ?? Math.max(8, 100 - index * 24),
   }));
   const riskDuplicationRows = [
     topExposure
@@ -1067,7 +1130,7 @@ export function CapitalReferenceSection({
                   {workspace.risk.allowNewTrades ? "Riesgo operable" : "Riesgo bloqueado"}
                 </Badge>
                 <Badge variant={portfolioReadiness.blockers.length > 0 ? "secondary" : "outline"}>
-                  {readinessStatusLabel[portfolioReadiness.status]}
+                  {PORTFOLIO_READINESS_STATUS_LABELS[portfolioReadiness.status]}
                 </Badge>
                 {staleAccounts > 0 ? <Badge variant="secondary">Datos desactualizados</Badge> : null}
               </div>
@@ -1129,7 +1192,7 @@ export function CapitalReferenceSection({
                         {allocationFunnelLegend.map((item) => (
                           <div
                             key={item.account.id}
-                            className="grid min-h-[78px] min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 px-3 py-3"
+                            className="grid min-h-[78px] min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 p-3"
                           >
                             <div className="min-w-0 self-center">
                               <p className="truncate text-xs font-medium leading-tight text-foreground">
@@ -1416,7 +1479,12 @@ export function CapitalReferenceSection({
                     onValueChange={(value) => {
                       const nextValue = value[0] as PortfolioPeriodOption | undefined;
 
-                      if (nextValue) setPortfolioPeriod(nextValue);
+                      if (nextValue) {
+                        dispatchPortfolioUi({
+                          type: "setPeriod",
+                          period: nextValue,
+                        });
+                      }
                     }}
                     size="sm"
                     spacing={1}
@@ -1434,7 +1502,12 @@ export function CapitalReferenceSection({
                     onValueChange={(value) => {
                       const nextValue = value[0] as PortfolioDisplayMode | undefined;
 
-                      if (nextValue) setPortfolioDisplayMode(nextValue);
+                      if (nextValue) {
+                        dispatchPortfolioUi({
+                          type: "setDisplayMode",
+                          displayMode: nextValue,
+                        });
+                      }
                     }}
                     size="sm"
                     spacing={1}
@@ -1624,7 +1697,12 @@ export function CapitalReferenceSection({
                   onValueChange={(value) => {
                     const nextValue = value[0] as PortfolioPeriodOption | undefined;
 
-                    if (nextValue) setPortfolioComparisonPeriod(nextValue);
+                    if (nextValue) {
+                      dispatchPortfolioUi({
+                        type: "setComparisonPeriod",
+                        comparisonPeriod: nextValue,
+                      });
+                    }
                   }}
                   size="sm"
                   spacing={1}
@@ -1993,7 +2071,12 @@ export function CapitalReferenceSection({
                     type="button"
                     variant={portfolioDisplayMode === "capital" ? "secondary" : "ghost"}
                     size="sm"
-                    onClick={() => setPortfolioDisplayMode("capital")}
+                    onClick={() =>
+                      dispatchPortfolioUi({
+                        type: "setDisplayMode",
+                        displayMode: "capital",
+                      })
+                    }
                   >
                     Capital
                   </Button>
@@ -2002,7 +2085,12 @@ export function CapitalReferenceSection({
                     variant={portfolioDisplayMode === "percent" ? "secondary" : "ghost"}
                     size="sm"
                     className="min-w-11"
-                    onClick={() => setPortfolioDisplayMode("percent")}
+                    onClick={() =>
+                      dispatchPortfolioUi({
+                        type: "setDisplayMode",
+                        displayMode: "percent",
+                      })
+                    }
                   >
                     %
                   </Button>
@@ -2065,15 +2153,15 @@ export function CapitalReferenceSection({
             <div className="min-w-0 overflow-hidden">
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-full bg-profit" />
+                  <span className="size-2 rounded-full bg-profit" />
                   Positivo
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-full bg-loss" />
+                  <span className="size-2 rounded-full bg-loss" />
                   Negativo
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-full bg-zinc-300" />
+                  <span className="size-2 rounded-full bg-zinc-300" />
                   Semana
                 </span>
               </div>
@@ -2098,7 +2186,10 @@ export function CapitalReferenceSection({
                             key={cell.key}
                             type="button"
                             onClick={() => {
-                              setPortfolioCalendarDayKey(cell.key);
+                              dispatchPortfolioUi({
+                                type: "selectCalendarDay",
+                                dayKey: cell.key,
+                              });
                             }}
                             disabled={!cell.trades}
                             title={cell.trades ? `${cell.trades} operaciones / ${formatCalendarValue(cell.pnl, portfolioCalendarValueMode, portfolioCalendarBaseCapital)}` : "Sin operativa"}
@@ -2210,14 +2301,14 @@ export function LegacyCapitalReferenceSection({
     .reduce((sum, account) => sum + account.equity, 0);
   const totalEquity = fundedEquity + ownEquity;
   const fundedShare = totalEquity > 0 ? (fundedEquity / totalEquity) * 100 : 0;
-  const largestAccount = [...accountRows].sort((a, b) => b.sharePct - a.sharePct)[0] ?? null;
+  const largestAccount = [...accountRows].toSorted((a, b) => b.sharePct - a.sharePct)[0] ?? null;
   const contributionRows = [...accountRows]
     .map((account) => ({
       ...account,
       contributionPct:
         account.equity > 0 ? (account.totalPnl / account.equity) * 100 : 0,
     }))
-    .sort((a, b) => b.totalPnl - a.totalPnl);
+    .toSorted((a, b) => b.totalPnl - a.totalPnl);
   const strategyWeights = Object.values(
     workspace.trades.reduce<Record<string, { setup: string; trades: number; pnl: number }>>((acc, trade) => {
       const executionCount = Math.max(1, trade.executions.length);
@@ -2228,7 +2319,7 @@ export function LegacyCapitalReferenceSection({
       acc[key] = current;
       return acc;
     }, {}),
-  ).sort((a, b) => b.trades - a.trades);
+  ).toSorted((a, b) => b.trades - a.trades);
   const symbolWeights = Object.values(
     workspace.trades.reduce<Record<string, { symbol: string; trades: number; pnl: number }>>((acc, trade) => {
       const executionCount = Math.max(1, trade.executions.length);
@@ -2238,7 +2329,7 @@ export function LegacyCapitalReferenceSection({
       acc[trade.symbol] = current;
       return acc;
     }, {}),
-  ).sort((a, b) => b.trades - a.trades);
+  ).toSorted((a, b) => b.trades - a.trades);
   const concentrationLabel =
     largestAccount && largestAccount.sharePct >= 50
       ? `Concentrado en ${largestAccount.label}`
@@ -2281,7 +2372,7 @@ export function LegacyCapitalReferenceSection({
   ].filter((item): item is string => Boolean(item));
   const totalClosedPnl = workspace.analytics.daily.reduce((sum, day) => sum + day.pnl, 0);
   const capitalCurveBase = Math.max(0, totalEquity - totalClosedPnl);
-  const sortedDailyCapital = [...workspace.analytics.daily].sort((a, b) =>
+  const sortedDailyCapital = [...workspace.analytics.daily].toSorted((a, b) =>
     a.tradingDayKey.localeCompare(b.tradingDayKey),
   );
   const capitalCurveSeries = sortedDailyCapital
@@ -2547,10 +2638,10 @@ export function LegacyCapitalReferenceSection({
                     className="rounded-lg border border-border/70 bg-background/35 p-3"
                   >
                     <div className="flex items-center justify-between gap-3">
-	                      <span className="font-medium text-foreground">{account.label}</span>
-	                      <Badge variant={account.totalPnl >= 0 ? "default" : "secondary"}>
-	                        {account.totalPnl >= 0 ? "Positiva" : "Revisar"}
-	                      </Badge>
+                      <span className="font-medium text-foreground">{account.label}</span>
+                      <Badge variant={account.totalPnl >= 0 ? "default" : "secondary"}>
+                        {account.totalPnl >= 0 ? "Positiva" : "Revisar"}
+                      </Badge>
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
                       Aportación {formatPercent(account.contributionPct)} / peso{" "}

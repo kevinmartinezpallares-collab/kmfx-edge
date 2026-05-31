@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 const MODS = ["ctrl", "alt", "shift", "meta"] as const;
 
@@ -24,7 +24,7 @@ function normalize(combo: string): string {
 		.split("+")
 		.map((s) => s.trim());
 	const M = MODS as readonly string[];
-	const mods = parts.filter(isMod).sort((a, b) => M.indexOf(a) - M.indexOf(b));
+	const mods = parts.filter(isMod).toSorted((a, b) => M.indexOf(a) - M.indexOf(b));
 	const keys = parts.filter((p) => !isMod(p));
 	return [...mods, ...keys].join("+");
 }
@@ -68,31 +68,38 @@ export function useKeypress({
 		() => (Array.isArray(combo) ? combo : [combo]).map(normalize),
 		[combo]
 	);
+	const normalizedRef = useRef(normalized);
+	const preventDefaultRef = useRef(preventDefault);
 
-	const onKeyDown = useCallback(
-		(ev: Event) => {
+	useEffect(() => {
+		normalizedRef.current = normalized;
+		preventDefaultRef.current = preventDefault;
+	}, [normalized, preventDefault]);
+
+	useEffect(() => {
+		const el = target ?? window;
+		const onKeyDown = (ev: Event) => {
 			const e = ev as KeyboardEvent;
-			const el = e.target as HTMLElement | undefined;
-			if (IGNORE_FOCUS.has(el?.tagName ?? "") || el?.isContentEditable) {
+			const focusedElement = e.target as HTMLElement | undefined;
+			if (
+				IGNORE_FOCUS.has(focusedElement?.tagName ?? "") ||
+				focusedElement?.isContentEditable
+			) {
 				return;
 			}
-			for (const chord of normalized) {
+			for (const chord of normalizedRef.current) {
 				if (!matches(e, chord)) {
 					continue;
 				}
-				if (preventDefault) {
+				if (preventDefaultRef.current) {
 					e.preventDefault();
 				}
 				callbackRef.current(e);
 				break;
 			}
-		},
-		[normalized, preventDefault]
-	);
+		};
 
-	useEffect(() => {
-		const el = target ?? window;
 		el.addEventListener("keydown", onKeyDown);
 		return () => el.removeEventListener("keydown", onKeyDown);
-	}, [onKeyDown, target]);
+	}, [target]);
 }

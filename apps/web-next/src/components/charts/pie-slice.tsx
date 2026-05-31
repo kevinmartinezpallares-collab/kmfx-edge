@@ -1,7 +1,7 @@
 "use client";
 
 import { arc as arcGenerator } from "@visx/shape";
-import { motion, useSpring, useTransform } from "motion/react";
+import { m as motion, useSpring, useTransform } from "motion/react";
 import { useEffect, useRef } from "react";
 import { usePie } from "./pie-context";
 import { useMountProgress } from "./use-mount-progress";
@@ -82,6 +82,7 @@ interface AnimatedSliceTranslateProps {
   animationKey: number;
   showGlow: boolean;
   hoverOffset: number;
+  sliceKey: string;
 }
 
 function AnimatedSliceTranslate({
@@ -99,6 +100,7 @@ function AnimatedSliceTranslate({
   animationKey,
   showGlow,
   hoverOffset,
+  sliceKey,
 }: AnimatedSliceTranslateProps) {
   const {
     enterTransition,
@@ -140,7 +142,7 @@ function AnimatedSliceTranslate({
       d={animatedPath}
       fill={fill}
       initial={false}
-      key={`slice-${animationKey}-${index}`}
+      key={`${sliceKey}-${animationKey}`}
       pointerEvents="none"
       style={{
         filter:
@@ -170,6 +172,7 @@ interface AnimatedSliceGrowProps {
   animationKey: number;
   showGlow: boolean;
   hoverOffset: number;
+  sliceKey: string;
 }
 
 function AnimatedSliceGrow({
@@ -187,6 +190,7 @@ function AnimatedSliceGrow({
   animationKey,
   showGlow,
   hoverOffset,
+  sliceKey,
 }: AnimatedSliceGrowProps) {
   const {
     enterTransition,
@@ -238,7 +242,7 @@ function AnimatedSliceGrow({
       d={animatedPath}
       fill={fill}
       initial={false}
-      key={`slice-${animationKey}-${index}`}
+      key={`${sliceKey}-${animationKey}`}
       pointerEvents="none"
       style={{
         filter:
@@ -299,6 +303,7 @@ export function PieSlice({
 
   const color = colorProp || getColor(index);
   const fill = fillProp || getFill(index);
+  const sliceKey = `slice-${arcData.data.label}`;
 
   const isHovered = hoveredIndex === index;
   const isFaded = hoveredIndex !== null && hoveredIndex !== index;
@@ -349,6 +354,7 @@ export function PieSlice({
           outerRadius={outerRadius}
           padAngle={arcData.padAngle}
           showGlow={showGlow}
+          sliceKey={sliceKey}
           startAngle={arcData.startAngle}
         />
       );
@@ -370,6 +376,7 @@ export function PieSlice({
         outerRadius={outerRadius}
         padAngle={arcData.padAngle}
         showGlow={showGlow}
+        sliceKey={sliceKey}
         startAngle={arcData.startAngle}
       />
     );

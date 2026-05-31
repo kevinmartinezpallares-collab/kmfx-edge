@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KMFX Edge - Logo concepts</title>
+  <style>
+    :root {
+      --ink: #050608;
+      --surface: #111318;
+      --surface-2: #191d24;
+      --white: #f6f8fb;
+      --muted: #8d95a3;
+      --blue: #2f6bff;
+      --cyan: #6bb6ff;
+      --green: #30d158;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--ink);
+      color: var(--white);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(1120px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 48px 0;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .note {
+      max-width: 520px;
+      margin: 0;
+      color: color-mix(in srgb, var(--muted) 92%, white);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      min-height: 340px;
+      padding: 18px;
+      border: 1px solid rgba(246, 248, 251, .08);
+      border-radius: 8px;
+      background: var(--surface);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+    }
+
+    .stage {
+      min-height: 156px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.01)),
+        var(--surface-2);
+      border: 1px solid rgba(255,255,255,.06);
+    }
+
+    .stage img {
+      width: 112px;
+      height: 112px;
+      object-fit: contain;
+    }
+
+    .title {
+      margin: 0 0 7px;
+      font-size: 15px;
+      font-weight: 680;
+      letter-spacing: 0;
+    }
+
+    .copy {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .fit {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .mini {
+      width: 32px;
+      height: 32px;
+      padding: 4px;
+      border-radius: 8px;
+      background: #0a0a0a;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+
+    @media (max-width: 880px) {
+      header { display: block; }
+      .note { margin-top: 10px; }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 520px) {
+      main { width: min(100vw - 24px, 1120px); padding: 28px 0; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>KMFX Edge logo concepts</h1>
+      <p class="note">Bocetos vectoriales para comparar direccion: precision, disciplina, riesgo y edge operativo. La idea es elegir una ruta y luego pulir el sistema final.</p>
+    </header>
+
+    <section class="grid" aria-label="Logo concepts">
+      <article class="card">
+        <div>
+          <p class="title">01. Score Arc</p>
+          <p class="copy">Mi favorita para el dashboard: conserva punto, equity y score sin caja, respira mejor en sidebar y no pesa visualmente.</p>
+        </div>
+        <div class="stage"><img src="./concept-01-score-arc.svg" alt="Score Arc"></div>
+        <div class="fit"><img class="mini" src="./concept-01-score-arc.svg" alt=""> Sidebar, auth, wordmark</div>
+      </article>
+
+      <article class="card">
+        <div>
+          <p class="title">02. Contained Score</p>
+          <p class="copy">Version de app icon/PWA: misma idea, mas solida a 32px y en launcher. Buena como pareja del concepto 01.</p>
+        </div>
+        <div class="stage"><img src="./concept-02-contained-score.svg" alt="Contained Score"></div>
+        <div class="fit"><img class="mini" src="./concept-02-contained-score.svg" alt=""> Favicon, PWA, launcher</div>
+      </article>
+
+      <article class="card">
+        <div>
+          <p class="title">03. K Edge</p>
+          <p class="copy">Mas monograma y mas tech. Funciona si quieres que KMFX sea el protagonista, pero pierde parte del lenguaje de riesgo.</p>
+        </div>
+        <div class="stage"><img src="./concept-03-k-edge.svg" alt="K Edge"></div>
+        <div class="fit"><img class="mini" src="./concept-03-k-edge.svg" alt=""> Producto B2B, launcher</div>
+      </article>
+
+      <article class="card">
+        <div>
+          <p class="title">04. Risk Gate</p>
+          <p class="copy">Mas literal: edge cruzando una frontera de control. Explica riesgo, aunque se siente menos premium como marca principal.</p>
+        </div>
+        <div class="stage"><img src="./concept-04-risk-gate.svg" alt="Risk Gate"></div>
+        <div class="fit"><img class="mini" src="./concept-04-risk-gate.svg" alt=""> Risk Engine, secciones internas</div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

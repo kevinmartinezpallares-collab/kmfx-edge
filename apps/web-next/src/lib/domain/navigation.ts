@@ -381,7 +381,7 @@ export function resolveRouteTitle(pathname: string) {
 
   const parentRoute = Object.keys(routeTitles)
     .filter((href) => current.startsWith(`${normalizePathname(href)}/`))
-    .sort((a, b) => b.length - a.length)[0];
+    .toSorted((a, b) => b.length - a.length)[0];
 
   return parentRoute ? routeTitles[parentRoute] : "Panel";
 }
@@ -390,7 +390,7 @@ export function getRouteAccessLevel(pathname: string): RouteAccessLevel {
   const current = normalizePathname(pathname);
   const matchedRoute = Object.keys(routeAccessLevels)
     .filter((href) => current === href || current.startsWith(`${normalizePathname(href)}/`))
-    .sort((a, b) => b.length - a.length)[0];
+    .toSorted((a, b) => b.length - a.length)[0];
 
   return matchedRoute ? routeAccessLevels[matchedRoute] : "user";
 }
@@ -407,12 +407,12 @@ export function getMobileNavigationPlan() {
   return {
     primary: topLevelItems.filter(
       (item) => item.enabled && item.href && mobileRoutePriorities[item.href] === "primary",
-    ).sort(sortByMobileOrder),
+    ).toSorted(sortByMobileOrder),
     secondary: topLevelItems.filter(
       (item) => item.enabled && item.href && mobileRoutePriorities[item.href] === "secondary",
-    ).sort(sortByMobileOrder),
+    ).toSorted(sortByMobileOrder),
     lower: topLevelItems.filter(
       (item) => item.enabled && (!item.href || mobileRoutePriorities[item.href] === "lower"),
-    ).sort(sortByMobileOrder),
+    ).toSorted(sortByMobileOrder),
   };
 }

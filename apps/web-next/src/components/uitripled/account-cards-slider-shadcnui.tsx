@@ -33,7 +33,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { animate, motion, useMotionValue } from "framer-motion";
+import { animate, m as motion, useMotionValue } from "motion/react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -45,7 +45,7 @@ import {
   Rocket,
   Trash2,
 } from "lucide-react";
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useReducer, useRef, useState } from "react";
 
 import type { AccountRow } from "@/lib/domain/accounts-selectors";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -582,7 +582,7 @@ function buildCards(
   accounts: AccountRow[],
   activeAccountId?: string,
 ): AccountCardData[] {
-  const activeFirst = [...accounts].sort((left, right) => {
+  const activeFirst = [...accounts].toSorted((left, right) => {
     if (left.id === activeAccountId) return -1;
     if (right.id === activeAccountId) return 1;
     return 0;
@@ -647,6 +647,56 @@ function gradientConfigForCard(account: AccountRow, index: number): CustomConfig
   };
 }
 
+type RenameDialogState = {
+  account: AccountRow | null;
+  error: string;
+  pendingAccountId: string | null;
+  value: string;
+};
+
+type RenameDialogAction =
+  | { type: "open"; account: AccountRow }
+  | { type: "close" }
+  | { type: "setValue"; value: string }
+  | { type: "setError"; error: string }
+  | { type: "startSaving"; accountId: string }
+  | { type: "finishSaving" }
+  | { type: "saved" };
+
+const INITIAL_RENAME_DIALOG_STATE: RenameDialogState = {
+  account: null,
+  error: "",
+  pendingAccountId: null,
+  value: "",
+};
+
+function renameDialogReducer(
+  state: RenameDialogState,
+  action: RenameDialogAction,
+): RenameDialogState {
+  switch (action.type) {
+    case "open":
+      return {
+        account: action.account,
+        error: "",
+        pendingAccountId: null,
+        value: action.account.label,
+      };
+    case "close":
+      return state.pendingAccountId ? state : INITIAL_RENAME_DIALOG_STATE;
+    case "setValue":
+      return { ...state, value: action.value };
+    case "setError":
+      return { ...state, error: action.error };
+    case "startSaving":
+      return { ...state, error: "", pendingAccountId: action.accountId };
+    case "finishSaving":
+      return { ...state, pendingAccountId: null };
+    case "saved":
+      return INITIAL_RENAME_DIALOG_STATE;
+  }
+}
+
 export function AccountCardsSlider({
   accounts,
   activeAccountId,
@@ -659,10 +709,16 @@ export function AccountCardsSlider({
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null);
-  const [renamingAccount, setRenamingAccount] = useState<AccountRow | null>(null);
-  const [renameValue, setRenameValue] = useState("");
-  const [renamingAccountId, setRenamingAccountId] = useState<string | null>(null);
-  const [renameError, setRenameError] = useState("");
+  const [renameState, dispatchRename] = useReducer(
+    renameDialogReducer,
+    INITIAL_RENAME_DIALOG_STATE,
+  );
+  const {
+    account: renamingAccount,
+    error: renameError,
+    pendingAccountId: renamingAccountId,
+    value: renameValue,
+  } = renameState;
   const x = useMotionValue(0);
   const cards = useMemo(
     () => buildCards(accounts, activeAccountId),
@@ -738,9 +794,7 @@ export function AccountCardsSlider({
   }
 
   function openRenameDialog(account: AccountRow) {
-    setRenamingAccount(account);
-    setRenameValue(account.label);
-    setRenameError("");
+    dispatchRename({ type: "open", account });
   }
 
   async function renameAccount(event: FormEvent<HTMLFormElement>) {
@@ -751,12 +805,14 @@ export function AccountCardsSlider({
 
     const alias = renameValue.trim();
     if (!alias) {
-      setRenameError("Escribe un nombre para esta cuenta.");
+      dispatchRename({
+        type: "setError",
+        error: "Escribe un nombre para esta cuenta.",
+      });
       return;
     }
 
-    setRenamingAccountId(renamingAccount.id);
-    setRenameError("");
+    dispatchRename({ type: "startSaving", accountId: renamingAccount.id });
     try {
       const response = await fetch(
         `/api/kmfx/accounts/${encodeURIComponent(renamingAccount.id)}`,
@@ -777,12 +833,15 @@ export function AccountCardsSlider({
         throw new Error(String(payload?.reason || "rename_failed"));
       }
 
-      setRenamingAccount(null);
+      dispatchRename({ type: "saved" });
       router.refresh();
     } catch {
-      setRenameError("No se pudo guardar el nombre. Revisa el texto e inténtalo de nuevo.");
+      dispatchRename({
+        type: "setError",
+        error: "No se pudo guardar el nombre. Revisa el texto e inténtalo de nuevo.",
+      });
     } finally {
-      setRenamingAccountId(null);
+      dispatchRename({ type: "finishSaving" });
     }
   }
 
@@ -1028,10 +1087,7 @@ export function AccountCardsSlider({
       <Dialog
         open={renamingAccount !== null}
         onOpenChange={(open) => {
-          if (!open && !renamingAccountId) {
-            setRenamingAccount(null);
-            setRenameError("");
-          }
+          if (!open) dispatchRename({ type: "close" });
         }}
       >
         <DialogContent className="sm:max-w-md">
@@ -1053,7 +1109,12 @@ export function AccountCardsSlider({
               <Input
                 id="account-alias"
                 maxLength={80}
-                onChange={(event) => setRenameValue(event.target.value)}
+                onChange={(event) =>
+                  dispatchRename({
+                    type: "setValue",
+                    value: event.target.value,
+                  })
+                }
                 placeholder="Darwinex real"
                 value={renameValue}
               />
@@ -1071,8 +1132,7 @@ export function AccountCardsSlider({
                 variant="outline"
                 onClick={() => {
                   if (!renamingAccountId) {
-                    setRenamingAccount(null);
-                    setRenameError("");
+                    dispatchRename({ type: "close" });
                   }
                 }}
               >

@@ -27,7 +27,7 @@ export function MetricCard({
 }: MetricCardProps) {
   return (
     <Card className="rounded-3xl border-border/70 bg-card/90 shadow-none">
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+      <CardHeader className="flex flex-row items-start justify-between gap-y-0 pb-3">
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
             {label}

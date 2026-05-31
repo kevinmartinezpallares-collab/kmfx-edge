@@ -71,7 +71,7 @@ export function getStudyOverview(workspace: WorkspaceState): StudyOverview {
     {},
   );
   const dominantSession =
-    Object.entries(sessionCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ??
+    Object.entries(sessionCounts).toSorted((a, b) => b[1] - a[1])[0]?.[0] ??
     "Pendiente";
   const topSymbol =
     Object.entries(
@@ -79,7 +79,7 @@ export function getStudyOverview(workspace: WorkspaceState): StudyOverview {
         acc[trade.symbol] = (acc[trade.symbol] ?? 0) + 1;
         return acc;
       }, {}),
-    ).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Pendiente";
+    ).toSorted((a, b) => b[1] - a[1])[0]?.[0] ?? "Pendiente";
   const partialCloseCount = workspace.trades.filter(
     (trade) => trade.executions.length > 1,
   ).length;

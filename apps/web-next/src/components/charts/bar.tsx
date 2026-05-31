@@ -1,9 +1,10 @@
 "use client";
 
 import type { Transition } from "motion/react";
-import { motion } from "motion/react";
+import { m as motion } from "motion/react";
 import { useId, useMemo } from "react";
-import { chartCssVars, useChart } from "./chart-context";
+import { useChart } from "./chart-context";
+import { chartCssVars } from "./chart-theme";
 import { transitionWithDelay } from "./motion-utils";
 
 export type BarLineCap = "round" | "butt" | number;
@@ -52,6 +53,7 @@ interface AnimatedBarProps {
   enterTransition?: Transition;
   revealEpoch: number;
   isHorizontal: boolean;
+  barKey: string;
 }
 
 function AnimatedBar({
@@ -72,6 +74,7 @@ function AnimatedBar({
   enterTransition,
   revealEpoch,
   isHorizontal,
+  barKey,
 }: AnimatedBarProps) {
   const enterAnim = transitionWithDelay(enterTransition, index * staggerDelay);
 
@@ -85,7 +88,7 @@ function AnimatedBar({
         fill={fill}
         height={height}
         initial={{ opacity: 0, filter: "blur(2px)" }}
-        key={`fade-${index}-${revealEpoch}`}
+        key={`${barKey}-fade-${revealEpoch}`}
         rx={rx}
         ry={ry}
         transition={enterAnim}
@@ -111,7 +114,7 @@ function AnimatedBar({
       }}
       fill={fill}
       initial={initial}
-      key={`grow-${index}-${revealEpoch}`}
+      key={`${barKey}-grow-${revealEpoch}`}
       rx={rx}
       ry={ry}
       transition={enterAnim}
@@ -288,6 +291,7 @@ export function Bar({
           return (
             <AnimatedBar
               animationType={animationType}
+              barKey={barKey}
               enterTransition={enterTransition}
               fadedOpacity={fadedOpacity}
               fill={fill}

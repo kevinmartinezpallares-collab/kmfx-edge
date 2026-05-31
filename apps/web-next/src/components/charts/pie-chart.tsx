@@ -16,8 +16,8 @@ import {
   useState,
 } from "react";
 import { cn } from "@/lib/utils";
+import { defaultPieColors } from "./pie-theme";
 import {
-  defaultPieColors,
   type PieArcData,
   type PieContextValue,
   type PieData,

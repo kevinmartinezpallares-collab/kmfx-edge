@@ -90,7 +90,7 @@ export function buildStrategyRows(workspace: WorkspaceState): StrategyPerformanc
   return [...grouped.values()]
     .map((strategy) => {
       const dominantSession =
-        [...strategy.sessions.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Pend.";
+        [...strategy.sessions.entries()].toSorted((a, b) => b[1] - a[1])[0]?.[0] ?? "Pend.";
       const avgDuration =
         strategy.durations.length > 0
           ? strategy.durations.reduce((sum, value) => sum + value, 0) /
@@ -111,10 +111,10 @@ export function buildStrategyRows(workspace: WorkspaceState): StrategyPerformanc
         avgDuration,
         sampleLabel:
           strategy.trades >= 4 ? "Operativa" : strategy.trades >= 2 ? "Temprana" : "Pocas operaciones",
-        symbols: [...strategy.symbols].sort(),
+        symbols: [...strategy.symbols].toSorted(),
       } satisfies StrategyPerformanceRow;
     })
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       if (b.trades !== a.trades) return b.trades - a.trades;
       return b.netPnl - a.netPnl;
     });

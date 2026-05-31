@@ -75,16 +75,61 @@ const accessHighlights = [
 ];
 
 type AuthMode = "sign-in" | "sign-up";
+type AuthStatus = "idle" | "loading";
+
+type AuthFormState = {
+  authMode: AuthMode;
+  email: string;
+  message: string;
+  password: string;
+  status: AuthStatus;
+};
+
+type AuthFormAction =
+  | { type: "clearMessage" }
+  | { type: "setEmail"; email: string }
+  | { type: "setMessage"; message: string }
+  | { type: "setMode"; authMode: AuthMode }
+  | { type: "setPassword"; password: string }
+  | { type: "setStatus"; status: AuthStatus };
+
+const INITIAL_AUTH_FORM_STATE: AuthFormState = {
+  authMode: "sign-in",
+  email: "",
+  message: "",
+  password: "",
+  status: "idle",
+};
+
+function authFormReducer(
+  state: AuthFormState,
+  action: AuthFormAction,
+): AuthFormState {
+  switch (action.type) {
+    case "clearMessage":
+      return state.message ? { ...state, message: "" } : state;
+    case "setEmail":
+      return { ...state, email: action.email };
+    case "setMessage":
+      return { ...state, message: action.message };
+    case "setMode":
+      return { ...state, authMode: action.authMode, message: "" };
+    case "setPassword":
+      return { ...state, password: action.password };
+    case "setStatus":
+      return { ...state, status: action.status };
+  }
+}
 
 export function AuthPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [authMode, setAuthMode] = React.useState<AuthMode>("sign-in");
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [captchaToken, setCaptchaToken] = React.useState("");
-  const [status, setStatus] = React.useState<"idle" | "loading">("idle");
-  const [message, setMessage] = React.useState("");
+  const [authForm, dispatchAuthForm] = React.useReducer(
+    authFormReducer,
+    INITIAL_AUTH_FORM_STATE,
+  );
+  const { authMode, email, message, password, status } = authForm;
+  const captchaTokenRef = React.useRef("");
   const turnstileContainerRef = React.useRef<HTMLDivElement | null>(null);
   const turnstileWidgetIdRef = React.useRef<string | null>(null);
   const nextPath = searchParams.get("next") || "/dashboard";
@@ -93,13 +138,17 @@ export function AuthPage() {
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ||
     "0x4AAAAAACxJdw3wjMn7Jm0K";
 
+  const setCaptchaToken = React.useCallback((token: string) => {
+    captchaTokenRef.current = token;
+  }, []);
+
   const resetTurnstile = React.useCallback(() => {
     setCaptchaToken("");
     const widgetId = turnstileWidgetIdRef.current;
     if (widgetId && window.turnstile?.reset) {
       window.turnstile.reset(widgetId);
     }
-  }, []);
+  }, [setCaptchaToken]);
 
   React.useEffect(() => {
     if (!authConfigured || !turnstileSiteKey || !turnstileContainerRef.current) {
@@ -107,12 +156,14 @@ export function AuthPage() {
     }
 
     let cancelled = false;
+    let renderedWidgetId: string | null = null;
+    let scriptWithLoadListener: HTMLElement | null = null;
     const renderTurnstile = () => {
       if (
         cancelled ||
         !turnstileContainerRef.current ||
         !window.turnstile?.render ||
-        turnstileWidgetIdRef.current
+        renderedWidgetId
       ) {
         return;
       }
@@ -122,23 +173,27 @@ export function AuthPage() {
           ? "dark"
           : "light";
 
-      turnstileWidgetIdRef.current = window.turnstile.render(
-        turnstileContainerRef.current,
-        {
-          action: authMode === "sign-up" ? "signup" : "signin",
-          callback: (token) => setCaptchaToken(token || ""),
-          "error-callback": () => {
-            setCaptchaToken("");
-            setMessage("No hemos podido validar la protección anti-bots.");
-          },
-          "expired-callback": () => {
-            setCaptchaToken("");
-            setMessage("La verificación ha caducado. Vuelve a intentarlo.");
-          },
-          sitekey: turnstileSiteKey,
-          theme,
+      renderedWidgetId = window.turnstile.render(turnstileContainerRef.current, {
+        action: authMode === "sign-up" ? "signup" : "signin",
+        callback: (token) => setCaptchaToken(token || ""),
+        "error-callback": () => {
+          setCaptchaToken("");
+          dispatchAuthForm({
+            type: "setMessage",
+            message: "No hemos podido validar la protección anti-bots.",
+          });
         },
-      );
+        "expired-callback": () => {
+          setCaptchaToken("");
+          dispatchAuthForm({
+            type: "setMessage",
+            message: "La verificación ha caducado. Vuelve a intentarlo.",
+          });
+        },
+        sitekey: turnstileSiteKey,
+        theme,
+      });
+      turnstileWidgetIdRef.current = renderedWidgetId;
     };
 
     if (window.turnstile?.render) {
@@ -147,6 +202,7 @@ export function AuthPage() {
       const existingScript = document.getElementById("kmfx-turnstile-script");
       if (existingScript) {
         existingScript.addEventListener("load", renderTurnstile, { once: true });
+        scriptWithLoadListener = existingScript;
       } else {
         const script = document.createElement("script");
         script.async = true;
@@ -154,35 +210,43 @@ export function AuthPage() {
         script.id = "kmfx-turnstile-script";
         script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
         script.addEventListener("load", renderTurnstile, { once: true });
+        scriptWithLoadListener = script;
         document.head.appendChild(script);
       }
     }
 
     return () => {
       cancelled = true;
-      const widgetId = turnstileWidgetIdRef.current;
-      if (widgetId && window.turnstile?.remove) {
-        window.turnstile.remove(widgetId);
+      scriptWithLoadListener?.removeEventListener("load", renderTurnstile);
+      if (renderedWidgetId && window.turnstile?.remove) {
+        window.turnstile.remove(renderedWidgetId);
       }
-      turnstileWidgetIdRef.current = null;
     };
-  }, [authConfigured, authMode, turnstileSiteKey]);
+  }, [authConfigured, authMode, setCaptchaToken, turnstileSiteKey]);
 
   async function handlePasswordAuth(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage("");
+    dispatchAuthForm({ type: "clearMessage" });
 
     if (!authConfigured) {
-      setMessage("El acceso real todavía no está configurado en este entorno.");
+      dispatchAuthForm({
+        type: "setMessage",
+        message: "El acceso real todavía no está configurado en este entorno.",
+      });
       return;
     }
+
+    const captchaToken = captchaTokenRef.current;
 
     if (turnstileSiteKey && !captchaToken) {
-      setMessage("Completa la verificación para continuar.");
+      dispatchAuthForm({
+        type: "setMessage",
+        message: "Completa la verificación para continuar.",
+      });
       return;
     }
 
-    setStatus("loading");
+    dispatchAuthForm({ type: "setStatus", status: "loading" });
 
     try {
       const supabase = createBrowserSupabaseClient();
@@ -203,17 +267,22 @@ export function AuthPage() {
             });
 
       if (error) {
-        setMessage(
-          authMode === "sign-up"
-            ? "No se pudo crear la cuenta. Revisa el email, la contraseña o si ya existe."
-            : "Email o contraseña incorrectos.",
-        );
+        dispatchAuthForm({
+          type: "setMessage",
+          message:
+            authMode === "sign-up"
+              ? "No se pudo crear la cuenta. Revisa el email, la contraseña o si ya existe."
+              : "Email o contraseña incorrectos.",
+        });
         resetTurnstile();
         return;
       }
 
       if (authMode === "sign-up" && !data.session) {
-        setMessage("Cuenta creada. Revisa tu email para confirmar el acceso.");
+        dispatchAuthForm({
+          type: "setMessage",
+          message: "Cuenta creada. Revisa tu email para confirmar el acceso.",
+        });
         resetTurnstile();
         return;
       }
@@ -221,21 +290,27 @@ export function AuthPage() {
       router.replace(nextPath);
       router.refresh();
     } catch {
-      setMessage("No se pudo conectar con el acceso seguro.");
+      dispatchAuthForm({
+        type: "setMessage",
+        message: "No se pudo conectar con el acceso seguro.",
+      });
     } finally {
-      setStatus("idle");
+      dispatchAuthForm({ type: "setStatus", status: "idle" });
     }
   }
 
   async function signInWithProvider(provider: "google" | "apple" | "github") {
-    setMessage("");
+    dispatchAuthForm({ type: "clearMessage" });
 
     if (!authConfigured) {
-      setMessage("El acceso real todavía no está configurado en este entorno.");
+      dispatchAuthForm({
+        type: "setMessage",
+        message: "El acceso real todavía no está configurado en este entorno.",
+      });
       return;
     }
 
-    setStatus("loading");
+    dispatchAuthForm({ type: "setStatus", status: "loading" });
 
     try {
       const supabase = createBrowserSupabaseClient();
@@ -246,12 +321,18 @@ export function AuthPage() {
       });
 
       if (error) {
-        setMessage("No se pudo abrir el proveedor de acceso.");
-        setStatus("idle");
+        dispatchAuthForm({
+          type: "setMessage",
+          message: "No se pudo abrir el proveedor de acceso.",
+        });
+        dispatchAuthForm({ type: "setStatus", status: "idle" });
       }
     } catch {
-      setMessage("No se pudo conectar con el acceso seguro.");
-      setStatus("idle");
+      dispatchAuthForm({
+        type: "setMessage",
+        message: "No se pudo conectar con el acceso seguro.",
+      });
+      dispatchAuthForm({ type: "setStatus", status: "idle" });
     }
   }
 
@@ -384,8 +465,10 @@ export function AuthPage() {
                 disabled={status === "loading"}
                 key={option.mode}
                 onClick={() => {
-                  setAuthMode(option.mode);
-                  setMessage("");
+                  dispatchAuthForm({
+                    type: "setMode",
+                    authMode: option.mode,
+                  });
                   resetTurnstile();
                 }}
                 role="tab"
@@ -408,7 +491,12 @@ export function AuthPage() {
                     autoComplete="email"
                     disabled={status === "loading"}
                     id="email"
-                    onChange={(event) => setEmail(event.target.value)}
+                    onChange={(event) =>
+                      dispatchAuthForm({
+                        type: "setEmail",
+                        email: event.target.value,
+                      })
+                    }
                     placeholder="tu@email.com"
                     required
                     type="email"
@@ -431,7 +519,12 @@ export function AuthPage() {
                     autoComplete={authMode === "sign-up" ? "new-password" : "current-password"}
                     disabled={status === "loading"}
                     id="password"
-                    onChange={(event) => setPassword(event.target.value)}
+                    onChange={(event) =>
+                      dispatchAuthForm({
+                        type: "setPassword",
+                        password: event.target.value,
+                      })
+                    }
                     placeholder="Tu contraseña"
                     required
                     type="password"

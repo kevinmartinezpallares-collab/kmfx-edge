@@ -1,0 +1,8 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">KMFX Edge concept 03 - K Edge</title>
+  <desc id="desc">Compact K monogram built from a vertical discipline bar and rising edge stroke.</desc>
+  <path d="M46 34V126" stroke="#F6F8FB" stroke-width="14" stroke-linecap="round"/>
+  <path d="M109 38L54 83L115 123" stroke="#F6F8FB" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M62 82L115 123" stroke="#2F6BFF" stroke-width="5" stroke-linecap="round" opacity=".92"/>
+  <circle cx="111" cy="38" r="7" fill="#6BB6FF"/>
+</svg>

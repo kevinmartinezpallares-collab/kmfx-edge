@@ -4637,12 +4637,25 @@ def build_live_accounts_snapshot(
             for item in accounts
         ],
     )
+    snapshot_updated_at = now_iso()
+    if summary_only:
+        latest_event: datetime | None = None
+        for item in accounts:
+            if not isinstance(item, dict):
+                continue
+            for field in ("last_sync_at", "updated_at", "last_policy_at"):
+                candidate = _parse_datetime(item.get(field))
+                if candidate is None:
+                    continue
+                latest_event = candidate if latest_event is None or candidate > latest_event else latest_event
+        if latest_event is not None:
+            snapshot_updated_at = latest_event.isoformat()
     return {
         "accounts": accounts,
         "active_account_id": active_account_id,
         "portfolio_risk": aggregate_portfolio_risk(accounts),
         "snapshot_mode": "summary" if summary_only else "full",
-        "updated_at": now_iso(),
+        "updated_at": snapshot_updated_at,
     }
 
 
@@ -8496,10 +8509,51 @@ async def accounts_snapshot(
     request: Request,
     view: str = Query("full", pattern="^(full|summary)$"),
 ) -> JSONResponse:
+    def summary_snapshot_response(
+        request: Request,
+        snapshot: dict[str, Any],
+        *,
+        scope_user_id: str,
+    ) -> Response:
+        accounts_payload = snapshot.get("accounts") or []
+        # Avoid using `snapshot["updated_at"]` directly: for unauth/empty snapshots it can be `now_iso()`,
+        # which would defeat revalidation.
+        accounts_fingerprint = hashlib.sha256(
+            json.dumps(accounts_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()[:32]
+        etag_seed = "|".join(
+            [
+                safe_str(scope_user_id),
+                "1" if bool(snapshot.get("is_admin")) else "0",
+                safe_str(snapshot.get("auth_email")),
+                "1" if bool(snapshot.get("admin_launcher_bridge")) else "0",
+                safe_str(snapshot.get("active_account_id")),
+                str(len(accounts_payload)),
+                accounts_fingerprint,
+            ]
+        )
+        etag = hashlib.sha256(etag_seed.encode("utf-8")).hexdigest()[:32]
+        etag_header = f'W/"{etag}"'
+        response_headers = {
+            "Connection": "close",
+            # Allow per-user revalidation to reduce egress on frequent polling.
+            "Cache-Control": "private, max-age=0, must-revalidate",
+            "ETag": etag_header,
+            "Vary": "Authorization, Accept-Encoding",
+        }
+        if safe_str(request.headers.get("if-none-match")) == etag_header:
+            return Response(status_code=304, headers=response_headers)
+        return JSONResponse(status_code=200, content=snapshot, headers=response_headers)
+
     scope_user_id, auth_context = resolve_account_scope(request)
+    normalized_view = str(view or "full").lower() if isinstance(view, str) else "full"
     if not scope_user_id:
         snapshot = empty_accounts_payload(auth_context)
         log.info("Accounts snapshot denied closed | reason=auth_required")
+        if normalized_view == "summary":
+            snapshot["updated_at"] = ""
+            snapshot["admin_launcher_bridge"] = False
+            return summary_snapshot_response(request, snapshot, scope_user_id="")
         return connector_json_response(snapshot)
     access_denial = live_accounts_access_denial(auth_context)
     if access_denial is not None:
@@ -8512,7 +8566,6 @@ async def accounts_snapshot(
         )
         return connector_json_response(billing_blocked_accounts_payload(auth_context, access_denial))
     allowed_connection_keys = admin_launcher_connection_keys_for_context(auth_context)
-    normalized_view = str(view or "full").lower() if isinstance(view, str) else "full"
     guard_mode = str(bandwidth_guard_snapshot().get("mode") or "normal")
     if (
         normalized_view == "full"
@@ -8559,29 +8612,7 @@ async def accounts_snapshot(
         cache_status,
     )
     if summary_only:
-        etag_seed = "|".join(
-            [
-                safe_str(snapshot.get("updated_at")),
-                safe_str(scope_user_id),
-                "1" if bool(snapshot.get("is_admin")) else "0",
-                safe_str(snapshot.get("auth_email")),
-                "1" if bool(snapshot.get("admin_launcher_bridge")) else "0",
-                safe_str(snapshot.get("active_account_id")),
-                str(len(snapshot.get("accounts") or [])),
-            ]
-        )
-        etag = hashlib.sha256(etag_seed.encode("utf-8")).hexdigest()[:32]
-        etag_header = f'W/"{etag}"'
-        response_headers = {
-            "Connection": "close",
-            # Allow per-user revalidation to reduce egress on frequent polling.
-            "Cache-Control": "private, max-age=0, must-revalidate",
-            "ETag": etag_header,
-            "Vary": "Authorization",
-        }
-        if safe_str(request.headers.get("if-none-match")) == etag_header:
-            return Response(status_code=304, headers=response_headers)
-        return JSONResponse(status_code=200, content=snapshot, headers=response_headers)
+        return summary_snapshot_response(request, snapshot, scope_user_id=scope_user_id)
 
     return connector_json_response(snapshot)
 

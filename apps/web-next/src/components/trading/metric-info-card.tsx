@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
+import { m as motion, useReducedMotion } from "motion/react";
 import { ArrowUpRight, Plus, X } from "lucide-react";
 
 import type { StudyGlossaryRow } from "@/lib/domain/study-selectors";
@@ -354,7 +354,7 @@ export function MetricInfoCard({ item }: MetricInfoCardProps) {
             {item.currentValue}
           </span>
         </AbstractMetricVisual>
-        <div className="flex grow flex-row items-end justify-between gap-3 px-3 py-3">
+        <div className="flex grow flex-row items-end justify-between gap-3 p-3">
           <div className="min-w-0">
             <p className="text-[11px] font-medium uppercase tracking-normal text-muted-foreground">
               {item.category}

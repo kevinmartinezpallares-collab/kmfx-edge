@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { animate, motion, useReducedMotion } from "framer-motion";
+import { animate, m as motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 
 export interface NativeCounterUpProps {

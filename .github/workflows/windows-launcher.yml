@@ -136,12 +136,7 @@ jobs:
           branch="automation/windows-launcher-artifact-${{ github.run_id }}-${{ github.run_attempt }}"
           git checkout -b "$branch"
           git commit -m "Publish Windows launcher artifact"
-          if git push origin HEAD:main; then
-            echo "published_to_main=true" >> "$GITHUB_OUTPUT"
-            echo "Published Windows launcher artifact to main."
-          else
-            git push -u origin "$branch"
-            echo "published_to_main=false" >> "$GITHUB_OUTPUT"
-            echo "branch=$branch" >> "$GITHUB_OUTPUT"
-            echo "::warning title=Launcher artifact branch ready::GitHub Actions generated and pushed $branch, but direct publishing to main was blocked."
-          fi
+          git push -u origin "$branch"
+          echo "published_to_main=false" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          echo "::warning title=Launcher artifact branch ready::GitHub Actions generated and pushed $branch. Merge manually when you want to trigger production deploys."

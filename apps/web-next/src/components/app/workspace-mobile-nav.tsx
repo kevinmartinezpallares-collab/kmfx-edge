@@ -11,7 +11,7 @@ export function WorkspaceMobileNav() {
   const items = primaryNavigation.filter((item) => item.enabled && item.href).slice(0, 4);
 
   return (
-    <div className="sticky bottom-0 z-20 border-t border-border/70 bg-background/95 px-3 py-3 backdrop-blur md:hidden">
+    <div className="sticky bottom-0 z-20 border-t border-border/70 bg-background/95 p-3 backdrop-blur md:hidden">
       <nav className="grid grid-cols-4 gap-2">
         {items.map((item) => {
           const active = pathname === item.href;

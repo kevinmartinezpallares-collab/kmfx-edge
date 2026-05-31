@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { m as motion } from "motion/react";
 import { useState } from "react";
 
 type Ripple = {
@@ -16,11 +16,12 @@ export function RippleClickButton({
   children = "Click Me",
   className,
   onClick,
+  type = "button",
   ...props
 }: RippleClickButtonProps) {
   const [ripples, setRipples] = useState<Ripple[]>([]);
 
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const spawnRipple = (e: React.MouseEvent<HTMLButtonElement>) => {
     const button = e.currentTarget;
     const rect = button.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -38,7 +39,8 @@ export function RippleClickButton({
 
   return (
     <button
-      onClick={handleClick}
+      onClick={spawnRipple}
+      type={type}
       className={cn(
         "relative overflow-hidden rounded-lg border border-border bg-accent px-4 py-2 text-sm font-medium text-accent-foreground shadow-lg shadow-primary/10",
         className
@@ -49,19 +51,14 @@ export function RippleClickButton({
       {ripples.map((ripple) => (
         <motion.span
           key={ripple.id}
-          initial={{ scale: 0, opacity: 1 }}
+          initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 4, opacity: 0 }}
+          className="absolute size-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/55 [left:var(--ripple-x)] [top:var(--ripple-y)]"
           transition={{ duration: 0.6, ease: "easeOut" }}
           style={{
-            position: "absolute",
-            left: ripple.x,
-            top: ripple.y,
-            width: 20,
-            height: 20,
-            borderRadius: "50%",
-            backgroundColor: "rgba(255, 255, 255, 0.55)",
-            transform: "translate(-50%, -50%)",
-          }}
+            "--ripple-x": `${ripple.x}px`,
+            "--ripple-y": `${ripple.y}px`,
+          } as React.CSSProperties}
         />
       ))}
     </button>

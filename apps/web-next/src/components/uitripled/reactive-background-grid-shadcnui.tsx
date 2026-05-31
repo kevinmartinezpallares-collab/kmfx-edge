@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m as motion } from "motion/react";
 import { MouseEvent, useState } from "react";
 
 type ReactiveBackgroundGridProps = {
@@ -19,11 +19,7 @@ export function ReactiveBackgroundGrid({
     null
   );
 
-  const handleClick = (e: MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
+  const addRipple = (x: number, y: number) => {
     const newRipple = {
       id: Date.now(),
       x,
@@ -34,6 +30,11 @@ export function ReactiveBackgroundGrid({
     setTimeout(() => {
       setRipples((prev) => prev.filter((r) => r.id !== newRipple.id));
     }, 600);
+  };
+
+  const spawnPointerRipple = (e: MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    addRipple(e.clientX - rect.left, e.clientY - rect.top);
   };
 
   const [containerSize, setContainerSize] = useState({
@@ -54,9 +55,19 @@ export function ReactiveBackgroundGrid({
 
   return (
     <div
-      onClick={handleClick}
+      onClick={spawnPointerRipple}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") {
+          return;
+        }
+        event.preventDefault();
+        const rect = event.currentTarget.getBoundingClientRect();
+        addRipple(rect.width / 2, rect.height / 2);
+      }}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setHoveredDot(null)}
+      role="button"
+      tabIndex={0}
       className="relative h-96 w-full overflow-hidden rounded-2xl border border-border bg-card"
     >
       <div
@@ -90,7 +101,7 @@ export function ReactiveBackgroundGrid({
 
           return (
             <motion.div
-              key={index}
+              key={`${row}-${col}`}
               animate={{
                 scale,
                 opacity,
@@ -116,7 +127,7 @@ export function ReactiveBackgroundGrid({
         {ripples.map((ripple) => (
           <motion.div
             key={ripple.id}
-            initial={{ scale: 0, opacity: 0.8 }}
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 4, opacity: 0 }}
             exit={{ scale: 4, opacity: 0 }}
             transition={{ duration: 0.6 }}

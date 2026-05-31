@@ -3,27 +3,10 @@
 import NumberFlow from "@number-flow/react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-
-/** Subset of `Intl.NumberFormatOptions` supported by NumberFlow */
-export interface ChartStatFlowFormat {
-  notation?: "standard" | "compact";
-  compactDisplay?: "short" | "long";
-  minimumFractionDigits?: number;
-  maximumFractionDigits?: number;
-  minimumIntegerDigits?: number;
-  minimumSignificantDigits?: number;
-  maximumSignificantDigits?: number;
-  style?: "decimal" | "percent" | "currency";
-  currency?: string;
-  currencyDisplay?: "symbol" | "narrowSymbol" | "code" | "name";
-  unit?: string;
-  unitDisplay?: "short" | "long" | "narrow";
-}
-
-export const defaultChartStatFlowFormat: ChartStatFlowFormat = {
-  notation: "standard",
-  maximumFractionDigits: 0,
-};
+import {
+  type ChartStatFlowFormat,
+  defaultChartStatFlowFormat,
+} from "./chart-stat-flow-format";
 
 export interface ChartStatFlowProps {
   value: number;
@@ -53,7 +36,7 @@ export function ChartStatFlow({
   return (
     <>
       {icon ? (
-        <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-muted/50">
+        <div className="mb-2 flex size-12 items-center justify-center rounded-full bg-muted/50">
           {icon}
         </div>
       ) : null}

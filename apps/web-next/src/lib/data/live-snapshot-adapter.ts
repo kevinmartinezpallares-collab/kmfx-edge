@@ -224,14 +224,20 @@ function toTradingDayKey(value: string) {
   return `${year}-${month}-${day}`;
 }
 
+const DAY_LABEL_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  day: "numeric",
+  month: "short",
+});
+const COMPACT_HISTORY_LABEL_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  month: "short",
+  day: "numeric",
+});
+
 function toDayLabel(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Sin fecha";
 
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "numeric",
-    month: "short",
-  }).format(date);
+  return DAY_LABEL_FORMATTER.format(date);
 }
 
 function buildTradeBuckets(trades: ClosedTrade[]) {
@@ -303,10 +309,10 @@ function buildTradeBuckets(trades: ClosedTrade[]) {
   });
 
   return {
-    daily: [...dailyMap.values()].sort((a, b) =>
+    daily: [...dailyMap.values()].toSorted((a, b) =>
       a.tradingDayKey.localeCompare(b.tradingDayKey),
     ),
-    hourly: [...hourlyMap.values()].sort((a, b) => a.hour - b.hour),
+    hourly: [...hourlyMap.values()].toSorted((a, b) => a.hour - b.hour),
   };
 }
 
@@ -412,7 +418,7 @@ function mapTrades(payload: RawLiveDashboardPayload): ClosedTrade[] {
     }
   });
 
-  return [...grouped.values()].sort(
+  return [...grouped.values()].toSorted(
     (a, b) => new Date(b.closedAt).getTime() - new Date(a.closedAt).getTime(),
   );
 }
@@ -652,10 +658,7 @@ function compactHistoryLabel(value: string | undefined, index: number) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return `P${index + 1}`;
 
-  return new Intl.DateTimeFormat("es-ES", {
-    month: "short",
-    day: "numeric",
-  }).format(date);
+  return COMPACT_HISTORY_LABEL_FORMATTER.format(date);
 }
 
 function mapEquitySeries(payload: RawLiveDashboardPayload): MetricPoint[] {

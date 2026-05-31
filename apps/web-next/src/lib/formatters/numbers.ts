@@ -1,14 +1,26 @@
+const currencyFormatters = new Map<string, Intl.NumberFormat>();
+
+function getCurrencyFormatter(currency: string, minimumFractionDigits: number) {
+  const key = `${currency}:${minimumFractionDigits}`;
+  const cached = currencyFormatters.get(key);
+  if (cached) return cached;
+
+  const formatter = Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency,
+    minimumFractionDigits,
+    maximumFractionDigits: minimumFractionDigits,
+  });
+  currencyFormatters.set(key, formatter);
+  return formatter;
+}
+
 export function formatCurrency(
   value: number,
   currency = "USD",
   minimumFractionDigits = 0,
 ) {
-  return new Intl.NumberFormat("es-ES", {
-    style: "currency",
-    currency,
-    minimumFractionDigits,
-    maximumFractionDigits: minimumFractionDigits,
-  }).format(value);
+  return getCurrencyFormatter(currency, minimumFractionDigits).format(value);
 }
 
 export function formatSignedCurrency(

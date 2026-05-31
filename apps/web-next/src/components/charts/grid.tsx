@@ -2,7 +2,8 @@
 
 import { GridColumns, GridRows } from "@visx/grid";
 import { useId } from "react";
-import { chartCssVars, useChart } from "./chart-context";
+import { useChart } from "./chart-context";
+import { chartCssVars } from "./chart-theme";
 
 export interface GridProps {
   /** Show horizontal grid lines. Default: true */

@@ -33,7 +33,7 @@ function clampPercent(value: number) {
 
 export function getRiskGuardPosture(workspace: WorkspaceState): RiskGuardPosture {
   const risk = workspace.risk;
-  const exposures = [...risk.exposureBySymbol].sort(
+  const exposures = [...risk.exposureBySymbol].toSorted(
     (a, b) => b.openRiskPct - a.openRiskPct,
   );
   const totalExposurePct = exposures.reduce(
@@ -62,7 +62,7 @@ export function getRiskGuardPosture(workspace: WorkspaceState): RiskGuardPosture
         nextTradeRiskAmount: account.equity * (nextTradeRiskPct / 100),
       };
     })
-    .sort((a, b) => a.roomLeftPct - b.roomLeftPct);
+    .toSorted((a, b) => a.roomLeftPct - b.roomLeftPct);
 
   return {
     status: risk.status,

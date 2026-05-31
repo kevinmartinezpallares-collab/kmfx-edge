@@ -3,8 +3,8 @@
 import { pie as d3Pie } from "d3-shape";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PieCenter, type PieCenterProps } from "./pie-center";
+import { defaultPieColors } from "./pie-theme";
 import {
-  defaultPieColors,
   type PieArcData,
   type PieContextValue,
   type PieData,

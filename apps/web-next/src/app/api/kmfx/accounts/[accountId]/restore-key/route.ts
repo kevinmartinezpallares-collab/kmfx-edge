@@ -7,8 +7,10 @@ type RouteContext = {
 };
 
 export async function POST(request: NextRequest, context: RouteContext) {
-  const { accountId } = await context.params;
-  const body = await request.json().catch(() => ({}));
+  const [{ accountId }, body] = await Promise.all([
+    context.params,
+    request.json().catch(() => ({})),
+  ]);
 
   try {
     const result = await requestAuthenticatedBackendJson(

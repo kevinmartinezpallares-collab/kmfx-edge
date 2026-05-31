@@ -22,7 +22,7 @@ import {
   UserRound,
   WalletCards,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { m as motion } from "motion/react";
 
 import { useTheme } from "@/components/app/theme-provider";
 import {
@@ -34,7 +34,8 @@ import {
   AvatarFallback,
 } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import {
   Card,
   CardAction,
@@ -70,6 +71,10 @@ import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { WorkspaceState } from "@/lib/contracts/workspace-state";
 import {
+  billingPlanKeyFromPayload,
+  type BillingPlanKey,
+} from "@/lib/billing/billing-plan-key";
+import {
   getSettingsOverview,
   type SettingsPlanOption,
 } from "@/lib/domain/settings-selectors";
@@ -79,8 +84,57 @@ function PageMotion({ children }: { children: React.ReactNode }) {
   return <div>{children}</div>;
 }
 
+function scrollToPlanOptions() {
+  document
+    .getElementById("kmfx-plan-options")
+    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 type PlanGradientTheme = Omit<CustomConfig, "preset" | "speed">;
-type PlanOptionKey = SettingsPlanOption["key"];
+type PlanOptionKey = BillingPlanKey;
+
+const PAYMENT_ICON_BY_TONE = {
+  ready: CheckCircle2,
+  attention: ReceiptText,
+  locked: LockKeyhole,
+} as const;
+const PLAN_DECISION_ROWS = [
+  {
+    label: "Individual",
+    value: "Basic",
+    note: "2 cuentas MT5",
+  },
+  {
+    label: "Fondeo activo",
+    value: "Pro",
+    note: "5 cuentas MT5 y analítica completa",
+  },
+  {
+    label: "Multi-cuenta",
+    value: "Unlimited",
+    note: "Sin límite operativo y soporte prioritario",
+  },
+];
+const PLAN_CARD_VISUALS = {
+  core: {
+    code: "BASIC",
+    signal: "Entrada ordenada",
+    capacity: "2 MT5",
+  },
+  pro: {
+    code: "PRO",
+    signal: "Mejor equilibrio",
+    capacity: "5 MT5",
+  },
+  unlimited: {
+    code: "UNLIMITED",
+    signal: "Multi-cuenta",
+    capacity: "MT5 ilimitadas",
+  },
+} as const satisfies Record<
+  PlanOptionKey,
+  { code: string; signal: string; capacity: string }
+>;
 
 const PLAN_GRADIENT_THEMES = {
   core: {
@@ -141,28 +195,6 @@ function planGradientConfigForOption(
   };
 }
 
-function normalizeBillingPlanKey(value: unknown): PlanOptionKey | null {
-  if (value === "core" || value === "pro" || value === "unlimited") {
-    return value;
-  }
-
-  return null;
-}
-
-function billingPlanKeyFromPayload(payload: unknown): PlanOptionKey | null {
-  if (!payload || typeof payload !== "object") return null;
-
-  const billing = (payload as { billing?: unknown }).billing;
-  if (!billing || typeof billing !== "object") return null;
-
-  const data = billing as {
-    effectivePlan?: unknown;
-    plan?: unknown;
-  };
-
-  return normalizeBillingPlanKey(data.effectivePlan) ?? normalizeBillingPlanKey(data.plan);
-}
-
 function includedAccountsLabelForPlan(option: SettingsPlanOption) {
   if (option.key === "unlimited") return "Ilimitadas";
   if (option.key === "pro") return "5";
@@ -176,13 +208,23 @@ function usagePercentForPlan(option: SettingsPlanOption, accountCount: number) {
   return Math.min(100, Math.round((accountCount / Math.max(1, limit)) * 100));
 }
 
+const ANNUAL_MONTHLY_EQUIVALENT_FORMATTERS = {
+  integer: new Intl.NumberFormat("es-ES", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+  }),
+  decimal: new Intl.NumberFormat("es-ES", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  }),
+};
+
 function annualMonthlyEquivalentLabel(option: SettingsPlanOption) {
   const annualPrice = Number.parseInt(option.yearlyLabel, 10);
   const monthlyEquivalent = annualPrice / 12;
-  const formatter = new Intl.NumberFormat("es-ES", {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: Number.isInteger(monthlyEquivalent) ? 0 : 2,
-  });
+  const formatter = Number.isInteger(monthlyEquivalent)
+    ? ANNUAL_MONTHLY_EQUIVALENT_FORMATTERS.integer
+    : ANNUAL_MONTHLY_EQUIVALENT_FORMATTERS.decimal;
 
   return `Equiv. ${formatter.format(monthlyEquivalent)} EUR/mes`;
 }
@@ -260,31 +302,113 @@ function preferenceLabelToTheme(value: string) {
   return "dark";
 }
 
+type SettingsProfileView = {
+  displayName: string;
+  email: string;
+};
+
+type SettingsUiState = {
+  profileDialogOpen: boolean;
+  profileDraft: SettingsProfileView;
+  profileView: SettingsProfileView;
+  settingsValues: Record<string, string>;
+  signOutDialogOpen: boolean;
+  statusMessage: string | null;
+};
+
+type SettingsUiAction =
+  | { type: "closeProfileDialog" }
+  | { type: "openProfileDialog" }
+  | { type: "setProfileDraft"; profileDraft: SettingsProfileView }
+  | { type: "setProfileDraftField"; field: keyof SettingsProfileView; value: string }
+  | { type: "setSetting"; label: string; value: string }
+  | { type: "setSignOutDialogOpen"; open: boolean }
+  | { type: "saveProfile"; profile: SettingsProfileView };
+
+function settingsUiReducer(
+  state: SettingsUiState,
+  action: SettingsUiAction,
+): SettingsUiState {
+  switch (action.type) {
+    case "closeProfileDialog":
+      return { ...state, profileDialogOpen: false };
+    case "openProfileDialog":
+      return {
+        ...state,
+        profileDialogOpen: true,
+        profileDraft: state.profileView,
+      };
+    case "setProfileDraft":
+      return { ...state, profileDraft: action.profileDraft };
+    case "setProfileDraftField":
+      return {
+        ...state,
+        profileDraft: {
+          ...state.profileDraft,
+          [action.field]: action.value,
+        },
+      };
+    case "setSetting":
+      return {
+        ...state,
+        settingsValues: {
+          ...state.settingsValues,
+          [action.label]: action.value,
+        },
+        statusMessage: "Preferencia actualizada",
+      };
+    case "setSignOutDialogOpen":
+      return { ...state, signOutDialogOpen: action.open };
+    case "saveProfile":
+      return {
+        ...state,
+        profileDialogOpen: false,
+        profileView: action.profile,
+        statusMessage: "Perfil actualizado",
+      };
+  }
+}
+
 export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceState }) {
   const router = useRouter();
   const { setTheme, theme } = useTheme();
   const settingsOverview = getSettingsOverview(workspace);
   const { profile } = settingsOverview;
-  const [profileView, setProfileView] = React.useState({
-    displayName: profile.displayName,
-    email: profile.email ?? "",
-  });
-  const [profileDraft, setProfileDraft] = React.useState(profileView);
-  const [profileDialogOpen, setProfileDialogOpen] = React.useState(false);
-  const [signOutDialogOpen, setSignOutDialogOpen] = React.useState(false);
-  const [settingsValues, setSettingsValues] = React.useState(() => {
-    const initialValues = Object.fromEntries(
-      settingsOverview.preferences.map((preference) => [
-        preference.label,
-        preference.value,
-      ]),
-    ) as Record<string, string>;
+  const [settingsUiState, dispatchSettingsUi] = React.useReducer(
+    settingsUiReducer,
+    { profile, preferences: settingsOverview.preferences, theme },
+    ({ profile: initialProfile, preferences, theme: initialTheme }) => {
+      const initialValues = Object.fromEntries(
+        preferences.map((preference) => [
+          preference.label,
+          preference.value,
+        ]),
+      ) as Record<string, string>;
+      const profileView = {
+        displayName: initialProfile.displayName,
+        email: initialProfile.email ?? "",
+      };
 
-    initialValues.Tema = themeToPreferenceLabel(theme);
+      initialValues.Tema = themeToPreferenceLabel(initialTheme);
 
-    return initialValues;
-  });
-  const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
+      return {
+        profileDialogOpen: false,
+        profileDraft: profileView,
+        profileView,
+        settingsValues: initialValues,
+        signOutDialogOpen: false,
+        statusMessage: null,
+      };
+    },
+  );
+  const {
+    profileDialogOpen,
+    profileDraft,
+    profileView,
+    settingsValues,
+    signOutDialogOpen,
+    statusMessage,
+  } = settingsUiState;
   const visibleEmail = profileView.email.trim() || "Email pendiente";
   const profileInitials = getProfileInitials(profileView.displayName);
   const selectedLanguage = settingsValues.Idioma ?? "Español";
@@ -314,18 +438,15 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
   }, [selectedLanguage]);
 
   function openProfileDialog() {
-    setProfileDraft(profileView);
-    setProfileDialogOpen(true);
+    dispatchSettingsUi({ type: "openProfileDialog" });
   }
 
   function updateSetting(label: string, value: string) {
-    setSettingsValues((current) => ({ ...current, [label]: value }));
+    dispatchSettingsUi({ type: "setSetting", label, value });
 
     if (label === "Tema") {
       setTheme(preferenceLabelToTheme(value));
     }
-
-    setStatusMessage("Preferencia actualizada");
   }
 
   function saveProfile(event: React.FormEvent<HTMLFormElement>) {
@@ -335,9 +456,7 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
       email: profileDraft.email.trim(),
     };
 
-    setProfileView(nextProfile);
-    setProfileDialogOpen(false);
-    setStatusMessage("Perfil actualizado");
+    dispatchSettingsUi({ type: "saveProfile", profile: nextProfile });
   }
 
   return (
@@ -378,7 +497,12 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
               <Button
                 variant="outline"
                 className="border-destructive/35 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive"
-                onClick={() => setSignOutDialogOpen(true)}
+                onClick={() =>
+                  dispatchSettingsUi({
+                    type: "setSignOutDialogOpen",
+                    open: true,
+                  })
+                }
               >
                 <LogOut data-icon="inline-start" />
                 Cerrar sesión
@@ -514,7 +638,16 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
         </div>
       </div>
 
-      <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+      <Dialog
+        open={profileDialogOpen}
+        onOpenChange={(open) => {
+          if (open) {
+            dispatchSettingsUi({ type: "openProfileDialog" });
+          } else {
+            dispatchSettingsUi({ type: "closeProfileDialog" });
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <form onSubmit={saveProfile} className="grid gap-4">
             <DialogHeader>
@@ -527,38 +660,42 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
               <Field>
                 <FieldLabel htmlFor="settings-profile-name">Nombre</FieldLabel>
                 <Input
-                  id="settings-profile-name"
-                  value={profileDraft.displayName}
-                  onChange={(event) =>
-                    setProfileDraft((current) => ({
-                      ...current,
-                      displayName: event.target.value,
-                    }))
-                  }
-                />
+	                  id="settings-profile-name"
+	                  value={profileDraft.displayName}
+	                  onChange={(event) =>
+	                    dispatchSettingsUi({
+	                      type: "setProfileDraftField",
+	                      field: "displayName",
+	                      value: event.target.value,
+	                    })
+	                  }
+	                />
               </Field>
               <Field>
                 <FieldLabel htmlFor="settings-profile-email">Email</FieldLabel>
                 <Input
                   id="settings-profile-email"
                   type="email"
-                  placeholder="tu@email.com"
-                  value={profileDraft.email}
-                  onChange={(event) =>
-                    setProfileDraft((current) => ({
-                      ...current,
-                      email: event.target.value,
-                    }))
-                  }
-                />
+	                  placeholder="tu@email.com"
+	                  value={profileDraft.email}
+	                  onChange={(event) =>
+	                    dispatchSettingsUi({
+	                      type: "setProfileDraftField",
+	                      field: "email",
+	                      value: event.target.value,
+	                    })
+	                  }
+	                />
               </Field>
             </div>
             <DialogFooter>
               <Button
-                type="button"
-                variant="outline"
-                onClick={() => setProfileDialogOpen(false)}
-              >
+	                type="button"
+	                variant="outline"
+	                onClick={() =>
+	                  dispatchSettingsUi({ type: "closeProfileDialog" })
+	                }
+	              >
                 Cancelar
               </Button>
               <Button type="submit">Guardar cambios</Button>
@@ -567,7 +704,12 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
         </DialogContent>
       </Dialog>
 
-      <Dialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>
+      <Dialog
+        open={signOutDialogOpen}
+        onOpenChange={(open) =>
+          dispatchSettingsUi({ type: "setSignOutDialogOpen", open })
+        }
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Cerrar sesión</DialogTitle>
@@ -577,19 +719,27 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
           </DialogHeader>
           <DialogFooter>
             <Button
-              type="button"
-              variant="outline"
-              onClick={() => setSignOutDialogOpen(false)}
-            >
+	              type="button"
+	              variant="outline"
+	              onClick={() =>
+	                dispatchSettingsUi({
+	                  type: "setSignOutDialogOpen",
+	                  open: false,
+	                })
+	              }
+	            >
               Cancelar
             </Button>
             <Button
-              type="button"
-              variant="destructive"
-              onClick={() => {
-                setSignOutDialogOpen(false);
-                router.push("/login");
-              }}
+	              type="button"
+	              variant="destructive"
+	              onClick={() => {
+	                dispatchSettingsUi({
+	                  type: "setSignOutDialogOpen",
+	                  open: false,
+	                });
+	                router.push("/login");
+	              }}
             >
               Cerrar sesión
             </Button>
@@ -601,9 +751,11 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
 }
 
 export function SubscriptionReferenceSection({
+  initialBillingPlanKey = null,
   welcome = false,
   workspace,
 }: {
+  initialBillingPlanKey?: PlanOptionKey | null;
   welcome?: boolean;
   workspace: WorkspaceState;
 }) {
@@ -613,9 +765,8 @@ export function SubscriptionReferenceSection({
   const [billingInterval, setBillingInterval] = React.useState<"monthly" | "yearly">(
     "monthly",
   );
-  const [billingPlanKey, setBillingPlanKey] = React.useState<PlanOptionKey | null>(
-    null,
-  );
+  const [billingPlanKey, setBillingPlanKey] =
+    React.useState<PlanOptionKey | null>(initialBillingPlanKey);
   const [planDetailsOpen, setPlanDetailsOpen] = React.useState(false);
   const [billingAction, setBillingAction] = React.useState<{
     status: "idle" | "pending" | "success" | "error";
@@ -626,11 +777,6 @@ export function SubscriptionReferenceSection({
     status: "idle",
   });
   const statusBadgeVariant = plan.statusTone === "ready" ? "secondary" : "destructive";
-  const paymentIconByTone = {
-    ready: CheckCircle2,
-    attention: ReceiptText,
-    locked: LockKeyhole,
-  } as const;
   const fallbackPlanKey =
     plan.options.find((option) => option.current)?.key ?? plan.options[0]?.key ?? "core";
   const effectivePlanKey = billingPlanKey ?? fallbackPlanKey;
@@ -655,40 +801,6 @@ export function SubscriptionReferenceSection({
     billingInterval === "monthly" ? option.priceLabel : option.yearlyLabel;
   const intervalCaptionForOption = (option: SettingsPlanOption) =>
     billingInterval === "monthly" ? "Sin permanencia" : annualMonthlyEquivalentLabel(option);
-  const planDecisionRows = [
-    {
-      label: "Individual",
-      value: "Basic",
-      note: "2 cuentas MT5",
-    },
-    {
-      label: "Fondeo activo",
-      value: "Pro",
-      note: "5 cuentas MT5 y analítica completa",
-    },
-    {
-      label: "Multi-cuenta",
-      value: "Unlimited",
-      note: "Sin límite operativo y soporte prioritario",
-    },
-  ];
-  const planCardVisuals = {
-    core: {
-      code: "BASIC",
-      signal: "Entrada ordenada",
-      capacity: "2 MT5",
-    },
-    pro: {
-      code: "PRO",
-      signal: "Mejor equilibrio",
-      capacity: "5 MT5",
-    },
-    unlimited: {
-      code: "UNLIMITED",
-      signal: "Multi-cuenta",
-      capacity: "MT5 ilimitadas",
-    },
-  } as const;
   const entitlementRows = [
     {
       label: "Cuentas MT5",
@@ -762,38 +874,6 @@ export function SubscriptionReferenceSection({
       note: "Uso actual del plan.",
     },
   ];
-
-  React.useEffect(() => {
-    let cancelled = false;
-
-    async function readBillingStatus() {
-      try {
-        const response = await fetch("/api/kmfx/billing/status", {
-          cache: "no-store",
-        });
-        const payload = await response.json().catch(() => ({}));
-        const nextPlanKey = billingPlanKeyFromPayload(payload);
-
-        if (!cancelled && response.ok && nextPlanKey) {
-          setBillingPlanKey(nextPlanKey);
-        }
-      } catch {
-        // Keep the selector fallback if billing status cannot be read momentarily.
-      }
-    }
-
-    void readBillingStatus();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  function scrollToPlanOptions() {
-    document
-      .getElementById("kmfx-plan-options")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
 
   async function readBillingPayload(response: Response) {
     const payload = await response.json().catch(() => ({}));
@@ -1023,7 +1103,7 @@ export function SubscriptionReferenceSection({
               {planOptions.map((option, index) => {
                 const featured = option.key === "pro";
                 const current = option.current;
-                const visual = planCardVisuals[option.key];
+                const visual = PLAN_CARD_VISUALS[option.key];
                 const chartItem = planChartData.find((item) => item.key === option.key);
                 const capacityPercent = chartItem
                   ? Math.max(12, (chartItem.accountCapacity / maxAccountCapacity) * 100)
@@ -1445,7 +1525,7 @@ export function SubscriptionReferenceSection({
 
               <div className="grid gap-0 border-l border-border/60 pl-5">
                 {plan.paymentRows.map((row, index) => {
-                  const Icon = paymentIconByTone[row.tone];
+                  const Icon = PAYMENT_ICON_BY_TONE[row.tone];
 
                   return (
                     <React.Fragment key={row.label}>
@@ -1532,7 +1612,7 @@ export function SubscriptionReferenceSection({
                 ))}
               </div>
               <div className="grid gap-3 border-t border-border/60 pt-5 sm:grid-cols-3 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
-                {planDecisionRows.map((row) => (
+                {PLAN_DECISION_ROWS.map((row) => (
                   <div key={row.label} className="min-w-0 text-sm">
                     <p className="text-xs font-medium uppercase text-muted-foreground">
                       {row.label}

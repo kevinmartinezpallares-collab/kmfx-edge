@@ -42,9 +42,9 @@ function getJourneyStatus(account: TradingAccount): FundingJourneyStatus {
 export function getFundingAccountPostures(
   workspace: WorkspaceState,
 ): FundingAccountPosture[] {
-  return workspace.accounts
-    .filter((account) => account.isFunded || Boolean(account.funding))
-    .map((account) => {
+  return workspace.accounts.reduce<FundingAccountPosture[]>((postures, account) => {
+    if (!account.isFunded && !account.funding) return postures;
+
       const funding = account.funding;
       const blockers = [
         !funding ? "missing_funding_profile" : null,
@@ -55,7 +55,7 @@ export function getFundingAccountPostures(
         account.connectionState === "stale" ? "stale_sync" : null,
       ].filter((item): item is string => Boolean(item));
 
-      return {
+      postures.push({
         account,
         journeyStatus: getJourneyStatus(account),
         phaseLabel: funding?.phaseLabel ?? "requiere revisión",
@@ -65,8 +65,9 @@ export function getFundingAccountPostures(
         nextPayoutLabel: funding?.nextPayoutLabel ?? null,
         requiresReview: blockers.length > 0 || !funding,
         blockers,
-      };
-    });
+      });
+      return postures;
+    }, []);
 }
 
 export function getFundingCockpitSummary(
@@ -83,12 +84,16 @@ export function getFundingCockpitSummary(
   const feesAndResets = ledgerEntries
     .filter((entry) => entry.type === "challenge_fee" || entry.type === "reset_fee")
     .reduce((sum, entry) => sum + Math.abs(entry.netReceivedAmount ?? entry.grossAmount ?? 0), 0);
-  const ledgerAccountIds = new Set(
-    ledgerEntries
-      .filter((entry) => entry.type === "challenge_fee" || entry.type === "reset_fee")
-      .map((entry) => entry.accountId)
-      .filter((accountId): accountId is string => Boolean(accountId)),
-  );
+  const ledgerAccountIds = ledgerEntries.reduce<Set<string>>((accountIds, entry) => {
+    if (
+      (entry.type === "challenge_fee" || entry.type === "reset_fee") &&
+      entry.accountId
+    ) {
+      accountIds.add(entry.accountId);
+    }
+
+    return accountIds;
+  }, new Set());
   const profileFeesAndResets = postures.reduce((sum, posture) => {
     if (ledgerAccountIds.has(posture.account.id)) return sum;
     return sum + Math.abs(posture.account.funding?.resetCostUsd ?? 0);

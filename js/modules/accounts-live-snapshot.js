@@ -4,14 +4,16 @@ import { resolveAccountsSnapshotUrl, resolveApiBaseUrl } from "./api-config.js?v
 import { isAdminMode } from "./admin-mode.js?v=build-20260519-113000";
 
 const EMPTY_SNAPSHOT_GRACE_MS = 90000;
-const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_ACTIVE = 60 * 60 * 1000;
-const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_IDLE = 4 * 60 * 60 * 1000;
-const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_HIDDEN = 8 * 60 * 60 * 1000;
+const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_ACTIVE = 24 * 60 * 60 * 1000;
+const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_IDLE = 24 * 60 * 60 * 1000;
+const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_HIDDEN = 24 * 60 * 60 * 1000;
 const LOCAL_FULL_SNAPSHOT_REFRESH_MS = 60 * 1000;
 
 const ACCOUNTS_POLL_LEADER_KEY = "kmfx.polling.leader.accounts";
 const ACCOUNTS_POLL_LEADER_TTL_MS = 45000;
 const REGISTRY_REFRESH_EVENT_DEBOUNCE_MS = 5000;
+const HTTP_POLL_ERROR_BACKOFF_MAX_MS = 10 * 60 * 1000;
+const HTTP_POLL_ERROR_BACKOFF_CAP_EXPONENT = 5;
 
 function safeReadJsonStorage(key) {
   try {
@@ -82,6 +84,15 @@ function resolveAccountsHttpPollIntervalMs({ isLocal = false, hasOpenPositions =
   if (isHidden) return isLocal ? 15000 : 5 * 60 * 1000;
   if (isLocal) return hasOpenPositions ? 1000 : 5000;
   return hasOpenPositions ? 20000 : 180000;
+}
+
+function applyHttpPollErrorBackoff(baseIntervalMs, consecutiveErrors) {
+  const normalizedBase = Math.max(1000, Number(baseIntervalMs) || 0);
+  const normalizedErrors = Math.max(0, Number(consecutiveErrors) || 0);
+  if (!normalizedErrors) return normalizedBase;
+  const exponent = Math.min(normalizedErrors, HTTP_POLL_ERROR_BACKOFF_CAP_EXPONENT);
+  const effective = normalizedBase * Math.pow(2, exponent);
+  return Math.min(HTTP_POLL_ERROR_BACKOFF_MAX_MS, Math.max(normalizedBase, effective));
 }
 
 function resolveAccountsFullSnapshotRefreshMs({ isLocal = false, hasOpenPositions = false, isHidden = false } = {}) {
@@ -594,6 +605,7 @@ export function initAccountsLiveSnapshot(store) {
   let lastFullHttpSnapshotAt = 0;
   let lastSummaryEtag = null;
   let lastSummaryAccessSig = "";
+  let consecutiveHttpSnapshotErrors = 0;
 
   const clearHttpPollTimer = () => {
     clearTimeout(httpPollTimer);
@@ -615,11 +627,12 @@ export function initAccountsLiveSnapshot(store) {
 
   const getHttpPollIntervalMs = () => {
     const hasOpenPositions = getActiveOpenPositionsCount() > 0;
-    return resolveAccountsHttpPollIntervalMs({
+    const baseIntervalMs = resolveAccountsHttpPollIntervalMs({
       isLocal: isLocalRuntime(),
       hasOpenPositions,
       isHidden: isDocumentHidden(),
     });
+    return applyHttpPollErrorBackoff(baseIntervalMs, consecutiveHttpSnapshotErrors);
   };
 
   const getFullSnapshotRefreshMs = () =>
@@ -630,6 +643,7 @@ export function initAccountsLiveSnapshot(store) {
     });
 
   const shouldUseFullSnapshot = () => {
+    if (!isLocalRuntime()) return false;
     if (!lastFullHttpSnapshotAt) return true;
     return Date.now() - lastFullHttpSnapshotAt >= getFullSnapshotRefreshMs();
   };
@@ -649,6 +663,7 @@ export function initAccountsLiveSnapshot(store) {
       mode: isLocalRuntime() ? "local" : "production",
       hasOpenPositions: getActiveOpenPositionsCount() > 0,
       isHidden: isDocumentHidden(),
+      backoffErrors: consecutiveHttpSnapshotErrors,
     });
     httpPollTimer = window.setTimeout(async () => {
       await pollHttpSnapshot({ view: shouldUseFullSnapshot() ? "full" : "summary" });
@@ -684,6 +699,7 @@ export function initAccountsLiveSnapshot(store) {
       }
       const response = await fetch(url, { headers, cache: "no-store" });
       if (normalizedView === "summary" && response.status === 304) {
+        consecutiveHttpSnapshotErrors = 0;
         const nextState = store.getState();
         return {
           ok: true,
@@ -694,12 +710,18 @@ export function initAccountsLiveSnapshot(store) {
       }
       if (!response.ok) {
         console.warn("[KMFX][ACCOUNTS] http snapshot failed", response.status, url);
+        if (response.status >= 500 || response.status === 429) {
+          consecutiveHttpSnapshotErrors = Math.min(100, consecutiveHttpSnapshotErrors + 1);
+        } else {
+          consecutiveHttpSnapshotErrors = 0;
+        }
         if (![401, 403].includes(response.status) && keepLiveAccountsDuringTransientSnapshotFailure(store, `http_${response.status}`)) {
           return { ok: false, count: (store.getState().liveAccountIds || []).length, status: response.status, retained: true };
         }
         clearLiveAccounts(store, `http_${response.status}`);
         return { ok: false, count: 0, status: response.status };
       }
+      consecutiveHttpSnapshotErrors = 0;
       const payload = await response.json();
       if (normalizedView === "summary") {
         const responseEtag = response.headers.get("etag");
@@ -737,6 +759,7 @@ export function initAccountsLiveSnapshot(store) {
       };
     } catch (error) {
       console.warn("[KMFX][ACCOUNTS] http snapshot error", error);
+      consecutiveHttpSnapshotErrors = Math.min(100, consecutiveHttpSnapshotErrors + 1);
       if (keepLiveAccountsDuringTransientSnapshotFailure(store, "http_error")) {
         return { ok: false, count: (store.getState().liveAccountIds || []).length, error: true, retained: true };
       }
@@ -836,7 +859,7 @@ export function initAccountsLiveSnapshot(store) {
       return { ok: false, count: (store.getState().liveAccountIds || []).length, reason: "non_leader_tab" };
     }
     touchAccountsPollLeader();
-    const result = await pollHttpSnapshot({ view: "full" });
+    const result = await pollHttpSnapshot({ view: shouldUseFullSnapshot() ? "full" : "summary" });
     if (hasLiveAccountAccess(store.getState())) {
       connect();
     } else {

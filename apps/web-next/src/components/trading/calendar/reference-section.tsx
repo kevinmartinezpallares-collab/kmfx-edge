@@ -132,15 +132,21 @@ function PageMotion({ children }: PageMotionProps) {
   return <div>{children}</div>;
 }
 
+const SHORT_DAY_LABEL_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  day: "numeric",
+  month: "short",
+});
+const OPEN_DAY_TIME_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "UTC",
+});
 
 function shortDayLabel(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Sin fecha";
 
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "numeric",
-    month: "short",
-  }).format(date);
+  return SHORT_DAY_LABEL_FORMATTER.format(date);
 }
 
 function calendarMonthShortLabel(index: number) {
@@ -165,6 +171,66 @@ function formatExecutionTotal(count: number) {
   return `${count} ${count === 1 ? "ejecución" : "ejecuciones"}`;
 }
 
+type CalendarViewMode = "month" | "year";
+type CalendarValueMode = "currency" | "percent";
+
+type CalendarUiState = {
+  openDayKey: string | null;
+  selectedDayKey: string;
+  selectedMonthKey: string;
+  valueMode: CalendarValueMode;
+  viewMode: CalendarViewMode;
+};
+
+type CalendarUiAction =
+  | { type: "closeDay" }
+  | { type: "selectDay"; dayKey: string; open: boolean }
+  | { type: "selectMonth"; dayKey: string; monthKey: string }
+  | { type: "setValueMode"; valueMode: CalendarValueMode }
+  | { type: "setViewMode"; viewMode: CalendarViewMode };
+
+function createInitialCalendarUiState({
+  selectedDayKey,
+  selectedMonthKey,
+}: {
+  selectedDayKey: string;
+  selectedMonthKey: string;
+}): CalendarUiState {
+  return {
+    openDayKey: null,
+    selectedDayKey,
+    selectedMonthKey,
+    valueMode: "currency",
+    viewMode: "month",
+  };
+}
+
+function calendarUiReducer(
+  state: CalendarUiState,
+  action: CalendarUiAction,
+): CalendarUiState {
+  switch (action.type) {
+    case "closeDay":
+      return { ...state, openDayKey: null };
+    case "selectDay":
+      return {
+        ...state,
+        openDayKey: action.open ? action.dayKey : state.openDayKey,
+        selectedDayKey: action.dayKey,
+      };
+    case "selectMonth":
+      return {
+        ...state,
+        selectedDayKey: action.dayKey,
+        selectedMonthKey: action.monthKey,
+      };
+    case "setValueMode":
+      return { ...state, valueMode: action.valueMode };
+    case "setViewMode":
+      return { ...state, viewMode: action.viewMode };
+  }
+}
+
 
 export function CalendarReferenceSection({
   workspace,
@@ -180,15 +246,21 @@ export function CalendarReferenceSection({
     workspace.accounts.find((account) => account.id === workspace.activeAccountId) ??
     workspace.accounts[0];
   const baseCapital = activeAccount?.balance || activeAccount?.equity || 0;
-  const [viewMode, setViewMode] = React.useState<"month" | "year">("month");
-  const [valueMode, setValueMode] = React.useState<"currency" | "percent">("currency");
-  const [openDayKey, setOpenDayKey] = React.useState<string | null>(null);
-  const [selectedMonthKeyState, setSelectedMonthKeyState] = React.useState(
-    initialCalendarOverview.selectedMonthKey,
+  const [calendarUiState, dispatchCalendarUi] = React.useReducer(
+    calendarUiReducer,
+    {
+      selectedDayKey: initialCalendarOverview.latestDay?.tradingDayKey ?? "",
+      selectedMonthKey: initialCalendarOverview.selectedMonthKey,
+    },
+    createInitialCalendarUiState,
   );
-  const [selectedDayKeyState, setSelectedDayKeyState] = React.useState(
-    initialCalendarOverview.latestDay?.tradingDayKey ?? "",
-  );
+  const {
+    openDayKey,
+    selectedDayKey: selectedDayKeyState,
+    selectedMonthKey: selectedMonthKeyState,
+    valueMode,
+    viewMode,
+  } = calendarUiState;
 
   const calendarOverview = React.useMemo(
     () =>
@@ -222,7 +294,7 @@ export function CalendarReferenceSection({
   } = calendarOverview;
   const cumulativeChartData = React.useMemo(() => {
     return [...days]
-      .sort((a, b) => a.tradingDayKey.localeCompare(b.tradingDayKey))
+      .toSorted((a, b) => a.tradingDayKey.localeCompare(b.tradingDayKey))
       .reduce<{ total: number; points: Array<{ label: string; time: number; value: number }> }>((acc, day, index) => {
         const nextTotal = acc.total + day.pnl;
         const date = tradingDayKeyToUtcDate(day.tradingDayKey);
@@ -315,7 +387,7 @@ export function CalendarReferenceSection({
   const openDayChartData = React.useMemo(() => {
     const points = openDayTrades
       .slice()
-      .sort((a, b) => a.closedAt.localeCompare(b.closedAt))
+      .toSorted((a, b) => a.closedAt.localeCompare(b.closedAt))
       .reduce<{ total: number; points: Array<{ label: string; time: number; value: number }> }>((acc, trade, index) => {
         const nextTotal = acc.total + trade.netPnl;
         const closedAt = new Date(trade.closedAt);
@@ -327,11 +399,7 @@ export function CalendarReferenceSection({
             ...acc.points,
             {
               label: isValidTime
-                ? new Intl.DateTimeFormat("es-ES", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    timeZone: "UTC",
-                  }).format(closedAt)
+                ? OPEN_DAY_TIME_FORMATTER.format(closedAt)
                 : "Cierre",
               time: isValidTime
                 ? Math.floor(closedAt.getTime() / 1000)
@@ -385,11 +453,7 @@ export function CalendarReferenceSection({
       const sourceLast = openDayChartData.at(-1)?.time;
 
       if (!syntheticFirst || !syntheticLast || !sourceFirst || !sourceLast) {
-        return new Intl.DateTimeFormat("es-ES", {
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZone: "UTC",
-        }).format(new Date(time * 1000));
+        return OPEN_DAY_TIME_FORMATTER.format(new Date(time * 1000));
       }
 
       const ratio =
@@ -398,11 +462,7 @@ export function CalendarReferenceSection({
           : 1;
       const sourceTime = sourceFirst + (sourceLast - sourceFirst) * ratio;
 
-      return new Intl.DateTimeFormat("es-ES", {
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "UTC",
-      }).format(new Date(sourceTime * 1000));
+      return OPEN_DAY_TIME_FORMATTER.format(new Date(sourceTime * 1000));
     },
     [openDayChartData, openDayLabelByTime, openDayLivelineData],
   );
@@ -448,9 +508,12 @@ export function CalendarReferenceSection({
 
   const handleMonthSelect = React.useCallback(
     (monthKey: string) => {
-      setSelectedMonthKeyState(monthKey);
       const nextDay = days.find((day) => monthKeyFromTradingDayKey(day.tradingDayKey) === monthKey);
-      setSelectedDayKeyState(nextDay?.tradingDayKey ?? "");
+      dispatchCalendarUi({
+        type: "selectMonth",
+        dayKey: nextDay?.tradingDayKey ?? "",
+        monthKey,
+      });
     },
     [days],
   );
@@ -496,7 +559,9 @@ export function CalendarReferenceSection({
           type="button"
           variant={viewMode === "month" ? "secondary" : "ghost"}
           size="sm"
-          onClick={() => setViewMode("month")}
+          onClick={() =>
+            dispatchCalendarUi({ type: "setViewMode", viewMode: "month" })
+          }
         >
           Mes
         </Button>
@@ -504,7 +569,9 @@ export function CalendarReferenceSection({
           type="button"
           variant={viewMode === "year" ? "secondary" : "ghost"}
           size="sm"
-          onClick={() => setViewMode("year")}
+          onClick={() =>
+            dispatchCalendarUi({ type: "setViewMode", viewMode: "year" })
+          }
         >
           Año
         </Button>
@@ -513,7 +580,12 @@ export function CalendarReferenceSection({
           variant={valueMode === "currency" ? "secondary" : "ghost"}
           size="sm"
           className="min-w-11"
-          onClick={() => setValueMode("currency")}
+          onClick={() =>
+            dispatchCalendarUi({
+              type: "setValueMode",
+              valueMode: "currency",
+            })
+          }
         >
           $
         </Button>
@@ -522,7 +594,12 @@ export function CalendarReferenceSection({
           variant={valueMode === "percent" ? "secondary" : "ghost"}
           size="sm"
           className="min-w-11"
-          onClick={() => setValueMode("percent")}
+          onClick={() =>
+            dispatchCalendarUi({
+              type: "setValueMode",
+              valueMode: "percent",
+            })
+          }
         >
           %
         </Button>
@@ -622,12 +699,15 @@ export function CalendarReferenceSection({
                         {month.cells.map((cell) =>
                           cell.inMonth ? (
                             <button
-                              key={cell.key}
-                              type="button"
-                              onClick={() => {
-                                setSelectedDayKeyState(cell.key);
-                                if (cell.trades > 0) setOpenDayKey(cell.key);
-                              }}
+	                              key={cell.key}
+	                              type="button"
+	                              onClick={() => {
+	                                dispatchCalendarUi({
+	                                  type: "selectDay",
+	                                  dayKey: cell.key,
+	                                  open: cell.trades > 0,
+	                                });
+	                              }}
                               disabled={!cell.trades}
                               className={[
                                 "h-5 rounded-sm text-center text-[10px] leading-5 transition",
@@ -671,15 +751,15 @@ export function CalendarReferenceSection({
               <div className="min-w-0 overflow-hidden">
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-profit" />
+                    <span className="size-2 rounded-full bg-profit" />
                     Positivo
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-loss" />
+                    <span className="size-2 rounded-full bg-loss" />
                     Negativo
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-zinc-300" />
+                    <span className="size-2 rounded-full bg-zinc-300" />
                     Semana
                   </span>
                 </div>
@@ -701,12 +781,15 @@ export function CalendarReferenceSection({
                         {row.cells.map((cell) =>
                           cell.inMonth ? (
                             <button
-                              key={cell.key}
-                              type="button"
-                              onClick={() => {
-                                setSelectedDayKeyState(cell.key);
-                                if (cell.trades > 0) setOpenDayKey(cell.key);
-                              }}
+	                              key={cell.key}
+	                              type="button"
+	                              onClick={() => {
+	                                dispatchCalendarUi({
+	                                  type: "selectDay",
+	                                  dayKey: cell.key,
+	                                  open: cell.trades > 0,
+	                                });
+	                              }}
                               disabled={!cell.trades}
                               title={cell.trades ? `${cell.trades} operaciones / ${formatCalendarValue(cell.pnl, valueMode, baseCapital)}. Abrir detalle` : "Sin operativa"}
                               aria-label={cell.trades ? `${cell.dayNumber}: ${cell.trades} operaciones, ${formatCalendarValue(cell.pnl, valueMode, baseCapital)}. Abrir detalle` : `${cell.dayNumber}: sin operativa`}
@@ -969,7 +1052,7 @@ export function CalendarReferenceSection({
         </section>
       </div>
       <Dialog open={openDayKey !== null} onOpenChange={(open) => {
-        if (!open) setOpenDayKey(null);
+        if (!open) dispatchCalendarUi({ type: "closeDay" });
       }}>
         <DialogContent className="max-h-[86vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>

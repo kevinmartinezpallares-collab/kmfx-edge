@@ -134,7 +134,7 @@ export function buildDashboardAttentionItems(
   );
   const worstTrade = trades
     .filter((trade) => trade.netPnl < 0)
-    .sort((a, b) => a.netPnl - b.netPnl)[0];
+    .toSorted((a, b) => a.netPnl - b.netPnl)[0];
   const items: DashboardAttentionItem[] = [];
 
   if (workspace.risk.status === "blocked") {
@@ -195,7 +195,7 @@ export function buildDashboardSetupRows(trades: ClosedTrade[]): DashboardSetupRo
     return acc;
   }, new Map());
 
-  return [...setupMap.values()].sort((a, b) => b.pnl - a.pnl);
+  return [...setupMap.values()].toSorted((a, b) => b.pnl - a.pnl);
 }
 
 export function buildDashboardSymbolRows(trades: ClosedTrade[]): DashboardSymbolRow[] {
@@ -208,7 +208,7 @@ export function buildDashboardSymbolRows(trades: ClosedTrade[]): DashboardSymbol
     return acc;
   }, new Map());
 
-  return [...symbolMap.values()].sort((a, b) => b.trades - a.trades || b.pnl - a.pnl);
+  return [...symbolMap.values()].toSorted((a, b) => b.trades - a.trades || b.pnl - a.pnl);
 }
 
 export function buildDashboardSessionRows(trades: ClosedTrade[]): DashboardSessionRow[] {
@@ -224,7 +224,7 @@ export function buildDashboardSessionRows(trades: ClosedTrade[]): DashboardSessi
     new Map(),
   );
 
-  return [...sessionMap.values()].sort((a, b) => b.trades - a.trades || b.pnl - a.pnl);
+  return [...sessionMap.values()].toSorted((a, b) => b.trades - a.trades || b.pnl - a.pnl);
 }
 
 export function sessionLabel(session: ClosedTrade["session"]) {

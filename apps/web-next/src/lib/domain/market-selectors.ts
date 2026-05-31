@@ -60,7 +60,7 @@ export function buildMarketRows(workspace: WorkspaceState): MarketSymbolRow[] {
         tone: exposure?.tone ?? "safe",
       } satisfies MarketSymbolRow;
     })
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       if (b.trades !== a.trades) return b.trades - a.trades;
       return b.openRiskPct - a.openRiskPct;
     });

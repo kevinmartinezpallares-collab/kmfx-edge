@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useMotionValue, useTransform } from "framer-motion";
+import { m as motion, useMotionValue, useTransform } from "motion/react";
 import { ArrowRight, Check } from "lucide-react";
 import { useState } from "react";
 
@@ -38,11 +38,11 @@ export function DragToConfirmSlider({
   if (isConfirmed) {
     return (
       <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
         className="flex h-12 w-full items-center justify-center rounded-full bg-primary text-primary-foreground"
       >
-        <Check className="h-5 w-5" />
+        <Check className="size-5" />
         <span className="ml-2 text-sm font-medium">{confirmText}</span>
       </motion.div>
     );
@@ -60,7 +60,7 @@ export function DragToConfirmSlider({
         whileDrag={{ scale: 1.05 }}
       >
         <motion.div style={{ opacity }} className="flex items-center gap-2">
-          <ArrowRight className="h-4 w-4 text-primary-foreground" />
+          <ArrowRight className="size-4 text-primary-foreground" />
         </motion.div>
       </motion.div>
 

@@ -200,6 +200,12 @@ function formatMetricValue({
   })}${suffix}`;
 }
 
+const EFFERD_SEGMENT_TONE_CLASSES = {
+  used: "bg-foreground/75",
+  free: "bg-chart-background",
+  reserve: "bg-muted-foreground/25",
+} as const;
+
 function EfferdSegmentedMeter({
   label,
   value,
@@ -211,12 +217,6 @@ function EfferdSegmentedMeter({
   limit: string;
   segments: Array<{ label: string; pct: number; tone: "used" | "free" | "reserve" }>;
 }) {
-  const toneClass = {
-    used: "bg-foreground/75",
-    free: "bg-chart-background",
-    reserve: "bg-muted-foreground/25",
-  };
-
   return (
     <div className="border-t border-border/60 pt-5">
       <div className="flex items-start justify-between gap-4">
@@ -230,7 +230,7 @@ function EfferdSegmentedMeter({
         {segments.map((segment) => (
           <div
             key={segment.label}
-            className={cn("rounded-full", toneClass[segment.tone])}
+            className={cn("rounded-full", EFFERD_SEGMENT_TONE_CLASSES[segment.tone])}
             style={{ width: `${Math.max(3, segment.pct)}%` }}
           />
         ))}
@@ -392,7 +392,7 @@ function buildEquityChartData(
       const latestSourceTime = dated.at(-1)?.time ?? now;
       return dated
         .slice()
-        .sort((left, right) => (left.time ?? now) - (right.time ?? now))
+        .toSorted((left, right) => (left.time ?? now) - (right.time ?? now))
         .map((point) => ({
           label: point.label || shortPanelTimeLabel(point.time ?? now),
           equity: point.value,
@@ -454,11 +454,13 @@ function panelSourceLabel(workspace: WorkspaceState) {
   return workspace.meta.sourceMode === "live" ? "Lectura MT5" : "Lectura segura";
 }
 
+const SHORT_PANEL_TIME_LABEL_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  day: "numeric",
+  month: "short",
+});
+
 function shortPanelTimeLabel(time: number) {
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "numeric",
-    month: "short",
-  }).format(new Date(time * 1000));
+  return SHORT_PANEL_TIME_LABEL_FORMATTER.format(new Date(time * 1000));
 }
 
 function PanelChartWindowControls({
@@ -724,7 +726,7 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
     workspace.risk.dailyLimitPct - workspace.risk.dailyDrawdownPct,
   );
   const dailyRoomCurrency = accountEquity * (dailyRoom / 100);
-  const dominantExposure = [...workspace.risk.exposureBySymbol].sort(
+  const dominantExposure = [...workspace.risk.exposureBySymbol].toSorted(
     (a, b) => b.openRiskPct - a.openRiskPct,
   )[0];
   const statusTone = cn(
@@ -1111,9 +1113,9 @@ function PanelInsightsCompact({
   const performance = buildDashboardPerformance(workspace, { preferActiveTrades: true });
   const symbolRows = buildDashboardSymbolRows(workspace.trades);
   const sessionRows = buildDashboardSessionRows(workspace.trades);
-  const topSymbol = [...symbolRows].sort((a, b) => b.pnl - a.pnl)[0];
-  const topSession = [...sessionRows].sort((a, b) => b.pnl - a.pnl)[0];
-  const reviewSession = [...sessionRows].sort((a, b) => a.pnl - b.pnl)[0];
+  const topSymbol = [...symbolRows].toSorted((a, b) => b.pnl - a.pnl)[0];
+  const topSession = [...sessionRows].toSorted((a, b) => b.pnl - a.pnl)[0];
+  const reviewSession = [...sessionRows].toSorted((a, b) => a.pnl - b.pnl)[0];
   const tradeOutcome = workspace.trades.reduce(
     (counts, trade) => {
       const netPnls = trade.executions.length
@@ -1281,9 +1283,11 @@ function buildPanelMetricDeltas(
     ? pctChange(latestEquityPoint.equity, sevenDaysAgo.equity)
     : 0;
 
-  const tradeTimes = workspace.trades
-    .map((trade) => new Date(trade.closedAt).getTime())
-    .filter(Number.isFinite);
+  const tradeTimes = workspace.trades.reduce<number[]>((times, trade) => {
+    const value = new Date(trade.closedAt).getTime();
+    if (Number.isFinite(value)) times.push(value);
+    return times;
+  }, []);
   const latestTradeMs = tradeTimes.length > 0 ? Math.max(...tradeTimes) : Date.now();
   const currentStartMs = latestTradeMs - PANEL_COMPARISON_DAYS * DAY_SECONDS * 1000;
   const previousStartMs = latestTradeMs - PANEL_COMPARISON_DAYS * 2 * DAY_SECONDS * 1000;

@@ -123,9 +123,9 @@ export function getAnalyticsDailyOverview(
 ): AnalyticsDailyOverview {
   const days = workspace.analytics.daily;
   const bestDay =
-    days.length > 0 ? [...days].sort((a, b) => b.pnl - a.pnl)[0] : null;
+    days.length > 0 ? [...days].toSorted((a, b) => b.pnl - a.pnl)[0] : null;
   const worstDay =
-    days.length > 0 ? [...days].sort((a, b) => a.pnl - b.pnl)[0] : null;
+    days.length > 0 ? [...days].toSorted((a, b) => a.pnl - b.pnl)[0] : null;
   const averageTradesPerActiveDay =
     days.length > 0 ? days.reduce((sum, item) => sum + item.trades, 0) / days.length : 0;
 
@@ -143,13 +143,13 @@ export function getAnalyticsHourlyOverview(
 ): AnalyticsHourlyOverview {
   const hours = workspace.analytics.hourly;
   const bestHour =
-    hours.length > 0 ? [...hours].sort((a, b) => b.pnl - a.pnl)[0] : null;
+    hours.length > 0 ? [...hours].toSorted((a, b) => b.pnl - a.pnl)[0] : null;
   const sessionCounts = workspace.trades.reduce<Record<string, number>>((acc, trade) => {
     acc[trade.session] = (acc[trade.session] ?? 0) + 1;
     return acc;
   }, {});
   const dominantSession =
-    (Object.entries(sessionCounts).sort((a, b) => b[1] - a[1])[0]?.[0] as
+    (Object.entries(sessionCounts).toSorted((a, b) => b[1] - a[1])[0]?.[0] as
       | TradeSession
       | undefined) ?? "Pend.";
 
@@ -167,11 +167,11 @@ export function buildInsightAttribution(
 ): AnalyticsInsightAttribution {
   const trades = workspace.trades;
   const performance = workspace.analytics.performance;
-  const setupRows = buildStrategyRows(workspace).sort((a, b) => b.netPnl - a.netPnl);
+  const setupRows = buildStrategyRows(workspace).toSorted((a, b) => b.netPnl - a.netPnl);
   const positiveSetups = setupRows.filter((row) => row.netPnl > 0);
   const negativeSetups = setupRows.filter((row) => row.netPnl < 0);
   const bestSetup = positiveSetups[0] ?? setupRows[0] ?? null;
-  const worstSetup = negativeSetups.sort((a, b) => a.netPnl - b.netPnl)[0] ?? null;
+  const worstSetup = negativeSetups.toSorted((a, b) => a.netPnl - b.netPnl)[0] ?? null;
   const totalTrades = countClosedTradeExecutions(trades);
   const taggedTrades = trades.reduce(
     (sum, trade) => sum + (trade.setup ? Math.max(1, trade.executions.length) : 0),
@@ -190,7 +190,7 @@ export function buildInsightAttribution(
         acc[trade.symbol] = current;
         return acc;
       }, {}),
-    ).sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))[0] ?? null;
+    ).toSorted((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))[0] ?? null;
   const sessionRows = Object.values(
     trades.reduce<Record<string, AnalyticsAttributionBucket>>((acc, trade) => {
       const executionCount = Math.max(1, trade.executions.length);
@@ -200,11 +200,11 @@ export function buildInsightAttribution(
       acc[trade.session] = current;
       return acc;
     }, {}),
-  ).sort((a, b) => b.pnl - a.pnl);
+  ).toSorted((a, b) => b.pnl - a.pnl);
   const topSession =
-    [...sessionRows].sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))[0] ?? null;
+    [...sessionRows].toSorted((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))[0] ?? null;
   const cumulativeCurve = [...workspace.analytics.daily]
-    .sort((a, b) => a.tradingDayKey.localeCompare(b.tradingDayKey))
+    .toSorted((a, b) => a.tradingDayKey.localeCompare(b.tradingDayKey))
     .reduce<Array<{ label: string; pnl: number }>>((acc, day) => {
       const previous = acc.at(-1)?.pnl ?? 0;
       acc.push({ label: day.label, pnl: previous + day.pnl });
@@ -258,7 +258,7 @@ export function buildInsightActionFindings(
   const outlierDependency = insights.outlierDependency;
   const bestSession = insights.sessionRows.find((session) => session.pnl > 0) ?? null;
   const worstSession =
-    [...insights.sessionRows].filter((session) => session.pnl < 0).sort((a, b) => a.pnl - b.pnl)[0] ??
+    [...insights.sessionRows].filter((session) => session.pnl < 0).toSorted((a, b) => a.pnl - b.pnl)[0] ??
     null;
 
   const maintain: AnalyticsActionFinding = bestSession

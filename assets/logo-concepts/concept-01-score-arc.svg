@@ -1,0 +1,8 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">KMFX Edge concept 01 - Score Arc</title>
+  <desc id="desc">Point, rising equity stroke, and score arc mark for KMFX Edge.</desc>
+  <circle cx="45" cy="53" r="11" fill="#F6F8FB"/>
+  <path d="M60 112L90 42" stroke="#F6F8FB" stroke-width="15" stroke-linecap="round"/>
+  <path d="M93 112C93 86.6 113.6 66 139 66" stroke="#2F6BFF" stroke-width="15" stroke-linecap="round"/>
+  <path d="M60 112L90 42" stroke="#6BB6FF" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+</svg>

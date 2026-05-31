@@ -7,6 +7,23 @@ el dashboard rapido.
 
 Riesgo actual:
 
+- 2026-05-25: Render muestra `114.14 GB / 100 GB` de bandwidth incluido.
+  El desglose apunta a `113.25 GB` de `Service-Initiated`, no a respuestas
+  HTTP al navegador. Tratarlo como backend -> Supabase/servicios externos hasta
+  demostrar lo contrario.
+- Mientras el workspace este por encima del cupo, mantener el backend apagado o
+  en lockdown:
+  - `KMFX_BANDWIDTH_EMERGENCY_LOCKDOWN=true`
+  - `KMFX_BANDWIDTH_FORCE_MODE=hard`
+  - `KMFX_CONNECTION_RATE_LIMIT_SYNC_PER_MINUTE=1`
+  - `KMFX_CONNECTION_RATE_LIMIT_JOURNAL_PER_MINUTE=1`
+  - `KMFX_CONNECTION_RATE_LIMIT_POLICY_PER_MINUTE=1`
+  - `KMFX_BANDWIDTH_HARD_SYNC_INTERVAL_SECONDS=300`
+  - `KMFX_MT5_SYNC_MAX_BODY_BYTES=524288`
+  - `KMFX_MT5_JOURNAL_MAX_BODY_BYTES=262144`
+  - `KMFX_MT5_SYNC_MAX_TRADES=40`
+  - `KMFX_MT5_SYNC_MAX_HISTORY_POINTS=48`
+  - `KMFX_STORE_FULL_MT5_PAYLOADS=false`
 - Render ha avisado de uso superior al 70% de los 500 minutos gratuitos de
   build pipeline.
 - Al agotar los minutos gratuitos, Render puede cobrar minutos adicionales de
@@ -114,6 +131,19 @@ Medidas operativas:
      summary.
   7. Si Storage genera egress, mover descargas pesadas a Vercel/GitHub Releases
      o CDN cacheado, no a Supabase.
+
+Medidas aplicadas:
+
+- El registro principal de cuentas guarda por defecto un payload compacto
+  (`payloadShape=storage-summary`) en vez del snapshot MT5 completo.
+- Las posiciones, trades cerrados y puntos de equity de MT5 se escriben en
+  tablas normalizadas (`mt5_account_positions`, `mt5_account_trades`,
+  `mt5_equity_points`) con acceso solo de backend mediante `service_role`.
+- La ruta `/api/mt5/sync` recorta listas grandes antes de persistir:
+  50 posiciones, 40 trades y 48 puntos de historial por sync por defecto.
+- El full snapshot historico queda como opt-in (`KMFX_STORE_FULL_MT5_PAYLOADS=true`)
+  y aun asi limitado por `KMFX_MAX_STORED_TRADES` y
+  `KMFX_MAX_STORED_HISTORY_POINTS`.
 
 Umbrales operativos durante beta:
 

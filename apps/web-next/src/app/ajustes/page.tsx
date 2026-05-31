@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import type { WorkspaceSearchParams } from "@/lib/data/workspace-source";
+
+export const metadata: Metadata = {
+  title: "Ajustes / KMFX Edge",
+  description: "Redireccion heredada hacia ajustes y suscripcion de KMFX Edge.",
+};
 
 type LegacySettingsPageProps = {
   searchParams?: Promise<WorkspaceSearchParams>;

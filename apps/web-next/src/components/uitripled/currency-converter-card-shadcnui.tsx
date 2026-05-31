@@ -1,8 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as motion } from "motion/react";
 import { ArrowLeftRight, TrendingUp } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useReducer } from "react";
 
 type Currency = {
   code: string;
@@ -38,25 +38,109 @@ const BASE_INDEX: Record<CurrencyCode, number> = {
   MXN: 17.12,
 };
 
+type ConverterState = {
+  amount: string;
+  fromCurrency: CurrencyCode;
+  toCurrency: CurrencyCode;
+  result: number | null;
+  rate: number | null;
+  loading: boolean;
+  isFlipped: boolean;
+  error: string;
+};
+
+type ConverterAction =
+  | { type: "setAmount"; amount: string }
+  | { type: "setFromCurrency"; currency: CurrencyCode }
+  | { type: "setToCurrency"; currency: CurrencyCode }
+  | { type: "swapCurrencies" }
+  | { type: "conversionPending" }
+  | { type: "conversionEmpty" }
+  | { type: "conversionInvalid"; message: string }
+  | { type: "conversionSucceeded"; rate: number; result: number }
+  | { type: "conversionFailed"; message: string };
+
+const initialConverterState: ConverterState = {
+  amount: "100",
+  fromCurrency: "USD",
+  toCurrency: "EUR",
+  result: null,
+  rate: null,
+  loading: false,
+  isFlipped: false,
+  error: "",
+};
+
+function converterReducer(
+  state: ConverterState,
+  action: ConverterAction
+): ConverterState {
+  switch (action.type) {
+    case "setAmount":
+      return { ...state, amount: action.amount };
+    case "setFromCurrency":
+      return { ...state, fromCurrency: action.currency };
+    case "setToCurrency":
+      return { ...state, toCurrency: action.currency };
+    case "swapCurrencies":
+      return {
+        ...state,
+        fromCurrency: state.toCurrency,
+        toCurrency: state.fromCurrency,
+      };
+    case "conversionPending":
+      return { ...state, loading: true, error: "" };
+    case "conversionEmpty":
+      return {
+        ...state,
+        error: "",
+        loading: false,
+        rate: null,
+        result: null,
+      };
+    case "conversionInvalid":
+    case "conversionFailed":
+      return {
+        ...state,
+        error: action.message,
+        loading: false,
+        rate: null,
+        result: null,
+      };
+    case "conversionSucceeded":
+      return {
+        ...state,
+        error: "",
+        isFlipped: !state.isFlipped,
+        loading: false,
+        rate: action.rate,
+        result: action.result,
+      };
+  }
+}
+
 export function CurrencyConverterCard() {
-  const [amount, setAmount] = useState<string>("100");
-  const [fromCurrency, setFromCurrency] = useState<CurrencyCode>("USD");
-  const [toCurrency, setToCurrency] = useState<CurrencyCode>("EUR");
-  const [result, setResult] = useState<number | null>(null);
-  const [rate, setRate] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [isFlipped, setIsFlipped] = useState(false);
-  const [error, setError] = useState<string>("");
+  const [state, dispatch] = useReducer(
+    converterReducer,
+    initialConverterState
+  );
+  const {
+    amount,
+    error,
+    fromCurrency,
+    isFlipped,
+    loading,
+    rate,
+    result,
+    toCurrency,
+  } = state;
 
   useEffect(() => {
     const trimmed = amount.trim();
 
     if (!trimmed) {
       window.queueMicrotask(() => {
-        setLoading(false);
-        setError("");
-        setRate(null);
-        setResult(null);
+        dispatch({ type: "conversionEmpty" });
       });
       return;
     }
@@ -65,10 +149,7 @@ export function CurrencyConverterCard() {
 
     if (Number.isNaN(numericAmount)) {
       window.queueMicrotask(() => {
-        setLoading(false);
-        setError("Enter a valid amount");
-        setRate(null);
-        setResult(null);
+        dispatch({ type: "conversionInvalid", message: "Enter a valid amount" });
       });
       return;
     }
@@ -77,8 +158,7 @@ export function CurrencyConverterCard() {
 
     window.queueMicrotask(() => {
       if (cancelled) return;
-      setLoading(true);
-      setError("");
+      dispatch({ type: "conversionPending" });
     });
 
     const timeout = window.setTimeout(() => {
@@ -88,17 +168,20 @@ export function CurrencyConverterCard() {
       const toIndex = BASE_INDEX[toCurrency];
 
       if (!fromIndex || !toIndex) {
-        setError("Unsupported currency selection");
-        setLoading(false);
+        dispatch({
+          type: "conversionFailed",
+          message: "Unsupported currency selection",
+        });
         return;
       }
 
       const nextRate = toIndex / fromIndex;
 
-      setRate(nextRate);
-      setResult(numericAmount * nextRate);
-      setIsFlipped((previous) => !previous);
-      setLoading(false);
+      dispatch({
+        type: "conversionSucceeded",
+        rate: nextRate,
+        result: numericAmount * nextRate,
+      });
     }, 220);
 
     return () => {
@@ -123,8 +206,7 @@ export function CurrencyConverterCard() {
   }, [rate]);
 
   const handleSwap = () => {
-    setFromCurrency(toCurrency);
-    setToCurrency(fromCurrency);
+    dispatch({ type: "swapCurrencies" });
   };
 
   const amountSymbol =
@@ -144,7 +226,7 @@ export function CurrencyConverterCard() {
       <div className="relative overflow-hidden border border-border/60 bg-card/80 backdrop-blur  rounded-2xl">
         <div className="space-y-1 px-6 pt-6 pb-4">
           <h2 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
-            <TrendingUp className="h-6 w-6 text-primary" />
+            <TrendingUp className="size-6 text-primary" />
             Currency Converter
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -154,7 +236,10 @@ export function CurrencyConverterCard() {
 
         <div className="space-y-6 px-6 pb-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
+            <label
+              className="text-sm font-medium text-muted-foreground"
+              htmlFor="currency-converter-amount"
+            >
               From
             </label>
             <div className="flex gap-3">
@@ -163,20 +248,29 @@ export function CurrencyConverterCard() {
                   {amountSymbol}
                 </span>
                 <input
-                  type="number"
-                  inputMode="decimal"
-                  value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
+                  id="currency-converter-amount"
+	                  type="number"
+	                  inputMode="decimal"
+	                  value={amount}
+	                  onChange={(event) =>
+	                    dispatch({
+	                      type: "setAmount",
+	                      amount: event.target.value,
+	                    })
+	                  }
                   placeholder="Amount"
                   className="w-full rounded-lg border border-border bg-background/70 px-8 py-3 text-lg font-semibold text-foreground shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-primary/40"
                 />
               </div>
               <select
-                value={fromCurrency}
-                onChange={(event) =>
-                  setFromCurrency(event.target.value as CurrencyCode)
-                }
-                className="w-[132px] rounded-lg border border-border bg-background px-3 py-3 text-sm font-semibold text-foreground shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/40"
+	                value={fromCurrency}
+	                onChange={(event) =>
+	                  dispatch({
+	                    type: "setFromCurrency",
+	                    currency: event.target.value as CurrencyCode,
+	                  })
+	                }
+                className="w-[132px] rounded-lg border border-border bg-background p-3 text-sm font-semibold text-foreground shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 {CURRENCIES.map((currency) => (
                   <option key={currency.code} value={currency.code}>
@@ -194,14 +288,17 @@ export function CurrencyConverterCard() {
               whileTap={{ scale: 0.94 }}
               onClick={handleSwap}
               disabled={loading}
-              className="flex h-12 w-12 items-center justify-center rounded-full border border-border/70 bg-background/50 text-foreground transition hover:bg-background/70 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex size-12 items-center justify-center rounded-full border border-border/70 bg-background/50 text-foreground transition hover:bg-background/70 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <ArrowLeftRight className="h-5 w-5" />
+              <ArrowLeftRight className="size-5" />
             </motion.button>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
+            <label
+              className="text-sm font-medium text-muted-foreground"
+              htmlFor="currency-converter-result"
+            >
               To
             </label>
             <div className="flex gap-3">
@@ -216,6 +313,7 @@ export function CurrencyConverterCard() {
                   {resultSymbol}
                 </span>
                 <input
+                  id="currency-converter-result"
                   type="text"
                   value={formattedResult}
                   readOnly
@@ -223,11 +321,14 @@ export function CurrencyConverterCard() {
                 />
               </motion.div>
               <select
-                value={toCurrency}
-                onChange={(event) =>
-                  setToCurrency(event.target.value as CurrencyCode)
-                }
-                className="w-[132px] rounded-lg border border-border bg-background px-3 py-3 text-sm font-semibold text-foreground shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/40"
+	                value={toCurrency}
+	                onChange={(event) =>
+	                  dispatch({
+	                    type: "setToCurrency",
+	                    currency: event.target.value as CurrencyCode,
+	                  })
+	                }
+                className="w-[132px] rounded-lg border border-border bg-background p-3 text-sm font-semibold text-foreground shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 {CURRENCIES.map((currency) => (
                   <option key={currency.code} value={currency.code}>
@@ -245,11 +346,11 @@ export function CurrencyConverterCard() {
               className="flex items-center justify-center gap-2 rounded-lg border border-border bg-background/60 px-4 py-3 text-sm text-muted-foreground"
             >
               <motion.span
-                className="h-4 w-4 rounded-full border-2 border-muted-foreground/60 border-t-transparent"
+                className="size-4 rounded-full border-2 border-muted-foreground/60 border-t-transparent"
                 animate={{ rotate: 360 }}
                 transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
               />
-              Calculando tipo de cambio...
+              Calculando tipo de cambio…
             </motion.div>
           )}
 

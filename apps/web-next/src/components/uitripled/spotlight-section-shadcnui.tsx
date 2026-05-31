@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useMotionValue, useSpring } from "framer-motion";
+import { m as motion, useMotionValue, useSpring } from "motion/react";
 import { MouseEvent, useState } from "react";
 
 type SpotlightSectionProps = {

@@ -173,12 +173,17 @@ const fundingPayoutStatusLabels: Record<FundingPayoutRow["status"], string> = {
 
 function buildFundingRows(workspace: WorkspaceState) {
   return workspace.accounts
-    .filter((account) => account.funding)
-    .map((account) => ({
-      account,
-      funding: account.funding!,
-    }))
-    .sort((a, b) => {
+    .flatMap((account) =>
+      account.funding
+        ? [
+            {
+              account,
+              funding: account.funding,
+            },
+          ]
+        : [],
+    )
+    .toSorted((a, b) => {
       const severityRank = { blocked: 0, caution: 1, safe: 2 };
       const statusDiff = severityRank[a.funding.status] - severityRank[b.funding.status];
       if (statusDiff !== 0) return statusDiff;

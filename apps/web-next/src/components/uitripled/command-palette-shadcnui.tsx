@@ -2,11 +2,11 @@
 
 import {
   AnimatePresence,
-  motion,
+  m as motion,
   useReducedMotion,
   type Transition,
   type Variants,
-} from "framer-motion";
+} from "motion/react";
 import { File, Search, Settings, User, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -122,7 +122,7 @@ export function CommandPalette({
           whileHover={shouldReduceMotion ? undefined : { scale: 1.02 }}
           whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
         >
-          <Search className="h-4 w-4" aria-hidden />
+          <Search className="size-4" aria-hidden />
         </motion.button>
       ) : (
         <motion.button
@@ -135,7 +135,7 @@ export function CommandPalette({
           whileHover={shouldReduceMotion ? undefined : { scale: 1.02 }}
           whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
         >
-          <Search className="h-4 w-4 text-foreground/70" aria-hidden />
+          <Search className="size-4 text-foreground/70" aria-hidden />
           <span className="font-medium">Buscar rutas, símbolos o acciones</span>
           <kbd className="ml-auto rounded-full border border-border/60 bg-muted/60 px-2 py-0.5 text-xs text-muted-foreground">
             ⌘K
@@ -170,7 +170,7 @@ export function CommandPalette({
                   className="pointer-events-none absolute inset-0"
                 >
                   <motion.div
-                    className="absolute -top-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-foreground/8 blur-[150px]"
+                    className="absolute -top-24 left-1/2 size-64 -translate-x-1/2 rounded-full bg-foreground/8 blur-[150px]"
                     animate={
                       shouldReduceMotion
                         ? undefined
@@ -186,7 +186,7 @@ export function CommandPalette({
                     }
                   />
                   <motion.div
-                    className="absolute bottom-[-30%] right-[-5%] h-72 w-72 rounded-full bg-muted-foreground/10 blur-[160px]"
+                    className="absolute bottom-[-30%] right-[-5%] size-72 rounded-full bg-muted-foreground/10 blur-[160px]"
                     animate={
                       shouldReduceMotion
                         ? undefined
@@ -201,19 +201,19 @@ export function CommandPalette({
                 </div>
 
                 <div className="relative flex items-center gap-3 border-b border-border/60 px-5 py-4">
-                  <Search className="h-5 w-5 text-foreground/70" aria-hidden />
-                  <input
-                    type="text"
-                    value={query}
+                  <Search className="size-5 text-foreground/70" aria-hidden />
+	                  <input
+	                    aria-label="Buscar comandos"
+	                    type="text"
+	                    value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Buscar mercados, órdenes o secciones..."
                     className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-                    autoFocus
                   />
                   <motion.button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/45 text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="inline-flex size-9 items-center justify-center rounded-full border border-border/60 bg-background/45 text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     whileHover={
                       shouldReduceMotion
                         ? undefined
@@ -221,13 +221,13 @@ export function CommandPalette({
                     }
                     whileTap={shouldReduceMotion ? undefined : { scale: 0.9 }}
                   >
-                    <X className="h-4 w-4" aria-hidden />
+                    <X className="size-4" aria-hidden />
                     <span className="sr-only">Cerrar paleta</span>
                   </motion.button>
                 </div>
 
                 <motion.div
-                  className="relative max-h-96 overflow-y-auto px-3 py-3"
+                  className="relative max-h-96 overflow-y-auto p-3"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
@@ -237,7 +237,7 @@ export function CommandPalette({
                       No se encontraron comandos. Prueba otra búsqueda.
                     </div>
                   ) : (
-                    <ul className="space-y-2" role="list">
+                    <ul className="space-y-2">
                       {filteredCommands.map((cmd, index) => {
                         const Icon = cmd.icon;
                         return (
@@ -260,11 +260,11 @@ export function CommandPalette({
                           >
                             <button
                               type="button"
-                              className="group flex w-full items-center justify-between rounded-2xl border border-transparent bg-background/42 px-4 py-4 text-left transition-colors duration-200 hover:border-border hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              className="group flex w-full items-center justify-between rounded-2xl border border-transparent bg-background/42 p-4 text-left transition-colors duration-200 hover:border-border hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               <div className="flex items-center gap-3">
-                                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-border/50 bg-card/70 text-foreground shadow-sm backdrop-blur">
-                                  <Icon className="h-4 w-4" aria-hidden />
+                                <span className="flex size-9 items-center justify-center rounded-xl border border-border/50 bg-card/70 text-foreground shadow-sm backdrop-blur">
+                                  <Icon className="size-4" aria-hidden />
                                 </span>
                                 <div className="flex flex-col">
                                   <span className="text-sm font-medium text-foreground">

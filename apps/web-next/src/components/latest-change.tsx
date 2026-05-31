@@ -30,8 +30,18 @@ export function LatestChange() {
 				<span className="text-[10px] text-muted-foreground">
 					{latestChange.description}
 				</span>
-				<Button className="w-max px-0 font-light text-xs" size="sm" variant="link" render={<a href={latestChange.url} />} nativeButton={false}>Ver panel</Button>
 				<Button
+					aria-label="Ver panel"
+					className="w-max px-0 font-light text-xs"
+					size="sm"
+					variant="link"
+					render={<a href={latestChange.url} aria-label="Ver panel" />}
+					nativeButton={false}
+				>
+					Ver panel
+				</Button>
+				<Button
+					aria-label="Cerrar aviso de cambio"
 					className="absolute top-2 right-2 z-10 size-6 rounded-full opacity-0 transition-opacity group-hover/latest-change:opacity-100"
 					onClick={() => setIsOpen(false)}
 					size="icon-sm"

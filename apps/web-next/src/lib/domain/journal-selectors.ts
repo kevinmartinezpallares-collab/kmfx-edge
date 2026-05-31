@@ -41,11 +41,13 @@ export type JournalAiReviewOverview = {
   hints: string[];
 };
 
+const JOURNAL_DATE_LABEL_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  day: "2-digit",
+  month: "short",
+});
+
 function toDateLabel(value: string) {
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "2-digit",
-    month: "short",
-  }).format(new Date(value));
+  return JOURNAL_DATE_LABEL_FORMATTER.format(new Date(value));
 }
 
 export function getJournalOverview(
@@ -97,7 +99,7 @@ export function getJournalAiReviewOverview(
           acc[trade.session] = (acc[trade.session] ?? 0) + 1;
           return acc;
         }, {}),
-    ).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Pendiente";
+    ).toSorted((a, b) => b[1] - a[1])[0]?.[0] ?? "Pendiente";
   const missingSetupCount = workspace.trades.filter((trade) => !trade.setup).length;
 
   return {

@@ -1,30 +1,7 @@
 "use client";
 
 import type { Transition } from "motion/react";
-import { createContext, type RefObject, useContext } from "react";
-
-// CSS variable references for pie chart theming
-export const pieCssVars = {
-  background: "var(--chart-background)",
-  foreground: "var(--chart-foreground)",
-  foregroundMuted: "var(--chart-foreground-muted)",
-  label: "var(--chart-label)",
-  // Default slice colors from chart palette
-  slice1: "var(--chart-1)",
-  slice2: "var(--chart-2)",
-  slice3: "var(--chart-3)",
-  slice4: "var(--chart-4)",
-  slice5: "var(--chart-5)",
-};
-
-// Default slice color palette
-export const defaultPieColors = [
-  pieCssVars.slice1,
-  pieCssVars.slice2,
-  pieCssVars.slice3,
-  pieCssVars.slice4,
-  pieCssVars.slice5,
-];
+import { createContext, type RefObject, use } from "react";
 
 export interface PieData {
   /** Display label for the slice */
@@ -99,7 +76,7 @@ export function PieProvider({
 }
 
 export function usePie(): PieContextValue {
-  const context = useContext(PieContext);
+  const context = use(PieContext);
   if (!context) {
     throw new Error(
       "usePie must be used within a PieProvider. " +
@@ -108,5 +85,3 @@ export function usePie(): PieContextValue {
   }
   return context;
 }
-
-export default PieContext;

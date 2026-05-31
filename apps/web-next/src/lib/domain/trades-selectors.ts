@@ -63,7 +63,7 @@ function buildSymbolRows(trades: ClosedTrade[]): TradeAggregationRow[] {
       acc[trade.symbol] = current;
       return acc;
     }, {}),
-  ).sort(sortAggregationRows);
+  ).toSorted(sortAggregationRows);
 }
 
 function buildSessionRows(trades: ClosedTrade[]): TradeAggregationRow[] {
@@ -81,7 +81,7 @@ function buildSessionRows(trades: ClosedTrade[]): TradeAggregationRow[] {
       acc[trade.session] = current;
       return acc;
     }, {}),
-  ).sort(sortAggregationRows);
+  ).toSorted(sortAggregationRows);
 }
 
 export function getTradesOverview(workspace: WorkspaceState): TradesOverview {

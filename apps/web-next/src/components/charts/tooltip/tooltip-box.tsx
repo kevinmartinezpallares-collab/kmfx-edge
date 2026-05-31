@@ -1,8 +1,9 @@
 "use client";
 
-import { motion, useSpring } from "motion/react";
+import { m as motion, useSpring } from "motion/react";
 import type { RefObject } from "react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { useClientReady } from "@/hooks/use-client-ready";
 import { cn } from "@/lib/utils";
 
 // Spring config for smooth tooltip movement
@@ -52,11 +53,7 @@ export function TooltipBox({
   const tooltipRef = useRef<HTMLDivElement>(null);
   const tooltipWidthRef = useRef(180);
   const tooltipHeightRef = useRef(80);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const clientReady = useClientReady();
 
   const animatedLeft = useSpring(x + offset, springConfig);
   const animatedTop = useSpring(y, springConfig);
@@ -117,23 +114,25 @@ export function TooltipBox({
     animatedTop,
   ]);
 
-  const prevFlipRef = useRef(shouldFlipX);
-  const [flipKey, setFlipKey] = useState(0);
-
-  useEffect(() => {
-    if (prevFlipRef.current !== shouldFlipX) {
-      setFlipKey((k) => k + 1);
-      prevFlipRef.current = shouldFlipX;
-    }
-  }, [shouldFlipX]);
+  const [flipState, setFlipState] = useState({
+    flipKey: 0,
+    shouldFlipX,
+  });
+  if (flipState.shouldFlipX !== shouldFlipX) {
+    setFlipState({
+      flipKey: flipState.flipKey + 1,
+      shouldFlipX,
+    });
+  }
 
   const finalLeft = leftOverride ?? animatedLeft;
   const finalTop = topOverride ?? animatedTop;
   const isFlipped = flippedOverride ?? shouldFlipX;
+  const flipKey = flipState.flipKey;
   const transformOrigin = isFlipped ? "right top" : "left top";
 
   const container = containerRef.current;
-  if (!(mounted && container)) {
+  if (!(clientReady && container)) {
     return null;
   }
 

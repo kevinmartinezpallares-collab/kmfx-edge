@@ -62,7 +62,7 @@ describe("migration scope guardrails", () => {
     });
 
     expect(
-      supabaseRuntimeFiles.map((filePath) => path.relative(process.cwd(), filePath)).sort(),
+      supabaseRuntimeFiles.map((filePath) => path.relative(process.cwd(), filePath)).toSorted(),
     ).toEqual([
       "src/lib/supabase/client.ts",
       "src/lib/supabase/proxy.ts",

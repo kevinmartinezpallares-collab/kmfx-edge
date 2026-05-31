@@ -230,9 +230,9 @@ export function getPortfolioOverview(workspace: WorkspaceState): PortfolioOvervi
     workspace.risk.heatLimitPct > 0
       ? Math.min(100, (workspace.risk.totalOpenRiskPct / workspace.risk.heatLimitPct) * 100)
       : 0;
-  const largestAccount = [...accountRows].sort((a, b) => b.sharePct - a.sharePct)[0] ?? null;
+  const largestAccount = [...accountRows].toSorted((a, b) => b.sharePct - a.sharePct)[0] ?? null;
   const topExposure =
-    [...workspace.risk.exposureBySymbol].sort((a, b) => b.openRiskPct - a.openRiskPct)[0] ??
+    [...workspace.risk.exposureBySymbol].toSorted((a, b) => b.openRiskPct - a.openRiskPct)[0] ??
     null;
   const portfolioReadiness = getPortfolioPolicyReadiness(workspace);
   const strategyWeights = Object.values(
@@ -245,7 +245,7 @@ export function getPortfolioOverview(workspace: WorkspaceState): PortfolioOvervi
       acc[key] = current;
       return acc;
     }, {}),
-  ).sort((a, b) => b.trades - a.trades);
+  ).toSorted((a, b) => b.trades - a.trades);
   const sessionWeights = Object.values(
     workspace.trades.reduce<Record<string, PortfolioSessionWeightRow>>((acc, trade) => {
       const executionCount = Math.max(1, trade.executions.length);
@@ -255,7 +255,7 @@ export function getPortfolioOverview(workspace: WorkspaceState): PortfolioOvervi
       acc[trade.session] = current;
       return acc;
     }, {}),
-  ).sort((a, b) => b.trades - a.trades);
+  ).toSorted((a, b) => b.trades - a.trades);
   const allocationRows = portfolioReadiness.accounts
     .map((item): PortfolioAllocationRow => {
       const account = accountRows.find((row) => row.id === item.account.id) ?? {
@@ -297,8 +297,8 @@ export function getPortfolioOverview(workspace: WorkspaceState): PortfolioOvervi
         action,
       };
     })
-    .sort((a, b) => b.allocationPct - a.allocationPct);
-  const contributionRows = [...allocationRows].sort(
+    .toSorted((a, b) => b.allocationPct - a.allocationPct);
+  const contributionRows = [...allocationRows].toSorted(
     (a, b) => b.account.totalPnl - a.account.totalPnl,
   );
   const strategyPolicyRows = strategyWeights.slice(0, 5).map((strategy): PortfolioStrategyPolicyRow => {
@@ -336,7 +336,7 @@ export function getPortfolioOverview(workspace: WorkspaceState): PortfolioOvervi
   const totalClosedPnl = workspace.analytics.daily.reduce((sum, day) => sum + day.pnl, 0);
   const capitalCurveBase = Math.max(0, totalEquity - totalClosedPnl);
   const capitalCurveSeries = [...workspace.analytics.daily]
-    .sort((a, b) => a.tradingDayKey.localeCompare(b.tradingDayKey))
+    .toSorted((a, b) => a.tradingDayKey.localeCompare(b.tradingDayKey))
     .reduce<{ total: number; points: PortfolioCapitalPoint[] }>(
       (acc, day, index) => {
         const nextTotal = acc.total + day.pnl;

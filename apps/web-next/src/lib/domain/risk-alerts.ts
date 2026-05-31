@@ -66,15 +66,15 @@ export function getRiskGuardAlerts(
     });
   }
 
-  posture.accountPostures
-    .filter((account) => account.roomLeftPct <= 2)
-    .forEach((account) => {
-      pushUniqueAlert(alerts, {
-        tone: account.status === "blocked" ? "danger" : "warning",
-        label: `${account.accountLabel} con poco room`,
-        reason: "La cuenta tiene margen diario reducido antes de la siguiente entrada.",
-      });
+  posture.accountPostures.forEach((account) => {
+    if (account.roomLeftPct > 2) return;
+
+    pushUniqueAlert(alerts, {
+      tone: account.status === "blocked" ? "danger" : "warning",
+      label: `${account.accountLabel} con poco room`,
+      reason: "La cuenta tiene margen diario reducido antes de la siguiente entrada.",
     });
+  });
 
   return alerts.slice(0, Math.max(1, Math.min(6, maxAlerts)));
 }

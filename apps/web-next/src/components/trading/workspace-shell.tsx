@@ -12,12 +12,14 @@ import {
   Settings2,
   UserRound,
   WalletCards,
+  X,
 } from "lucide-react";
 
 import { CommandPalette } from "@/components/uitripled/command-palette-shadcnui";
 import { LogoMark, LogoWordmark } from "@/components/logo";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -33,7 +35,6 @@ import {
   routeTitles,
   type NavigationItem,
 } from "@/lib/domain/navigation";
-import { resolveConnectionAccess } from "@/lib/billing/connection-access";
 import { getAccountsOverview } from "@/lib/domain/accounts-selectors";
 import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
 import { cn } from "@/lib/utils";
@@ -103,7 +104,7 @@ function isHrefActive(pathname: string, href: string) {
   return pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
 }
 
-function renderNavigationGroup({
+function NavigationGroupMenu({
   items,
   pathname,
   router,
@@ -504,6 +505,87 @@ function SidebarUserMenu({ workspace }: { workspace: WorkspaceState }) {
   );
 }
 
+function SidebarFundingPromo({ workspace }: { workspace: WorkspaceState }) {
+  const { open } = useSidebar();
+  const [dismissed, setDismissed] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+  const firmLabel =
+    workspace.accounts.find((account) => account.funding?.firm)?.funding?.firm ??
+    "partner de fondeo";
+  const promoCode = "KMFX15";
+
+  if (dismissed) return null;
+
+  function copyPromoCode() {
+    void navigator.clipboard?.writeText(promoCode);
+    setCopied(true);
+  }
+
+  if (!open) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            size="lg"
+            tooltip="Descuento fondeo"
+            className="relative justify-center border border-sidebar-border/70 bg-sidebar-accent/60 text-sidebar-foreground"
+            onClick={() => setCopied(false)}
+          >
+            <Bell />
+            <span className="sr-only">Descuento fondeo</span>
+            <span className="absolute right-2 top-2 size-2 rounded-full bg-primary" />
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    );
+  }
+
+  return (
+    <div className="group-data-[collapsible=icon]:hidden">
+      <div className="rounded-lg border border-sidebar-border/70 bg-sidebar-accent/55 p-3 text-sidebar-foreground shadow-[0_18px_44px_-34px_rgba(0,0,0,0.65)]">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <Badge variant="outline" className="border-sidebar-border bg-background/35 text-sidebar-foreground">
+              Promo
+            </Badge>
+            <span className="truncate text-xs font-medium text-sidebar-foreground/70">
+              {firmLabel}
+            </span>
+          </div>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label="Ocultar promoción"
+            className="-mr-1 -mt-1 text-sidebar-foreground/55 hover:text-sidebar-foreground"
+            onClick={() => setDismissed(true)}
+          >
+            <X data-icon="inline-start" />
+          </Button>
+        </div>
+        <div className="mt-3">
+          <p className="text-sm font-semibold leading-5 text-sidebar-foreground">
+            Descuento para fondeo
+          </p>
+          <p className="mt-1 text-xs leading-5 text-sidebar-foreground/68">
+            Usa el código en un reto nuevo y revisa reglas antes de aumentar riesgo.
+          </p>
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 flex-1 justify-between bg-background/35 px-2 text-xs"
+            onClick={copyPromoCode}
+          >
+            <span>{copied ? "Copiado" : promoCode}</span>
+            <ExternalLink data-icon="inline-end" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WorkspaceSidebar({ workspace }: { workspace: WorkspaceState }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -515,7 +597,7 @@ function WorkspaceSidebar({ workspace }: { workspace: WorkspaceState }) {
       collapsible="icon"
       className="border-sidebar-border/70 bg-sidebar/95 backdrop-blur-xl"
     >
-      <SidebarHeader className="flex min-h-16 flex-row items-center justify-between gap-2 border-b border-sidebar-border/70 px-3 group-data-[collapsible=icon]:min-h-14 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+      <SidebarHeader className="flex h-16 min-h-16 shrink-0 flex-row items-center justify-between gap-2 border-b border-border/70 px-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
         <Link
           href="/dashboard"
           className="flex min-w-0 items-center gap-3 rounded-xl px-1.5 py-1 transition-colors hover:bg-sidebar-accent/70 group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0"
@@ -536,24 +618,25 @@ function WorkspaceSidebar({ workspace }: { workspace: WorkspaceState }) {
       <SidebarContent>
         {navigationGroups.map((group, index) => (
           <React.Fragment key={group.label}>
-            <SidebarGroup>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                {renderNavigationGroup({
-                  items: group.items,
-                  pathname,
-                  router,
-                  selectedAccountId,
-                  workspace,
-                })}
-              </SidebarGroupContent>
-            </SidebarGroup>
+              <SidebarGroup>
+                <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <NavigationGroupMenu
+                    items={group.items}
+                    pathname={pathname}
+                    router={router}
+                    selectedAccountId={selectedAccountId}
+                    workspace={workspace}
+                  />
+                </SidebarGroupContent>
+              </SidebarGroup>
             {index < navigationGroups.length - 1 ? <SidebarSeparator /> : null}
           </React.Fragment>
         ))}
       </SidebarContent>
 
       <SidebarFooter className="gap-2 border-t border-sidebar-border/70 p-2">
+        <SidebarFundingPromo workspace={workspace} />
         <SidebarUserMenu workspace={workspace} />
       </SidebarFooter>
       <SidebarRail />
@@ -563,55 +646,13 @@ function WorkspaceSidebar({ workspace }: { workspace: WorkspaceState }) {
 
 export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const searchParamsValue = searchParams.toString();
   const previewMode = searchParams.get("demo") === "1";
   const selectedAccountId =
     searchParams.get("account") ?? workspace.activeAccountId;
   const activeAccount =
     workspace.accounts.find((account) => account.id === selectedAccountId) ??
     workspace.accounts[0];
-
-  React.useEffect(() => {
-    if (pathname === "/subscription" || previewMode) return;
-
-    let cancelled = false;
-
-    async function checkBillingAccess() {
-      try {
-        const response = await fetch("/api/kmfx/billing/status", {
-          cache: "no-store",
-        });
-        const payload = await response.json().catch(() => ({}));
-        const access = resolveConnectionAccess(response.ok ? payload : { ok: false });
-
-        if (
-          cancelled ||
-          access.allowed ||
-          access.reason === "auth_required" ||
-          access.reason === "billing_status_unavailable"
-        ) {
-          return;
-        }
-
-        const next = `${pathname}${searchParamsValue ? `?${searchParamsValue}` : ""}`;
-        const params = new URLSearchParams({
-          next,
-          welcome: "1",
-        });
-        router.replace(`/subscription?${params.toString()}`);
-      } catch {
-        // Keep navigation usable if billing status cannot be checked momentarily.
-      }
-    }
-
-    void checkBillingAccess();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [pathname, previewMode, router, searchParamsValue]);
 
   return (
     <SidebarProvider defaultOpen>

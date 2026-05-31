@@ -53,14 +53,25 @@ function PageMotion({ children }: PageMotionProps) {
   return <div>{children}</div>;
 }
 
+const SHORT_DAY_LABEL_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  day: "numeric",
+  month: "short",
+});
+const TRADE_DATE_TIME_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  day: "2-digit",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+const SHORT_MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+});
+
 function shortDayLabel(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Sin fecha";
 
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "numeric",
-    month: "short",
-  }).format(date);
+  return SHORT_DAY_LABEL_FORMATTER.format(date);
 }
 
 function signedTextTone(value: number) {
@@ -88,12 +99,7 @@ function formatTradeDateTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Sin fecha";
 
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  return TRADE_DATE_TIME_FORMATTER.format(date);
 }
 
 function parseTradeDate(value: string) {
@@ -135,9 +141,7 @@ function formatTradeDuration(minutes: number | null) {
 }
 
 function shortMonthLabel(value: Date) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-  }).format(value);
+  return SHORT_MONTH_LABEL_FORMATTER.format(value);
 }
 
 function formatExecutionCount(trade: WorkspaceState["trades"][number]) {
@@ -157,6 +161,85 @@ function tradeOutcomeMatches(
 }
 
 type TradesChartRange = "3m" | "6m" | "12m" | "ytd";
+type TradesOutcomeFilter = "all" | "win" | "loss" | "flat";
+type TradesSetupFilter = "all" | "with" | "without";
+
+type TradesUiState = {
+  chartRange: TradesChartRange;
+  dateFrom: string;
+  dateTo: string;
+  outcomeFilter: TradesOutcomeFilter;
+  selectedTradeId: string | null;
+  sessionFilter: string;
+  setupFilter: TradesSetupFilter;
+  symbolFilter: string;
+  tablePage: number;
+};
+
+type TradesUiAction =
+  | { type: "resetFilters" }
+  | { type: "selectTrade"; tradeId: string }
+  | { type: "setChartRange"; chartRange: TradesChartRange }
+  | { type: "setDateFrom"; dateFrom: string }
+  | { type: "setDateTo"; dateTo: string }
+  | { type: "setOutcomeFilter"; outcomeFilter: TradesOutcomeFilter }
+  | { type: "setSessionFilter"; sessionFilter: string }
+  | { type: "setSetupFilter"; setupFilter: TradesSetupFilter }
+  | { type: "setSymbolFilter"; symbolFilter: string }
+  | { type: "setTablePage"; tablePage: number };
+
+function createInitialTradesUiState(
+  selectedTradeId: string | null,
+): TradesUiState {
+  return {
+    chartRange: "12m",
+    dateFrom: "",
+    dateTo: "",
+    outcomeFilter: "all",
+    selectedTradeId,
+    sessionFilter: "all",
+    setupFilter: "all",
+    symbolFilter: "all",
+    tablePage: 0,
+  };
+}
+
+function tradesUiReducer(
+  state: TradesUiState,
+  action: TradesUiAction,
+): TradesUiState {
+  switch (action.type) {
+    case "resetFilters":
+      return {
+        ...state,
+        dateFrom: "",
+        dateTo: "",
+        outcomeFilter: "all",
+        sessionFilter: "all",
+        setupFilter: "all",
+        symbolFilter: "all",
+        tablePage: 0,
+      };
+    case "selectTrade":
+      return { ...state, selectedTradeId: action.tradeId };
+    case "setChartRange":
+      return { ...state, chartRange: action.chartRange };
+    case "setDateFrom":
+      return { ...state, dateFrom: action.dateFrom, tablePage: 0 };
+    case "setDateTo":
+      return { ...state, dateTo: action.dateTo, tablePage: 0 };
+    case "setOutcomeFilter":
+      return { ...state, outcomeFilter: action.outcomeFilter, tablePage: 0 };
+    case "setSessionFilter":
+      return { ...state, sessionFilter: action.sessionFilter, tablePage: 0 };
+    case "setSetupFilter":
+      return { ...state, setupFilter: action.setupFilter, tablePage: 0 };
+    case "setSymbolFilter":
+      return { ...state, symbolFilter: action.symbolFilter, tablePage: 0 };
+    case "setTablePage":
+      return { ...state, tablePage: action.tablePage };
+  }
+}
 
 const TRADES_CHART_RANGES: Array<{
   value: TradesChartRange;
@@ -183,24 +266,29 @@ export function TradesReferenceSection({
     workspace.accounts[0] ??
     null;
   const symbols = React.useMemo(
-    () => [...new Set(trades.map((trade) => trade.symbol))].sort(),
+    () => [...new Set(trades.map((trade) => trade.symbol))].toSorted(),
     [trades],
   );
   const sessions = React.useMemo(
-    () => [...new Set(trades.map((trade) => trade.session))].sort(),
+    () => [...new Set(trades.map((trade) => trade.session))].toSorted(),
     [trades],
   );
-  const [symbolFilter, setSymbolFilter] = React.useState("all");
-  const [sessionFilter, setSessionFilter] = React.useState("all");
-  const [outcomeFilter, setOutcomeFilter] = React.useState<"all" | "win" | "loss" | "flat">("all");
-  const [setupFilter, setSetupFilter] = React.useState<"all" | "with" | "without">("all");
-  const [dateFrom, setDateFrom] = React.useState("");
-  const [dateTo, setDateTo] = React.useState("");
-  const [tablePage, setTablePage] = React.useState(0);
-  const [chartRange, setChartRange] = React.useState<TradesChartRange>("12m");
-  const [selectedTradeId, setSelectedTradeId] = React.useState<string | null>(
+  const [tradesUiState, dispatchTradesUi] = React.useReducer(
+    tradesUiReducer,
     overview.ledgerRows[0]?.trade.id ?? null,
+    createInitialTradesUiState,
   );
+  const {
+    chartRange,
+    dateFrom,
+    dateTo,
+    outcomeFilter,
+    selectedTradeId,
+    sessionFilter,
+    setupFilter,
+    symbolFilter,
+    tablePage,
+  } = tradesUiState;
 
   const filteredRows = React.useMemo(
     () =>
@@ -360,32 +448,32 @@ export function TradesReferenceSection({
   const setupFilterLabel =
     setupFilter === "all" ? "Todo" : setupFilter === "with" ? "Con setup" : "Sin setup";
   const updateSymbolFilter = React.useCallback((value: string | null) => {
-    setSymbolFilter(value ?? "all");
-    setTablePage(0);
+    dispatchTradesUi({ type: "setSymbolFilter", symbolFilter: value ?? "all" });
   }, []);
   const updateSessionFilter = React.useCallback((value: string | null) => {
-    setSessionFilter(value ?? "all");
-    setTablePage(0);
+    dispatchTradesUi({ type: "setSessionFilter", sessionFilter: value ?? "all" });
   }, []);
   const updateOutcomeFilter = React.useCallback((value: string | null) => {
-    setOutcomeFilter((value as "all" | "win" | "loss" | "flat" | null) ?? "all");
-    setTablePage(0);
+    dispatchTradesUi({
+      type: "setOutcomeFilter",
+      outcomeFilter: (value as TradesOutcomeFilter | null) ?? "all",
+    });
   }, []);
   const updateSetupFilter = React.useCallback((value: string | null) => {
-    setSetupFilter((value as "all" | "with" | "without" | null) ?? "all");
-    setTablePage(0);
+    dispatchTradesUi({
+      type: "setSetupFilter",
+      setupFilter: (value as TradesSetupFilter | null) ?? "all",
+    });
   }, []);
   const updateDateFrom = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      setDateFrom(event.target.value);
-      setTablePage(0);
+      dispatchTradesUi({ type: "setDateFrom", dateFrom: event.target.value });
     },
     [],
   );
   const updateDateTo = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      setDateTo(event.target.value);
-      setTablePage(0);
+      dispatchTradesUi({ type: "setDateTo", dateTo: event.target.value });
     },
     [],
   );
@@ -393,19 +481,16 @@ export function TradesReferenceSection({
     (value: string[]) => {
       const nextValue = value.find((item) => item !== chartRange) ?? value.at(-1);
       if (nextValue) {
-        setChartRange(nextValue as TradesChartRange);
+        dispatchTradesUi({
+          type: "setChartRange",
+          chartRange: nextValue as TradesChartRange,
+        });
       }
     },
     [chartRange],
   );
   const resetFilters = React.useCallback(() => {
-    setSymbolFilter("all");
-    setSessionFilter("all");
-    setOutcomeFilter("all");
-    setSetupFilter("all");
-    setDateFrom("");
-    setDateTo("");
-    setTablePage(0);
+    dispatchTradesUi({ type: "resetFilters" });
   }, []);
 
   return (
@@ -455,16 +540,18 @@ export function TradesReferenceSection({
 
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-7">
               <Field className="col-span-2 lg:col-span-1">
-                <FieldLabel>Cuenta</FieldLabel>
+                <FieldLabel htmlFor="trades-account-filter">Cuenta</FieldLabel>
                 <Input
+                  id="trades-account-filter"
                   value={activeAccount?.label ?? "Cuenta activa"}
                   disabled
                   className="border-border/70 bg-background/40"
                 />
               </Field>
               <Field className="col-span-2 min-w-0 sm:col-span-1">
-                <FieldLabel>Desde</FieldLabel>
+                <FieldLabel htmlFor="trades-date-from-filter">Desde</FieldLabel>
                 <Input
+                  id="trades-date-from-filter"
                   type="date"
                   value={dateFrom}
                   onChange={updateDateFrom}
@@ -472,8 +559,9 @@ export function TradesReferenceSection({
                 />
               </Field>
               <Field className="col-span-2 min-w-0 sm:col-span-1">
-                <FieldLabel>Hasta</FieldLabel>
+                <FieldLabel htmlFor="trades-date-to-filter">Hasta</FieldLabel>
                 <Input
+                  id="trades-date-to-filter"
                   type="date"
                   value={dateTo}
                   onChange={updateDateTo}
@@ -481,9 +569,12 @@ export function TradesReferenceSection({
                 />
               </Field>
               <Field className="min-w-0">
-                <FieldLabel>Símbolo</FieldLabel>
+                <FieldLabel htmlFor="trades-symbol-filter">Símbolo</FieldLabel>
                 <Select value={symbolFilter} onValueChange={updateSymbolFilter}>
-                  <SelectTrigger className="w-full border-border/70 bg-background/40">
+                  <SelectTrigger
+                    id="trades-symbol-filter"
+                    className="w-full border-border/70 bg-background/40"
+                  >
                     <SelectValue>{symbolFilterLabel}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -499,9 +590,12 @@ export function TradesReferenceSection({
                 </Select>
               </Field>
               <Field className="min-w-0">
-                <FieldLabel>Sesión</FieldLabel>
+                <FieldLabel htmlFor="trades-session-filter">Sesión</FieldLabel>
                 <Select value={sessionFilter} onValueChange={updateSessionFilter}>
-                  <SelectTrigger className="w-full border-border/70 bg-background/40">
+                  <SelectTrigger
+                    id="trades-session-filter"
+                    className="w-full border-border/70 bg-background/40"
+                  >
                     <SelectValue>{sessionFilterLabel}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -517,12 +611,15 @@ export function TradesReferenceSection({
                 </Select>
               </Field>
               <Field className="min-w-0">
-                <FieldLabel>Resultado</FieldLabel>
+                <FieldLabel htmlFor="trades-outcome-filter">Resultado</FieldLabel>
                 <Select
                   value={outcomeFilter}
                   onValueChange={updateOutcomeFilter}
                 >
-                  <SelectTrigger className="w-full border-border/70 bg-background/40">
+                  <SelectTrigger
+                    id="trades-outcome-filter"
+                    className="w-full border-border/70 bg-background/40"
+                  >
                     <SelectValue>{outcomeFilterLabel}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -536,12 +633,15 @@ export function TradesReferenceSection({
                 </Select>
               </Field>
               <Field className="min-w-0">
-                <FieldLabel>Setup</FieldLabel>
+                <FieldLabel htmlFor="trades-setup-filter">Setup</FieldLabel>
                 <Select
                   value={setupFilter}
                   onValueChange={updateSetupFilter}
                 >
-                  <SelectTrigger className="w-full border-border/70 bg-background/40">
+                  <SelectTrigger
+                    id="trades-setup-filter"
+                    className="w-full border-border/70 bg-background/40"
+                  >
                     <SelectValue>{setupFilterLabel}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -617,11 +717,16 @@ export function TradesReferenceSection({
                             >
                               <TableCell>{shortDayLabel(trade.closedAt)}</TableCell>
                               <TableCell>
-                                <button
-                                  type="button"
-                                  onClick={() => setSelectedTradeId(trade.id)}
-                                  className="flex min-w-0 flex-col text-left"
-                                >
+	                                <button
+	                                  type="button"
+	                                  onClick={() =>
+	                                    dispatchTradesUi({
+	                                      type: "selectTrade",
+	                                      tradeId: trade.id,
+	                                    })
+	                                  }
+	                                  className="flex min-w-0 flex-col text-left"
+	                                >
                                   <span className="font-medium text-foreground">{trade.symbol}</span>
                                   <span className="text-xs text-muted-foreground">
                                     {formatTradeSide(trade.side)} / {trade.volume} lotes
@@ -662,11 +767,16 @@ export function TradesReferenceSection({
                       const isSelected = selectedTrade?.id === trade.id;
 
                       return (
-                        <button
-                          key={trade.id}
-                          type="button"
-                          onClick={() => setSelectedTradeId(trade.id)}
-                          className={cn(
+	                        <button
+	                          key={trade.id}
+	                          type="button"
+	                          onClick={() =>
+	                            dispatchTradesUi({
+	                              type: "selectTrade",
+	                              tradeId: trade.id,
+	                            })
+	                          }
+	                          className={cn(
                             "grid gap-2 rounded-lg border border-border/70 bg-background/35 p-3 text-left",
                             isSelected && "border-zinc-300/60 bg-zinc-100/[0.06]",
                             trade.netPnl < 0 && "bg-loss-muted",
@@ -701,20 +811,30 @@ export function TradesReferenceSection({
                       Página {activeTablePage + 1} de {tablePageCount}
                     </p>
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setTablePage(Math.max(0, activeTablePage - 1))}
-                        disabled={activeTablePage === 0}
-                      >
+	                      <Button
+	                        variant="outline"
+	                        size="sm"
+	                        onClick={() =>
+	                          dispatchTradesUi({
+	                            type: "setTablePage",
+	                            tablePage: Math.max(0, activeTablePage - 1),
+	                          })
+	                        }
+	                        disabled={activeTablePage === 0}
+	                      >
                         <ChevronLeft className="size-4" />
                         Anterior
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setTablePage(Math.min(tablePageCount - 1, activeTablePage + 1))}
-                        disabled={activeTablePage >= tablePageCount - 1}
+	                      <Button
+	                        variant="outline"
+	                        size="sm"
+	                        onClick={() =>
+	                          dispatchTradesUi({
+	                            type: "setTablePage",
+	                            tablePage: Math.min(tablePageCount - 1, activeTablePage + 1),
+	                          })
+	                        }
+	                        disabled={activeTablePage >= tablePageCount - 1}
                       >
                         Siguiente
                         <ChevronRight className="size-4" />

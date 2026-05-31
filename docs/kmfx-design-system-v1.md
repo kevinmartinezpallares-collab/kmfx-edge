@@ -597,7 +597,7 @@ Regla de no sobrediagnóstico:
 - Si faltan tags, no inferir violaciones.
 - Si hay baja cobertura, mostrar "pendiente" o "parcial".
 - Si una métrica viene de fallback, etiquetarla como parcial.
-- Si no hay muestra suficiente, decirlo explícitamente y sugerir cómo obtener evidencia.
+- Si no hay datos suficientes, decirlo explícitamente y sugerir cómo obtener evidencia.
 
 ## 6. Trading visual semantics
 
@@ -609,14 +609,14 @@ Regla de no sobrediagnóstico:
 - Formato tabular.
 - Signo explícito cuando compare resultado: `+$120`, `-$90`, `$0`.
 
-### Estados de reglas/tags
+### Estados de reglas/etiquetas
 
 | Estado | Visual | Copy |
 | --- | --- | --- |
 | `valid` | profit suave | "Válido", "Cumple" |
 | `invalid` | loss suave | "Incumplido", "Revisión" |
 | `pending` | risk/warning suave | "Pendiente", "Revisión pendiente" |
-| `untagged` | neutral/muted | "Sin tag", "Sin evidencia" |
+| `untagged` | neutral/muted | "Sin etiqueta", "Sin evidencia" |
 | `partial` | risk/warning | "Parcial" |
 
 ### Riesgo

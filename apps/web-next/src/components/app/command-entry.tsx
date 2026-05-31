@@ -65,26 +65,30 @@ export function CommandEntry() {
           <CommandList>
             <CommandEmpty>No hay coincidencias todavía.</CommandEmpty>
             <CommandGroup heading="Operativa principal">
-              {primaryNavigation
-                .filter((item) => item.enabled && item.href)
-                .map((item) => (
+              {primaryNavigation.flatMap((item) => {
+                if (!item.enabled || !item.href) return [];
+
+                const href = item.href;
+
+                return [
                   <CommandItem
                     key={item.title}
                     value={item.title}
                     onSelect={() => {
-                      router.push(item.href!);
+                      router.push(href);
                       setOpen(false);
                     }}
                   >
                     <item.icon />
                     <span>{item.title}</span>
-                    {pathname === item.href ? (
+                    {pathname === href ? (
                       <CommandShortcut>Actual</CommandShortcut>
                     ) : (
                       <CommandShortcut>Ir</CommandShortcut>
                     )}
-                  </CommandItem>
-                ))}
+                  </CommandItem>,
+                ];
+              })}
             </CommandGroup>
             <CommandSeparator />
             <CommandGroup heading="Atajos próximos">

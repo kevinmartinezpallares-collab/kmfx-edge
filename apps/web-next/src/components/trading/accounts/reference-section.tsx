@@ -5,7 +5,8 @@ import { CheckCircle2, Copy, Download, ExternalLink, Plus, RefreshCw } from "luc
 import { useRouter } from "next/navigation";
 
 import { AccountCardsSlider } from "@/components/uitripled/account-cards-slider-shadcnui";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import {
   Card,
   CardAction,
@@ -31,6 +32,89 @@ import { cn } from "@/lib/utils";
 const MT5_WEBREQUEST_URL = "https://mt5-api.kmfxedge.com";
 
 type AddAccountStep = 1 | 2 | 3;
+type LinkState = {
+  accountId: string;
+  connectionKey: string;
+  message: string;
+  status: "idle" | "pending" | "ready" | "error";
+};
+type ConnectionAccessState = {
+  message: string;
+  status: "idle" | "pending" | "ready" | "blocked" | "error";
+};
+type ConnectionCheckState = {
+  message: string;
+  status: "idle" | "checking" | "waiting" | "connected" | "error";
+};
+type AccountsUiState = {
+  addAccountStep: AddAccountStep;
+  connectionAccess: ConnectionAccessState;
+  connectionCheck: ConnectionCheckState;
+  copiedWebRequest: boolean;
+  isAddAccountOpen: boolean;
+  linkState: LinkState;
+};
+type AccountsUiAction =
+  | { type: "setAddAccountOpen"; open: boolean }
+  | { type: "setAddAccountStep"; step: AddAccountStep }
+  | { type: "setConnectionAccess"; connectionAccess: ConnectionAccessState }
+  | { type: "setConnectionCheck"; connectionCheck: ConnectionCheckState }
+  | { type: "setCopiedWebRequest"; copiedWebRequest: boolean }
+  | { type: "setLinkState"; linkState: LinkState };
+
+const INITIAL_LINK_STATE: LinkState = {
+  accountId: "",
+  connectionKey: "",
+  message: "",
+  status: "idle",
+};
+const INITIAL_CONNECTION_ACCESS: ConnectionAccessState = {
+  message: "",
+  status: "idle",
+};
+const INITIAL_CONNECTION_CHECK: ConnectionCheckState = {
+  message: "",
+  status: "idle",
+};
+const INITIAL_ACCOUNTS_UI_STATE: AccountsUiState = {
+  addAccountStep: 1,
+  connectionAccess: INITIAL_CONNECTION_ACCESS,
+  connectionCheck: INITIAL_CONNECTION_CHECK,
+  copiedWebRequest: false,
+  isAddAccountOpen: false,
+  linkState: INITIAL_LINK_STATE,
+};
+
+function accountsUiReducer(
+  state: AccountsUiState,
+  action: AccountsUiAction,
+): AccountsUiState {
+  switch (action.type) {
+    case "setAddAccountOpen":
+      return action.open
+        ? {
+            ...state,
+            addAccountStep: 1,
+            connectionCheck: INITIAL_CONNECTION_CHECK,
+            copiedWebRequest: false,
+            isAddAccountOpen: true,
+          }
+        : {
+            ...state,
+            isAddAccountOpen: false,
+          };
+    case "setAddAccountStep":
+      return { ...state, addAccountStep: action.step };
+    case "setConnectionAccess":
+      return { ...state, connectionAccess: action.connectionAccess };
+    case "setConnectionCheck":
+      return { ...state, connectionCheck: action.connectionCheck };
+    case "setCopiedWebRequest":
+      return { ...state, copiedWebRequest: action.copiedWebRequest };
+    case "setLinkState":
+      return { ...state, linkState: action.linkState };
+  }
+}
 
 const addAccountSteps: Array<{ id: AddAccountStep; label: string }> = [
   { id: 1, label: "Método" },
@@ -216,34 +300,19 @@ export function AccountsReferenceSection({
   workspace: WorkspaceState;
 }) {
   const router = useRouter();
-  const [isAddAccountOpen, setIsAddAccountOpen] = React.useState(false);
-  const [addAccountStep, setAddAccountStep] = React.useState<AddAccountStep>(1);
-  const [linkState, setLinkState] = React.useState<{
-    accountId: string;
-    connectionKey: string;
-    message: string;
-    status: "idle" | "pending" | "ready" | "error";
-  }>({
-    accountId: "",
-    connectionKey: "",
-    message: "",
-    status: "idle",
-  });
-  const [connectionAccess, setConnectionAccess] = React.useState<{
-    message: string;
-    status: "idle" | "pending" | "ready" | "blocked" | "error";
-  }>({
-    message: "",
-    status: "idle",
-  });
-  const [connectionCheck, setConnectionCheck] = React.useState<{
-    message: string;
-    status: "idle" | "checking" | "waiting" | "connected" | "error";
-  }>({
-    message: "",
-    status: "idle",
-  });
-  const [copiedWebRequest, setCopiedWebRequest] = React.useState(false);
+  const [accountsUiState, dispatchAccountsUi] = React.useReducer(
+    accountsUiReducer,
+    INITIAL_ACCOUNTS_UI_STATE,
+  );
+  const {
+    addAccountStep,
+    connectionAccess,
+    connectionCheck,
+    copiedWebRequest,
+    isAddAccountOpen,
+    linkState,
+  } = accountsUiState;
+  const connectionAccessControllerRef = React.useRef<AbortController | null>(null);
   const accountsOverview = getAccountsOverview(workspace);
   const accountRows = accountsOverview.rows;
   const connectedCount = accountRows.filter(
@@ -259,92 +328,126 @@ export function AccountsReferenceSection({
   const linkPending = linkState.status === "pending";
   const connectionReady = connectionAccess.status === "ready";
 
+  React.useEffect(
+    () => () => {
+      connectionAccessControllerRef.current?.abort();
+    },
+    [],
+  );
+
   async function copyWebRequestUrl() {
     await navigator.clipboard?.writeText(MT5_WEBREQUEST_URL);
-    setCopiedWebRequest(true);
-    window.setTimeout(() => setCopiedWebRequest(false), 1600);
+    dispatchAccountsUi({
+      copiedWebRequest: true,
+      type: "setCopiedWebRequest",
+    });
+    window.setTimeout(
+      () =>
+        dispatchAccountsUi({
+          copiedWebRequest: false,
+          type: "setCopiedWebRequest",
+        }),
+      1600,
+    );
+  }
+
+  async function checkConnectionAccess() {
+    connectionAccessControllerRef.current?.abort();
+    const controller = new AbortController();
+    connectionAccessControllerRef.current = controller;
+
+    dispatchAccountsUi({
+      connectionAccess: {
+        message: "Comprobando plan activo...",
+        status: "pending",
+      },
+      type: "setConnectionAccess",
+    });
+
+    try {
+      const response = await fetch("/api/kmfx/billing/status", {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (response.status === 401 || payload?.auth_required) {
+        router.push("/login?next=/accounts");
+        return;
+      }
+
+      const access = resolveConnectionAccess(response.ok ? payload : { ok: false });
+
+      dispatchAccountsUi({
+        connectionAccess: {
+          message: access.message,
+          status: access.allowed ? "ready" : "blocked",
+        },
+        type: "setConnectionAccess",
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      dispatchAccountsUi({
+        connectionAccess: {
+          message: "No se pudo comprobar el plan ahora. Inténtalo de nuevo.",
+          status: "error",
+        },
+        type: "setConnectionAccess",
+      });
+    }
+  }
+
+  function openAddAccountDialog() {
+    dispatchAccountsUi({ open: true, type: "setAddAccountOpen" });
+    void checkConnectionAccess();
   }
 
   function handleAddAccountOpenChange(open: boolean) {
-    setIsAddAccountOpen(open);
-
     if (open) {
-      setAddAccountStep(1);
-      setCopiedWebRequest(false);
-      setConnectionCheck({ message: "", status: "idle" });
-    }
-  }
-
-  React.useEffect(() => {
-    if (!isAddAccountOpen) {
+      openAddAccountDialog();
       return;
     }
 
-    const controller = new AbortController();
-
-    async function checkConnectionAccess() {
-      setConnectionAccess({
-        message: "Comprobando plan activo...",
-        status: "pending",
-      });
-
-      try {
-        const response = await fetch("/api/kmfx/billing/status", {
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        const payload = await response.json().catch(() => ({}));
-
-        if (response.status === 401 || payload?.auth_required) {
-          router.push("/login?next=/accounts");
-          return;
-        }
-
-        const access = resolveConnectionAccess(response.ok ? payload : { ok: false });
-
-        setConnectionAccess({
-          message: access.message,
-          status: access.allowed ? "ready" : "blocked",
-        });
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-
-        setConnectionAccess({
-          message: "No se pudo comprobar el plan ahora. Inténtalo de nuevo.",
-          status: "error",
-        });
-      }
-    }
-
-    void checkConnectionAccess();
-
-    return () => {
-      controller.abort();
-    };
-  }, [isAddAccountOpen, router]);
+    connectionAccessControllerRef.current?.abort();
+    connectionAccessControllerRef.current = null;
+    dispatchAccountsUi({ open, type: "setAddAccountOpen" });
+  }
 
   async function prepareLauncherAccount() {
     if (connectionAccess.status !== "ready") {
-      setLinkState({
-        accountId: "",
-        connectionKey: "",
-        message:
-          connectionAccess.message ||
-          "Activa primero la suscripción para añadir cuentas MT5.",
-        status: "error",
+      dispatchAccountsUi({
+        linkState: {
+          accountId: "",
+          connectionKey: "",
+          message:
+            connectionAccess.message ||
+            "Activa primero la suscripción para añadir cuentas MT5.",
+          status: "error",
+        },
+        type: "setLinkState",
       });
       return;
     }
 
-    setLinkState({
-      accountId: "",
-      connectionKey: "",
-      message: "Preparando conexión segura...",
-      status: "pending",
+    dispatchAccountsUi({
+      linkState: {
+        accountId: "",
+        connectionKey: "",
+        message: "Preparando conexión segura...",
+        status: "pending",
+      },
+      type: "setLinkState",
     });
-    setConnectionCheck({ message: "", status: "idle" });
+    dispatchAccountsUi({
+      connectionCheck: {
+        message: "",
+        status: "idle",
+      },
+      type: "setConnectionCheck",
+    });
 
     try {
       const response = await fetch("/api/kmfx/accounts/link", {
@@ -369,41 +472,53 @@ export function AccountsReferenceSection({
         throw new Error(accountLinkFailureMessage(payload, response.status));
       }
 
-      setLinkState({
-        accountId: payload.account_id || "",
-        connectionKey: payload.connection_key || "",
-        message:
-          payload.connection_key
-            ? "Cuenta preparada. Copia la KMFX Key en el EA y ejecuta la primera sincronización completa."
-            : "Cuenta preparada. Revisa la conexión desde el launcher.",
-        status: "ready",
+      dispatchAccountsUi({
+        linkState: {
+          accountId: payload.account_id || "",
+          connectionKey: payload.connection_key || "",
+          message:
+            payload.connection_key
+              ? "Cuenta preparada. Copia la KMFX Key en el EA y ejecuta la primera sincronización completa."
+              : "Cuenta preparada. Revisa la conexión desde el launcher.",
+          status: "ready",
+        },
+        type: "setLinkState",
       });
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
           : "No se pudo preparar la cuenta. Revisa sesión, plan y límites.";
-      setLinkState({
-        accountId: "",
-        connectionKey: "",
-        message,
-        status: "error",
+      dispatchAccountsUi({
+        linkState: {
+          accountId: "",
+          connectionKey: "",
+          message,
+          status: "error",
+        },
+        type: "setLinkState",
       });
     }
   }
 
   async function checkPendingAccountConnection() {
     if (!linkState.accountId) {
-      setConnectionCheck({
-        message: "Genera primero la KMFX Key de esta cuenta.",
-        status: "error",
+      dispatchAccountsUi({
+        connectionCheck: {
+          message: "Genera primero la KMFX Key de esta cuenta.",
+          status: "error",
+        },
+        type: "setConnectionCheck",
       });
       return;
     }
 
-    setConnectionCheck({
-      message: "Comprobando si el EA ya envió la primera sincronización...",
-      status: "checking",
+    dispatchAccountsUi({
+      connectionCheck: {
+        message: "Comprobando si el EA ya envió la primera sincronización...",
+        status: "checking",
+      },
+      type: "setConnectionCheck",
     });
 
     try {
@@ -423,10 +538,13 @@ export function AccountsReferenceSection({
         : undefined;
 
       if (!response.ok || !account) {
-        setConnectionCheck({
-          message:
-            "Todavía no aparece esta conexión. Revisa que la KMFX Key esté pegada en el EA correcto.",
-          status: "waiting",
+        dispatchAccountsUi({
+          connectionCheck: {
+            message:
+              "Todavía no aparece esta conexión. Revisa que la KMFX Key esté pegada en el EA correcto.",
+            status: "waiting",
+          },
+          type: "setConnectionCheck",
         });
         return;
       }
@@ -443,35 +561,47 @@ export function AccountsReferenceSection({
       const login = account.login || account.mt5_login;
 
       if (hasError) {
-        setConnectionCheck({
-          message:
-            account.last_error_message ||
-            "MT5 respondió con error. Revisa WebRequest, Algo Trading y el campo KMFXKey del EA.",
-          status: "error",
+        dispatchAccountsUi({
+          connectionCheck: {
+            message:
+              account.last_error_message ||
+              "MT5 respondió con error. Revisa WebRequest, Algo Trading y el campo KMFXKey del EA.",
+            status: "error",
+          },
+          type: "setConnectionCheck",
         });
         return;
       }
 
       if (hasSync) {
-        setConnectionCheck({
-          message: `Conexión confirmada${login ? ` para MT5 ${login}` : ""}${
-            lastSyncLabel ? ` - ${lastSyncLabel}` : ""
-          }.`,
-          status: "connected",
+        dispatchAccountsUi({
+          connectionCheck: {
+            message: `Conexión confirmada${login ? ` para MT5 ${login}` : ""}${
+              lastSyncLabel ? ` - ${lastSyncLabel}` : ""
+            }.`,
+            status: "connected",
+          },
+          type: "setConnectionCheck",
         });
         router.refresh();
         return;
       }
 
-      setConnectionCheck({
-        message:
-          "Aún no llegó la primera sincronización. Deja MT5 abierto y confirma WebRequest, Algo Trading y KMFX Key.",
-        status: "waiting",
+      dispatchAccountsUi({
+        connectionCheck: {
+          message:
+            "Aún no llegó la primera sincronización. Deja MT5 abierto y confirma WebRequest, Algo Trading y KMFX Key.",
+          status: "waiting",
+        },
+        type: "setConnectionCheck",
       });
     } catch {
-      setConnectionCheck({
-        message: "No se pudo comprobar la conexión ahora. Inténtalo de nuevo en unos segundos.",
-        status: "error",
+      dispatchAccountsUi({
+        connectionCheck: {
+          message: "No se pudo comprobar la conexión ahora. Inténtalo de nuevo en unos segundos.",
+          status: "error",
+        },
+        type: "setConnectionCheck",
       });
     }
   }
@@ -492,7 +622,7 @@ export function AccountsReferenceSection({
               <Button
                 size="sm"
                 type="button"
-                onClick={() => setIsAddAccountOpen(true)}
+                onClick={openAddAccountDialog}
               >
                 <Plus data-icon="inline-start" />
                 Añadir cuenta
@@ -501,7 +631,7 @@ export function AccountsReferenceSection({
                 size="sm"
                 type="button"
                 variant="outline"
-                onClick={() => setIsAddAccountOpen(true)}
+                onClick={openAddAccountDialog}
               >
                 Abrir launcher
                 <ExternalLink data-icon="inline-end" />
@@ -610,7 +740,12 @@ export function AccountsReferenceSection({
                           )}
                           disabled={!methodEnabled}
                           key={method.value}
-                          onClick={() => setAddAccountStep(2)}
+                          onClick={() =>
+                            dispatchAccountsUi({
+                              step: 2,
+                              type: "setAddAccountStep",
+                            })
+                          }
                           type="button"
                         >
                           <span className="text-sm font-semibold text-foreground">
@@ -853,14 +988,24 @@ export function AccountsReferenceSection({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setIsAddAccountOpen(false)}
+                    onClick={() =>
+                      dispatchAccountsUi({
+                        open: false,
+                        type: "setAddAccountOpen",
+                      })
+                    }
                   >
                     Cerrar
                   </Button>
                   <Button
                     disabled={!connectionReady}
                     type="button"
-                    onClick={() => setAddAccountStep(2)}
+                    onClick={() =>
+                      dispatchAccountsUi({
+                        step: 2,
+                        type: "setAddAccountStep",
+                      })
+                    }
                   >
                     Continuar con EA
                   </Button>
@@ -871,14 +1016,24 @@ export function AccountsReferenceSection({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setAddAccountStep(1)}
+                    onClick={() =>
+                      dispatchAccountsUi({
+                        step: 1,
+                        type: "setAddAccountStep",
+                      })
+                    }
                   >
                     Atrás
                   </Button>
                   <Button
                     disabled={!connectionReady}
                     type="button"
-                    onClick={() => setAddAccountStep(3)}
+                    onClick={() =>
+                      dispatchAccountsUi({
+                        step: 3,
+                        type: "setAddAccountStep",
+                      })
+                    }
                   >
                     Continuar
                   </Button>
@@ -889,14 +1044,24 @@ export function AccountsReferenceSection({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setAddAccountStep(2)}
+                    onClick={() =>
+                      dispatchAccountsUi({
+                        step: 2,
+                        type: "setAddAccountStep",
+                      })
+                    }
                   >
                     Atrás
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setIsAddAccountOpen(false)}
+                    onClick={() =>
+                      dispatchAccountsUi({
+                        open: false,
+                        type: "setAddAccountOpen",
+                      })
+                    }
                   >
                     Cerrar
                   </Button>

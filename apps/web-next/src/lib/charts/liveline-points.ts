@@ -16,15 +16,12 @@ export function normalizeLivelinePoints(
   minStepSecs = 1,
 ): LivelinePoint[] {
   const sorted = points
-    .filter(
-      (point) =>
-        Number.isFinite(point.time) && Number.isFinite(point.value),
+    .flatMap((point) =>
+      Number.isFinite(point.time) && Number.isFinite(point.value)
+        ? [{ time: Math.floor(point.time), value: point.value }]
+        : [],
     )
-    .map((point) => ({
-      time: Math.floor(point.time),
-      value: point.value,
-    }))
-    .sort((left, right) => left.time - right.time);
+    .toSorted((left, right) => left.time - right.time);
 
   const normalized: LivelinePoint[] = [];
 

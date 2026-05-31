@@ -25,6 +25,80 @@ const calculatorInputClass =
 
 const RISK_PRESETS = [0.25, 0.5, 1];
 
+type CalculatorState = {
+  accountId: string;
+  pointValueInput: string;
+  riskPctInput: string;
+  stopPipsInput: string;
+  symbol: string;
+};
+
+type CalculatorAction =
+  | { type: "setAccount"; account: TradingAccount | null; accountId: string }
+  | { type: "setAccountRisk"; accountId: string; riskPctInput: string }
+  | { type: "setPointValueInput"; value: string }
+  | { type: "setRiskPctInput"; value: string }
+  | { type: "setStopPipsInput"; value: string }
+  | { type: "setSymbol"; symbol: string }
+  | { type: "applyRecommendedRisk"; account: TradingAccount | null };
+
+function getInitialCalculatorState(accounts: TradingAccount[]): CalculatorState {
+  return {
+    accountId: accounts[0]?.id ?? "",
+    pointValueInput: "",
+    riskPctInput: getRecommendedRiskPct(accounts[0] ?? null).toFixed(2),
+    stopPipsInput: "15",
+    symbol: "EURUSD",
+  };
+}
+
+function getPointValueInputForSymbol(symbol: string) {
+  const instrument = getInstrumentProfile(symbol);
+  return instrument.defaultValuePerUnitPerLot === null
+    ? ""
+    : instrument.defaultValuePerUnitPerLot.toFixed(2);
+}
+
+function calculatorReducer(
+  state: CalculatorState,
+  action: CalculatorAction,
+): CalculatorState {
+  switch (action.type) {
+    case "setAccount":
+      return {
+        ...state,
+        accountId: action.accountId,
+        riskPctInput: getRecommendedRiskPct(action.account).toFixed(2),
+      };
+    case "setAccountRisk":
+      return {
+        ...state,
+        accountId: action.accountId,
+        riskPctInput: action.riskPctInput,
+      };
+    case "setPointValueInput":
+      return { ...state, pointValueInput: action.value };
+    case "setRiskPctInput":
+      return { ...state, riskPctInput: action.value };
+    case "setStopPipsInput":
+      return { ...state, stopPipsInput: action.value };
+    case "setSymbol": {
+      const nextInstrument = getInstrumentProfile(action.symbol);
+      return {
+        ...state,
+        pointValueInput: getPointValueInputForSymbol(nextInstrument.symbol),
+        stopPipsInput: String(nextInstrument.defaultStopUnits),
+        symbol: nextInstrument.symbol,
+      };
+    }
+    case "applyRecommendedRisk":
+      return {
+        ...state,
+        riskPctInput: getRecommendedRiskPct(action.account).toFixed(2),
+      };
+  }
+}
+
 export function LotSizeCalculator({
   accounts,
   risk,
@@ -32,13 +106,18 @@ export function LotSizeCalculator({
   accounts: TradingAccount[];
   risk: RiskSnapshot;
 }) {
-  const [accountId, setAccountId] = React.useState(accounts[0]?.id ?? "");
-  const [symbol, setSymbol] = React.useState("EURUSD");
-  const [riskPctInput, setRiskPctInput] = React.useState(
-    getRecommendedRiskPct(accounts[0] ?? null).toFixed(2),
+  const [state, dispatch] = React.useReducer(
+    calculatorReducer,
+    accounts,
+    getInitialCalculatorState,
   );
-  const [stopPipsInput, setStopPipsInput] = React.useState("15");
-  const [pointValueInput, setPointValueInput] = React.useState("");
+  const {
+    accountId,
+    pointValueInput,
+    riskPctInput,
+    stopPipsInput,
+    symbol,
+  } = state;
 
   const selectedAccount =
     accounts.find((account) => account.id === accountId) ?? accounts[0] ?? null;
@@ -125,29 +204,23 @@ export function LotSizeCalculator({
   const handleAccountChange = React.useCallback(
     (value: string | null) => {
       if (!value) return;
-      setAccountId(value);
       const nextAccount = accounts.find((account) => account.id === value);
-      setRiskPctInput(
-        getRecommendedRiskPct(nextAccount ?? null).toFixed(2),
-      );
+      dispatch({
+        type: "setAccount",
+        account: nextAccount ?? null,
+        accountId: value,
+      });
     },
     [accounts],
   );
 
   const applyRecommendedRisk = React.useCallback(() => {
-    setRiskPctInput(getRecommendedRiskPct(selectedAccount).toFixed(2));
+    dispatch({ type: "applyRecommendedRisk", account: selectedAccount });
   }, [selectedAccount]);
 
   const handleSymbolChange = React.useCallback((value: string | null) => {
     if (!value) return;
-    const nextInstrument = getInstrumentProfile(value);
-    setSymbol(nextInstrument.symbol);
-    setStopPipsInput(String(nextInstrument.defaultStopUnits));
-    setPointValueInput(
-      nextInstrument.defaultValuePerUnitPerLot === null
-        ? ""
-        : nextInstrument.defaultValuePerUnitPerLot.toFixed(2),
-    );
+    dispatch({ type: "setSymbol", symbol: value });
   }, []);
 
   return (
@@ -179,6 +252,7 @@ export function LotSizeCalculator({
             <Field>
               <FieldLabel htmlFor="calculator-symbol">Instrumento</FieldLabel>
               <select
+                aria-label="Instrumento"
                 id="calculator-symbol"
                 className={calculatorInputClass}
                 value={symbol}
@@ -200,12 +274,18 @@ export function LotSizeCalculator({
             <Field>
               <FieldLabel htmlFor="calculator-risk-pct">Risk %</FieldLabel>
               <input
+                aria-label="Risk %"
                 id="calculator-risk-pct"
                 className={calculatorInputClass}
                 inputMode="decimal"
                 suppressHydrationWarning
                 value={riskPctInput}
-                onChange={(event) => setRiskPctInput(event.currentTarget.value)}
+                onChange={(event) =>
+                  dispatch({
+                    type: "setRiskPctInput",
+                    value: event.currentTarget.value,
+                  })
+                }
               />
               <FieldDescription>
                 Recomendado:{" "}
@@ -225,7 +305,12 @@ export function LotSizeCalculator({
                   <button
                     key={preset}
                     type="button"
-                    onClick={() => setRiskPctInput(preset.toFixed(2))}
+                    onClick={() =>
+                      dispatch({
+                        type: "setRiskPctInput",
+                        value: preset.toFixed(2),
+                      })
+                    }
                     className="min-h-11 rounded-md border border-border/70 px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-background/50 hover:text-foreground sm:min-h-7 sm:px-2"
                   >
                     {formatPercent(preset)}
@@ -237,12 +322,18 @@ export function LotSizeCalculator({
             <Field>
               <FieldLabel htmlFor="calculator-stop-pips">Stop</FieldLabel>
               <input
+                aria-label="Stop"
                 id="calculator-stop-pips"
                 className={calculatorInputClass}
                 inputMode="decimal"
                 suppressHydrationWarning
                 value={stopPipsInput}
-                onChange={(event) => setStopPipsInput(event.currentTarget.value)}
+                onChange={(event) =>
+                  dispatch({
+                    type: "setStopPipsInput",
+                    value: event.currentTarget.value,
+                  })
+                }
               />
               <FieldDescription>
                 {instrument.kind === "fx" ? "Pips hasta SL." : "Puntos hasta SL."}
@@ -253,12 +344,18 @@ export function LotSizeCalculator({
               <Field>
                 <FieldLabel htmlFor="calculator-point-value">Valor punto / lote</FieldLabel>
                 <input
+                  aria-label="Valor punto / lote"
                   id="calculator-point-value"
                   className={calculatorInputClass}
                   inputMode="decimal"
                   suppressHydrationWarning
                   value={pointValueInput}
-                  onChange={(event) => setPointValueInput(event.currentTarget.value)}
+                  onChange={(event) =>
+                    dispatch({
+                      type: "setPointValueInput",
+                      value: event.currentTarget.value,
+                    })
+                  }
                 />
                 <FieldDescription>
                   {instrument.unitLabel} / editable según broker.
@@ -377,8 +474,11 @@ export function LotSizeCalculator({
               key={item.account.id}
               type="button"
               onClick={() => {
-                setAccountId(item.account.id);
-                setRiskPctInput(item.recommendedRiskPct.toFixed(2));
+                dispatch({
+                  type: "setAccountRisk",
+                  accountId: item.account.id,
+                  riskPctInput: item.recommendedRiskPct.toFixed(2),
+                });
               }}
               className={cn(
                 "grid gap-3 rounded-md border border-border/70 bg-background/25 p-3 text-left transition-colors hover:bg-background/45 md:grid-cols-[minmax(180px,1fr)_110px_110px_100px]",

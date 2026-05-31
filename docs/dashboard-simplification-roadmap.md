@@ -8,6 +8,8 @@ Decision base: limpieza tactica ahora; rediseño grande con Next.js + shadcn/ui.
 
 - Shadcn UI Kit classic dashboard: https://shadcnuikit.com/dashboard/default
 - Shadcn Admin Dashboard Kit: https://shadcnuikit.com/admin-dashboard
+- Shaban/Efferd dashboard pattern notes: `docs/nextjs-shaban-efferd-dashboard-patterns.md`
+- Section shells layout contract: `docs/nextjs-section-shells-layout-contract.md`
 - Referencia mobile de cards con sparklines tipo RevenueCat: usar como inspiracion futura para mobile, no para esta fase.
 - Referencia KPI `Trade win %`: gauge semicircular + desglose wins / breakeven / losses como patron futuro de metricas explicables.
 - Referencias visuales guardadas por usuario en Downloads (`IMG_2518.JPG`, `IMG_2519.JPG`, `IMG_2520.JPG`, `IMG_2521.JPG`, `IMG_2525.JPG`, `IMG_2525 2.JPG`, `IMG_2527.JPG`, `IMG_2528.JPG`, `IMG_2529.JPG`): objetivo de simpleza, claridad, sidebar limpia, cards con bordes finos, tablas legibles y dashboards oscuros/luminosos de alta densidad controlada.

@@ -381,7 +381,7 @@ export function getLotSizingOverview(workspace: WorkspaceState): LotSizingOvervi
   });
   const fundedRows = accountRows.filter((row) => row.account.funding);
   const highestBudget =
-    [...accountRows].sort((a, b) => b.suggestedRiskUsd - a.suggestedRiskUsd)[0] ?? null;
+    [...accountRows].toSorted((a, b) => b.suggestedRiskUsd - a.suggestedRiskUsd)[0] ?? null;
 
   return {
     accountRows,

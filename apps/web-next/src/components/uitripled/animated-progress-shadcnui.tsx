@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { animate, motion, useMotionValue, useTransform } from "framer-motion";
+import { animate, m as motion, useMotionValue, useTransform } from "motion/react";
 import { useEffect } from "react";
 
 type AnimatedProgressProps = {

@@ -36,14 +36,14 @@ function economicImpactClasses(impact: EconomicImpact) {
   return "border-info/20 bg-info-muted text-info";
 }
 
-function NewsRiskCard() {
-  const rules = [
-    "Evitar abrir operaciones justo antes de eventos de alto impacto.",
-    "Revisar USD, EUR, GBP, JPY, CAD, AUD, NZD y CHF antes de operar.",
-    "Vigilar CPI, NFP, FOMC, tipos de interés, GDP, PMI, empleo y discursos de bancos centrales.",
-    "Las reglas exactas dependen de cada empresa de fondeo.",
-  ];
+const NEWS_RISK_RULES = [
+  "Evitar abrir operaciones justo antes de eventos de alto impacto.",
+  "Revisar USD, EUR, GBP, JPY, CAD, AUD, NZD y CHF antes de operar.",
+  "Vigilar CPI, NFP, FOMC, tipos de interés, GDP, PMI, empleo y discursos de bancos centrales.",
+  "Las reglas exactas dependen de cada empresa de fondeo.",
+];
 
+function NewsRiskCard() {
   return (
     <Card className="border-border/70 bg-card/70">
       <CardHeader>
@@ -53,7 +53,7 @@ function NewsRiskCard() {
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-3">
-        {rules.map((rule) => (
+        {NEWS_RISK_RULES.map((rule) => (
           <div
             key={rule}
             className="rounded-lg border border-border/70 bg-background/35 p-3 text-sm text-muted-foreground"

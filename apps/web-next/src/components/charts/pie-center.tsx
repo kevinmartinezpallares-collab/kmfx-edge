@@ -3,9 +3,11 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import {
-  ChartStatFlow,
   type ChartStatFlowFormat,
   defaultChartStatFlowFormat,
+} from "./chart-stat-flow-format";
+import {
+  ChartStatFlow,
 } from "./chart-stat-flow";
 import { usePie } from "./pie-context";
 

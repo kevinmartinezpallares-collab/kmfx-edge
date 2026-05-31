@@ -45,15 +45,14 @@ export function WebGLFallback({
   message = "Interactive WebGL content is unavailable on this device/browser.",
 }: WebGLFallbackProps) {
   return (
-    <div
+    <output
       className={cn(
-        "flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-950 via-slate-900 to-zinc-900 px-4 text-center text-sm text-white/75",
+        "flex size-full items-center justify-center bg-gradient-to-br from-zinc-950 via-slate-900 to-zinc-900 px-4 text-center text-sm text-white/75",
         className,
       )}
-      role="status"
       aria-live="polite"
     >
       <p>{message}</p>
-    </div>
+    </output>
   );
 }

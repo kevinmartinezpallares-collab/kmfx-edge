@@ -1,7 +1,7 @@
 "use client";
 
 import { ParentSize } from "@visx/responsive";
-import { motion, type Transition, useReducedMotion } from "motion/react";
+import { m as motion, type Transition, useReducedMotion } from "motion/react";
 import {
   Children,
   Fragment,
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import {
   type ChartStatFlowFormat,
   defaultChartStatFlowFormat,
-} from "./chart-stat-flow";
+} from "./chart-stat-flow-format";
 import { PieCenterShell } from "./pie-center-shell";
 
 function isDefsComponent(child: ReactElement): boolean {
@@ -74,6 +74,65 @@ function interpolateHex(
   const b = Math.round(b1 + (b2 - b1) * factor);
 
   return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
+
+type NotchPathPoints = {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  x3: number;
+  y3: number;
+  x4: number;
+  y4: number;
+};
+
+function createNotchPath(
+  points: NotchPathPoints,
+  cornerRadiusPx: number,
+  radialDepth: number
+) {
+  const { x1, y1, x2, y2, x3, y3, x4, y4 } = points;
+
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+  const dist = (ax: number, ay: number, bx: number, by: number) =>
+    Math.hypot(bx - ax, by - ay);
+
+  const d12 = dist(x1, y1, x2, y2);
+  const d23 = dist(x2, y2, x3, y3);
+  const d34 = dist(x3, y3, x4, y4);
+  const d41 = dist(x4, y4, x1, y1);
+
+  if (cornerRadiusPx <= 0) {
+    return `M ${x1} ${y1} L ${x2} ${y2} L ${x3} ${y3} L ${x4} ${y4} Z`;
+  }
+
+  const minEdge = Math.min(d12, d23, d34, d41);
+  const cr = Math.min(
+    cornerRadiusPx,
+    radialDepth * 0.48,
+    d12 * 0.49,
+    d23 * 0.49,
+    d34 * 0.49,
+    d41 * 0.49,
+    minEdge * 0.49
+  );
+
+  const r1 = Math.min(cr / d12, 0.49);
+  const r2 = Math.min(cr / d23, 0.49);
+  const r3 = Math.min(cr / d34, 0.49);
+  const r4 = Math.min(cr / d41, 0.49);
+
+  const p1a = { x: lerp(x1, x4, r4), y: lerp(y1, y4, r4) };
+  const p1b = { x: lerp(x1, x2, r1), y: lerp(y1, y2, r1) };
+  const p2a = { x: lerp(x2, x1, r1), y: lerp(y2, y1, r1) };
+  const p2b = { x: lerp(x2, x3, r2), y: lerp(y2, y3, r2) };
+  const p3a = { x: lerp(x3, x2, r2), y: lerp(y3, y2, r2) };
+  const p3b = { x: lerp(x3, x4, r3), y: lerp(y3, y4, r3) };
+  const p4a = { x: lerp(x4, x3, r3), y: lerp(y4, y3, r3) };
+  const p4b = { x: lerp(x4, x1, r4), y: lerp(y4, y1, r4) };
+
+  return `M ${p1a.x} ${p1a.y} Q ${x1} ${y1} ${p1b.x} ${p1b.y} L ${p2a.x} ${p2a.y} Q ${x2} ${y2} ${p2b.x} ${p2b.y} L ${p3a.x} ${p3a.y} Q ${x3} ${y3} ${p3b.x} ${p3b.y} L ${p4a.x} ${p4a.y} Q ${x4} ${y4} ${p4b.x} ${p4b.y} Z`;
 }
 
 const DEFAULT_ACTIVE_GRADIENT: readonly [string, string] = [
@@ -311,63 +370,6 @@ function GaugeInner({
     activeGrad1,
   ]);
 
-  const createNotchPath = (
-    points: {
-      x1: number;
-      y1: number;
-      x2: number;
-      y2: number;
-      x3: number;
-      y3: number;
-      x4: number;
-      y4: number;
-    },
-    cornerRadiusPx: number,
-    radialDepth: number
-  ) => {
-    const { x1, y1, x2, y2, x3, y3, x4, y4 } = points;
-
-    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-    const dist = (ax: number, ay: number, bx: number, by: number) =>
-      Math.hypot(bx - ax, by - ay);
-
-    const d12 = dist(x1, y1, x2, y2);
-    const d23 = dist(x2, y2, x3, y3);
-    const d34 = dist(x3, y3, x4, y4);
-    const d41 = dist(x4, y4, x1, y1);
-
-    if (cornerRadiusPx <= 0) {
-      return `M ${x1} ${y1} L ${x2} ${y2} L ${x3} ${y3} L ${x4} ${y4} Z`;
-    }
-
-    const minEdge = Math.min(d12, d23, d34, d41);
-    const cr = Math.min(
-      cornerRadiusPx,
-      radialDepth * 0.48,
-      d12 * 0.49,
-      d23 * 0.49,
-      d34 * 0.49,
-      d41 * 0.49,
-      minEdge * 0.49
-    );
-
-    const r1 = Math.min(cr / d12, 0.49);
-    const r2 = Math.min(cr / d23, 0.49);
-    const r3 = Math.min(cr / d34, 0.49);
-    const r4 = Math.min(cr / d41, 0.49);
-
-    const p1a = { x: lerp(x1, x4, r4), y: lerp(y1, y4, r4) };
-    const p1b = { x: lerp(x1, x2, r1), y: lerp(y1, y2, r1) };
-    const p2a = { x: lerp(x2, x1, r1), y: lerp(y2, y1, r1) };
-    const p2b = { x: lerp(x2, x3, r2), y: lerp(y2, y3, r2) };
-    const p3a = { x: lerp(x3, x2, r2), y: lerp(y3, y2, r2) };
-    const p3b = { x: lerp(x3, x4, r3), y: lerp(y3, y4, r3) };
-    const p4a = { x: lerp(x4, x3, r3), y: lerp(y4, y3, r3) };
-    const p4b = { x: lerp(x4, x1, r4), y: lerp(y4, y1, r4) };
-
-    return `M ${p1a.x} ${p1a.y} Q ${x1} ${y1} ${p1b.x} ${p1b.y} L ${p2a.x} ${p2a.y} Q ${x2} ${y2} ${p2b.x} ${p2b.y} L ${p3a.x} ${p3a.y} Q ${x3} ${y3} ${p3b.x} ${p3b.y} L ${p4a.x} ${p4a.y} Q ${x4} ${y4} ${p4b.x} ${p4b.y} Z`;
-  };
-
   const bgFillSolid = "var(--chart-background)";
   const activeFillSolid = "var(--chart-1)";
 
@@ -409,7 +411,7 @@ function GaugeInner({
             d={createNotchPath(notch.points, notchCornerRadius, notchLength)}
             fill={resolveBgFill(notch.index)}
             fillOpacity={resolvedInactiveFillOpacity}
-            initial={{ opacity: 0, scale: 0 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             key={`bg-${notch.index}`}
             style={{
               transformOrigin: `${centerX}px ${centerY}px`,
@@ -421,25 +423,27 @@ function GaugeInner({
           />
         ))}
 
-        {notches
-          .filter((n) => n.isActive)
-          .map((notch) => (
-            <motion.path
-              animate={{ opacity: 1, scale: 1 }}
-              d={createNotchPath(notch.points, notchCornerRadius, notchLength)}
-              fill={resolveActiveFill(notch)}
-              fillOpacity={resolvedActiveFillOpacity}
-              initial={{ opacity: 0, scale: 0 }}
-              key={`active-${notch.index}`}
-              style={{
-                transformOrigin: `${centerX}px ${centerY}px`,
-              }}
-              transition={{
-                ...notchTransition,
-                delay: (0.3 + notch.index * 0.02) * stagger,
-              }}
-            />
-          ))}
+        {notches.flatMap((notch) =>
+          notch.isActive
+            ? [
+                <motion.path
+                  animate={{ opacity: 1, scale: 1 }}
+                  d={createNotchPath(notch.points, notchCornerRadius, notchLength)}
+                  fill={resolveActiveFill(notch)}
+                  fillOpacity={resolvedActiveFillOpacity}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  key={`active-${notch.index}`}
+                  style={{
+                    transformOrigin: `${centerX}px ${centerY}px`,
+                  }}
+                  transition={{
+                    ...notchTransition,
+                    delay: (0.3 + notch.index * 0.02) * stagger,
+                  }}
+                />,
+              ]
+            : [],
+        )}
       </svg>
 
       <div

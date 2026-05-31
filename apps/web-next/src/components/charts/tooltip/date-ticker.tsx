@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useSpring } from "motion/react";
+import { m as motion, useSpring } from "motion/react";
 import { useMemo, useRef } from "react";
 
 const TICKER_ITEM_HEIGHT = 24;

@@ -1,7 +1,8 @@
 "use client";
 
-import { motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import { m as motion } from "motion/react";
+import { useMemo } from "react";
+import { useClientReady } from "@/hooks/use-client-ready";
 import { cn } from "@/lib/utils";
 import { useChart } from "./chart-context";
 
@@ -67,12 +68,7 @@ export function BarYAxis({
     data,
     hoveredBarIndex,
   } = useChart();
-  const [mounted, setMounted] = useState(false);
-
-  // Only render on client side after mount
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const clientReady = useClientReady();
 
   // Generate labels for each bar
   const labelsToShow = useMemo(() => {
@@ -108,7 +104,7 @@ export function BarYAxis({
 
   // Use portal to render into the chart container
   const container = containerRef.current;
-  if (!(mounted && container)) {
+  if (!(clientReady && container)) {
     return null;
   }
 

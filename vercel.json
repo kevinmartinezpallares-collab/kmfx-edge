@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "bash -lc 'subject=\"$(git log -1 --pretty=%s 2>/dev/null || true)\"; case \"$subject\" in *\"[skip vercel]\"*|*\"[skip-vercel]\"*) echo \"[vercel] ignoring build due to commit marker\"; exit 0;; esac; ref=\"${VERCEL_GIT_COMMIT_REF:-${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}}\"; pr=\"${VERCEL_GIT_PULL_REQUEST_ID:-}\"; if [ -z \"$ref\" ]; then ref=\"$(git symbolic-ref -q --short HEAD 2>/dev/null || true)\"; fi; case \"$ref\" in automation/*) echo \"[vercel] ignoring build for $ref\"; exit 0;; codex/*) if [ -z \"$pr\" ]; then echo \"[vercel] ignoring build for $ref (no PR)\"; exit 0; fi;; esac; exit 1'",
   "redirects": [
     {
       "source": "/:path*",
@@ -305,7 +306,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com https://esm.sh; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://uuhiqreifisppqkawzif.supabase.co wss://uuhiqreifisppqkawzif.supabase.co https://kmfx-edge-api.onrender.com wss://kmfx-edge-api.onrender.com https://mt5-api.kmfxedge.com wss://mt5-api.kmfxedge.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com https://esm.sh https://s3.tradingview.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://uuhiqreifisppqkawzif.supabase.co wss://uuhiqreifisppqkawzif.supabase.co https://kmfx-edge-api.onrender.com wss://kmfx-edge-api.onrender.com https://mt5-api.kmfxedge.com wss://mt5-api.kmfxedge.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com https://www.tradingview.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
         },
         {
           "key": "X-Content-Type-Options",
@@ -338,7 +339,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com https://esm.sh; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://uuhiqreifisppqkawzif.supabase.co wss://uuhiqreifisppqkawzif.supabase.co https://kmfx-edge-api.onrender.com wss://kmfx-edge-api.onrender.com https://mt5-api.kmfxedge.com wss://mt5-api.kmfxedge.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com https://esm.sh https://s3.tradingview.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://uuhiqreifisppqkawzif.supabase.co wss://uuhiqreifisppqkawzif.supabase.co https://kmfx-edge-api.onrender.com wss://kmfx-edge-api.onrender.com https://mt5-api.kmfxedge.com wss://mt5-api.kmfxedge.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com https://www.tradingview.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
         },
         {
           "key": "X-Content-Type-Options",

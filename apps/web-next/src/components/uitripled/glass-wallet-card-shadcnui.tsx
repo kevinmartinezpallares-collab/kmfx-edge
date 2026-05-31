@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { m as motion } from "motion/react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -58,8 +58,8 @@ export function GlassWalletCard({
           {/* Header */}
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary backdrop-blur-sm">
-                <Wallet className="h-5 w-5" />
+              <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary backdrop-blur-sm">
+                <Wallet className="size-5" />
               </div>
               <div>
                 <p className="text-xs font-medium text-muted-foreground">
@@ -82,7 +82,7 @@ export function GlassWalletCard({
                 trendUp ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <TrendingUp className="mr-1 h-3 w-3" />
+              <TrendingUp className="mr-1 size-3" />
               {trend}
             </Badge>
           </div>
@@ -91,7 +91,7 @@ export function GlassWalletCard({
           <div className="space-y-4">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <CreditCard className="h-4 w-4" />
+                <CreditCard className="size-4" />
                 <span>•••• •••• •••• 4242</span>
               </div>
               <span className="font-mono text-xs text-muted-foreground">
@@ -116,8 +116,8 @@ export function GlassWalletCard({
               whileTap={{ scale: 0.95 }}
               className="flex flex-col items-center gap-2"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25">
-                <ArrowUpRight className="h-6 w-6" />
+              <div className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+                <ArrowUpRight className="size-6" />
               </div>
               <span className="text-sm font-medium text-foreground">Send</span>
             </motion.button>
@@ -127,8 +127,8 @@ export function GlassWalletCard({
               whileTap={{ scale: 0.95 }}
               className="flex flex-col items-center gap-2"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow-lg">
-                <ArrowDownLeft className="h-6 w-6" />
+              <div className="flex size-12 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow-lg">
+                <ArrowDownLeft className="size-6" />
               </div>
               <span className="text-sm font-medium text-foreground">
                 Receive

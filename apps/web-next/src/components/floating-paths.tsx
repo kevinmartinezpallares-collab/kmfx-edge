@@ -1,5 +1,5 @@
 "use client";
-import { motion } from "motion/react";
+import { m as motion } from "motion/react";
 
 export function FloatingPaths({ position }: { position: number }) {
 	const paths = Array.from({ length: 36 }, (_, i) => ({

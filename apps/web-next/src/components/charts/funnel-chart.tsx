@@ -1,7 +1,7 @@
 "use client";
 
 import type { Transition } from "motion/react";
-import { motion, useSpring, useTransform } from "motion/react";
+import { m as motion, useSpring, useTransform } from "motion/react";
 import {
   type CSSProperties,
   type ReactNode,
@@ -284,7 +284,7 @@ function HSegment({
       >
         <svg
           aria-hidden="true"
-          className="absolute inset-0 h-full w-full overflow-visible"
+          className="absolute inset-0 size-full overflow-visible"
           preserveAspectRatio="none"
           role="presentation"
           viewBox={`0 0 ${segW} ${fullH}`}
@@ -452,7 +452,7 @@ function VSegment({
       >
         <svg
           aria-hidden="true"
-          className="absolute inset-0 h-full w-full overflow-visible"
+          className="absolute inset-0 size-full overflow-visible"
           preserveAspectRatio="none"
           role="presentation"
           viewBox={`0 0 ${fullW} ${segH}`}
@@ -505,13 +505,28 @@ function VSegment({
 
 // ─── Label overlay ──────────────────────────────────────────────────
 
+const SEGMENT_LABEL_JUSTIFY_CLASSES = {
+  start: "justify-start",
+  center: "justify-center",
+  end: "justify-end",
+} as const;
+const SEGMENT_LABEL_ITEMS_CLASSES = {
+  start: "items-start",
+  center: "items-center",
+  end: "items-end",
+} as const;
+
+type SegmentLabelDisplay = {
+  labels: boolean;
+  percentage: boolean;
+  values: boolean;
+};
+
 function SegmentLabel({
   stage,
   pct,
   isHorizontal,
-  showValues,
-  showPercentage,
-  showLabels,
+  display,
   formatPercentage,
   formatValue,
   index,
@@ -523,9 +538,7 @@ function SegmentLabel({
   stage: FunnelStage;
   pct: number;
   isHorizontal: boolean;
-  showValues: boolean;
-  showPercentage: boolean;
-  showLabels: boolean;
+  display: SegmentLabelDisplay;
   formatPercentage: (p: number) => string;
   formatValue: (v: number) => string;
   index: number;
@@ -534,19 +547,19 @@ function SegmentLabel({
   orientation?: "vertical" | "horizontal";
   align?: "center" | "start" | "end";
 }) {
-  const display = stage.displayValue ?? formatValue(stage.value);
+  const displayValue = stage.displayValue ?? formatValue(stage.value);
 
-  const valueEl = showValues && (
+  const valueEl = display.values && (
     <span className="whitespace-nowrap font-semibold text-foreground text-sm">
-      {display}
+      {displayValue}
     </span>
   );
-  const pctEl = showPercentage && (
+  const pctEl = display.percentage && (
     <span className="rounded-full bg-foreground px-3 py-1 font-bold text-background text-xs shadow-sm">
       {formatPercentage(pct)}
     </span>
   );
-  const labelEl = showLabels && (
+  const labelEl = display.labels && (
     <span className="whitespace-nowrap font-medium text-muted-foreground text-xs">
       {stage.label}
     </span>
@@ -602,18 +615,6 @@ function SegmentLabel({
     orientation ?? (isHorizontal ? "vertical" : "horizontal");
   const isVerticalStack = resolvedOrientation === "vertical";
 
-  // Map align to flexbox alignment on the cross axes
-  const justifyMap = {
-    start: "justify-start",
-    center: "justify-center",
-    end: "justify-end",
-  } as const;
-  const itemsMap = {
-    start: "items-start",
-    center: "items-center",
-    end: "items-end",
-  } as const;
-
   // The outer container uses the chart orientation to position the group,
   // and the inner group uses the label orientation for stacking.
   return (
@@ -624,8 +625,8 @@ function SegmentLabel({
         // For horizontal funnel, align controls vertical placement
         // For vertical funnel, align controls horizontal placement
         isHorizontal
-          ? cn("flex-col items-center", justifyMap[align])
-          : cn("flex-row items-center", justifyMap[align])
+          ? cn("flex-col items-center", SEGMENT_LABEL_JUSTIFY_CLASSES[align])
+          : cn("flex-row items-center", SEGMENT_LABEL_JUSTIFY_CLASSES[align])
       )}
       initial={{ opacity: 0 }}
       style={{
@@ -641,8 +642,11 @@ function SegmentLabel({
         className={cn(
           "flex gap-1.5",
           isVerticalStack
-            ? cn("flex-col", itemsMap[isHorizontal ? "center" : align])
-            : cn("flex-row", itemsMap.center)
+            ? cn(
+                "flex-col",
+                SEGMENT_LABEL_ITEMS_CLASSES[isHorizontal ? "center" : align],
+              )
+            : cn("flex-row", SEGMENT_LABEL_ITEMS_CLASSES.center)
         )}
       >
         {valueEl}
@@ -931,6 +935,11 @@ export function FunnelChart({
               >
                 <SegmentLabel
                   align={labelAlign}
+                  display={{
+                    labels: showLabels,
+                    percentage: showPercentage,
+                    values: showValues,
+                  }}
                   formatPercentage={formatPercentage}
                   formatValue={formatValue}
                   index={i}
@@ -938,9 +947,6 @@ export function FunnelChart({
                   layout={labelLayout}
                   orientation={labelOrientation}
                   pct={pct}
-                  showLabels={showLabels}
-                  showPercentage={showPercentage}
-                  showValues={showValues}
                   stage={stage}
                   staggerDelay={staggerDelay}
                 />
