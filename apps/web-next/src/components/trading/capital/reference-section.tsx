@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 
 import { AnimatedProgress } from "@/components/uitripled/animated-progress-shadcnui";
-import { EquityBalanceChart } from "@/components/trading/equity-balance-chart";
 import { FunnelChart } from "@/components/charts/funnel-chart";
 import { Gauge as GaugeChart } from "@/components/charts/gauge";
 import { GlassWalletCard } from "@/components/uitripled/glass-wallet-card-shadcnui";
@@ -1674,20 +1673,36 @@ function renderCapitalReferenceSection(
                       ? formatCurrency(Number(portfolioChartLatest), baseCurrency)
                       : `${Number(portfolioChartLatest).toFixed(2)}%`}
                   </div>
-                  <EquityBalanceChart
+                  <Liveline
+                    badge
+                    badgeVariant="minimal"
                     color={portfolioChartTheme.accent}
                     data={portfolioLivelineData}
+                    emptyText="Historial insuficiente"
+                    fill
                     formatTime={(time) => portfolioLabelByTime.get(time) ?? shortDateLabel(time * 1000)}
                     formatValue={(value) =>
                       portfolioDisplayMode === "capital"
                         ? formatCurrency(Number(value), baseCurrency)
                         : `${Number(value).toFixed(2)}%`
                     }
-                    minimumRangeRatio={portfolioDisplayMode === "capital" ? 0.028 : 0.18}
-                    referenceLabel={portfolioDisplayMode === "capital" ? "Base" : "0%"}
-                    referenceValue={portfolioDisplayMode === "capital" ? capitalCurveBase : 0}
+                    grid
+                    lineWidth={2.2}
+                    momentum={false}
+                    padding={{ top: 96, right: 132, bottom: 34, left: 18 }}
+                    pulse
+                    referenceLine={{
+                      value: portfolioDisplayMode === "capital" ? capitalCurveBase : 0,
+                      label: portfolioDisplayMode === "capital" ? "Base" : "0%",
+                    }}
+                    scrub
+                    showValue={false}
+                    style={{ height: "100%" }}
+                    theme={portfolioChartTheme.theme}
                     value={portfolioChartLatest}
-                    windowSecs={portfolioEffectiveWindowSecs}
+                    valueMomentumColor={false}
+                    window={portfolioEffectiveWindowSecs}
+                    windowStyle="rounded"
                   />
                 </div>
               ) : (

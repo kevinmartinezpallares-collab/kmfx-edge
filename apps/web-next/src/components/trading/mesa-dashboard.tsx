@@ -8,7 +8,6 @@ import { ChevronRight } from "lucide-react";
 import { Gauge } from "@/components/charts/gauge";
 import { PieChart } from "@/components/charts/pie-chart";
 import { PieSlice } from "@/components/charts/pie-slice";
-import { EquityBalanceChart } from "@/components/trading/equity-balance-chart";
 import {
   Card,
   CardContent,
@@ -549,6 +548,8 @@ function EquityCurveCard({
     padRatio: 0.18,
     maxPadSecs: 86_400,
   });
+  const labelByTime = new Map(chartData.map((point) => [point.time, point.label]));
+
   return (
     <Card className="overflow-hidden border-border/70 bg-card/70">
       <CardHeader>
@@ -573,21 +574,31 @@ function EquityCurveCard({
               onChange={setWindowSecs}
             />
             <div
-              data-kmfx-equity-balance-chart
+              data-kmfx-liveline
               className="h-[320px] w-full xl:h-[340px]"
-              style={chartTheme.isLight ? { filter: "contrast(1.08)" } : undefined}
+              style={chartTheme.isLight ? { filter: "contrast(1.18)" } : undefined}
             >
-              <EquityBalanceChart
+              <Liveline
                 data={livelineData}
                 value={latestValue}
+                theme={chartTheme.theme}
                 color={chartTheme.accent}
-                referenceLabel="Balance"
-                referenceValue={balance}
-                windowSecs={effectiveWindowSecs}
+                window={effectiveWindowSecs}
+                grid
+                badge
+                badgeVariant="minimal"
+                badgeTail
+                fill
+                pulse
+                scrub
+                momentum={false}
+                referenceLine={{ value: balance, label: "Balance" }}
                 formatValue={(value) =>
                   formatCurrency(Number(value), activeAccount?.baseCurrency ?? "USD")
                 }
-                formatTime={shortPanelTimeLabel}
+                formatTime={(time) => labelByTime.get(time) ?? shortPanelTimeLabel(time)}
+                lineWidth={2.35}
+                padding={{ top: 18, right: 132, bottom: 34, left: 24 }}
               />
             </div>
           </div>

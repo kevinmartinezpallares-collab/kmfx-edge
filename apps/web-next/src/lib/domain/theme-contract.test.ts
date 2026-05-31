@@ -96,7 +96,7 @@ describe("theme contract", () => {
     expect(source).not.toContain("smoothLivelinePoints");
   });
 
-  it("keeps calendar and portfolio charts bound to theme-aware tokens", () => {
+  it("keeps calendar and portfolio Liveline charts bound to theme-aware tokens", () => {
     const referenceSectionsSource = readSource("src/components/trading/capital/reference-section.tsx");
     const calendarSource = readSource("src/components/trading/calendar/reference-section.tsx");
     const source = `${referenceSectionsSource}\n${calendarSource}`;
@@ -110,8 +110,9 @@ describe("theme contract", () => {
     expect(source).toMatch(/color=\{portfolioChartTheme\.accent\}/);
     expect(source).toMatch(/color=\{capitalChartTheme\.accent\}/);
     expect(source).toMatch(/color=\{calendarChartTheme\.accent\}/);
-    expect(calendarSource).toContain("EquityBalanceChart");
-    expect(referenceSectionsSource).toContain("EquityBalanceChart");
+    expect(calendarSource).toContain("<Liveline");
+    expect(referenceSectionsSource).toContain("<Liveline");
+    expect(source).not.toContain("EquityBalanceChart");
   });
 
   it("keeps Settings from forcing dark mode when the route mounts", () => {
