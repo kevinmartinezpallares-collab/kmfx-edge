@@ -158,7 +158,7 @@ const mt5ConnectionSteps = [
   },
   {
     title: "Activa el EA",
-    body: "Arrastra KMFXConnector a un gráfico y deja Algo Trading activo.",
+    body: "Arrastra el EA KMFX a un gráfico y deja Algo Trading activo.",
   },
   {
     title: "Confirma la sincronización",

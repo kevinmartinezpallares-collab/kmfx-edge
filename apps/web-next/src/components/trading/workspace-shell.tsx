@@ -236,11 +236,21 @@ function NavigationGroupMenu({
   selectedAccountId: string | null;
   workspace: WorkspaceState;
 }) {
+  const { isMobile, setOpenMobile } = useSidebar();
+
   function hrefWithActiveAccount(href: string) {
     if (!selectedAccountId) return href;
 
     const params = new URLSearchParams({ account: selectedAccountId });
     return `${href}?${params.toString()}`;
+  }
+
+  function navigateTo(href: string) {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+
+    router.push(hrefWithActiveAccount(href));
   }
 
   return (
@@ -269,7 +279,7 @@ function NavigationGroupMenu({
               )}
               onClick={() => {
                 if (href && item.enabled) {
-                  router.push(hrefWithActiveAccount(href));
+                  navigateTo(href);
                 }
               }}
             >
@@ -290,7 +300,7 @@ function NavigationGroupMenu({
                         onClick={(event) => {
                           event.preventDefault();
                           if (child.enabled) {
-                            router.push(hrefWithActiveAccount(child.href));
+                            navigateTo(child.href);
                           }
                         }}
                       >
@@ -546,11 +556,35 @@ function AccountSwitcher({
 
 function SidebarUserMenu({ workspace }: { workspace: WorkspaceState }) {
   const router = useRouter();
-  const { isMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   const profileName = profileNameFromEmail(workspace.meta.userEmail);
   const roleLabel = workspace.meta.userRoleLabel ?? "Usuario";
   const initials = profileInitials(profileName);
   const secondaryLabel = workspace.meta.userEmail ?? roleLabel;
+
+  function navigateTo(pathname: string) {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+
+    router.push(pathname);
+  }
+
+  async function handleSignOut() {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+
+    try {
+      await fetch("/auth/signout", {
+        cache: "no-store",
+        method: "POST",
+      });
+    } finally {
+      router.replace("/login");
+      router.refresh();
+    }
+  }
 
   return (
     <SidebarMenu>
@@ -600,36 +634,38 @@ function SidebarUserMenu({ workspace }: { workspace: WorkspaceState }) {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => router.push("/settings")}>
+              <DropdownMenuItem onClick={() => navigateTo("/settings")}>
                 <UserRound data-icon="inline-start" />
                 Perfil y preferencias
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/accounts")}>
+              <DropdownMenuItem onClick={() => navigateTo("/accounts")}>
                 <WalletCards data-icon="inline-start" />
                 Cuentas conectadas
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/subscription")}>
+              <DropdownMenuItem onClick={() => navigateTo("/subscription")}>
                 <CreditCard data-icon="inline-start" />
                 Suscripción y plan
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/settings")}>
+              <DropdownMenuItem onClick={() => navigateTo("/settings")}>
                 <Settings2 data-icon="inline-start" />
                 Ajustes generales
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <form action="/auth/signout" method="post">
-                <DropdownMenuItem
-                  nativeButton
-                  render={<button aria-label="Cerrar sesión" type="submit" />}
-                  className="w-full font-medium !text-red-500 focus:!bg-red-500/10 focus:!text-red-500 dark:!text-red-400 dark:focus:!bg-red-400/10 dark:focus:!text-red-400 [&_svg]:!text-red-500 dark:[&_svg]:!text-red-400"
-                  variant="destructive"
-                >
-                  <LogOut data-icon="inline-start" />
-                  Cerrar sesión
-                </DropdownMenuItem>
-              </form>
+              <DropdownMenuItem
+                nativeButton
+                render={<button aria-label="Cerrar sesión" type="button" />}
+                className="w-full font-medium !text-red-500 focus:!bg-red-500/10 focus:!text-red-500 dark:!text-red-400 dark:focus:!bg-red-400/10 dark:focus:!text-red-400 [&_svg]:!text-red-500 dark:[&_svg]:!text-red-400"
+                variant="destructive"
+                onClick={(event) => {
+                  event.preventDefault();
+                  void handleSignOut();
+                }}
+              >
+                <LogOut data-icon="inline-start" />
+                Cerrar sesión
+              </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>

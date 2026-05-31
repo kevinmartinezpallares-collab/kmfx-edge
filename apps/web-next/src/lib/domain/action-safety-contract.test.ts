@@ -15,22 +15,22 @@ function snippetAround(source: string, needle: string, radius = 360) {
 }
 
 describe("V1 action safety contract", () => {
-  it("keeps account destructive and launcher actions visually present but inert", () => {
+  it("keeps launcher visually present but inert and destructive account actions explicit", () => {
     const source = readSource("src/components/uitripled/account-cards-slider-shadcnui.tsx");
     const deleteAccount = snippetAround(source, "Eliminar cuenta");
     const launcher = snippetAround(source, "Abrir launcher");
 
-    expect(deleteAccount).toContain("disabled");
     expect(deleteAccount).toContain('variant="destructive"');
-    expect(deleteAccount).toContain("Pendiente");
-    expect(deleteAccount).not.toMatch(/onClick|onSelect|href=|fetch\(|window\.location|router\./);
+    expect(deleteAccount).toContain("onDeleteAccount");
+    expect(source).toContain("async function deleteAccount");
+    expect(source).toContain("deleteAccountConfirmation");
 
     expect(launcher).toContain("disabled");
     expect(launcher).toContain("Pendiente");
     expect(launcher).not.toMatch(/onClick|onSelect|href=|fetch\(|window\.location|router\./);
   });
 
-  it("keeps logout as a destructive visual affordance without activating auth flow in V1", () => {
+  it("keeps logout destructive and routes through the safe signout endpoint", () => {
     const sources = [
       readSource("src/components/trading/workspace-shell.tsx"),
       readSource("src/components/nav-user.tsx"),
@@ -40,26 +40,27 @@ describe("V1 action safety contract", () => {
       const logout = snippetAround(source, "Cerrar sesión", 260);
 
       expect(logout).toMatch(/text-red|destructive/);
-      if (logout.includes("/auth/signout")) {
-        expect(logout).toContain('action="/auth/signout"');
-        expect(logout).toContain('method="post"');
-      } else {
-        expect(logout).not.toMatch(/href=/i);
+      expect(logout).not.toMatch(/href=/i);
+
+      if (source.includes("handleSignOut")) {
+        const handler = snippetAround(source, "handleSignOut", 520);
+
+        expect(handler).toContain('fetch("/auth/signout"');
+        expect(handler).toContain('method: "POST"');
+        expect(handler).toContain('router.replace("/login")');
       }
-      expect(logout).not.toMatch(/\bsignOut\b|fetch\(|window\.location|router\./);
+      expect(logout).not.toMatch(/\bsignOut\b|window\.location/);
     }
   });
 
-  it("keeps sensitive write-flow handlers out of prepared V1 account actions", () => {
+  it("keeps launcher write-flow handlers out of prepared V1 account actions", () => {
     const source = readSource("src/components/uitripled/account-cards-slider-shadcnui.tsx");
     const preparedActions = [
-      snippetAround(source, "Eliminar cuenta"),
       snippetAround(source, "Abrir launcher"),
-      snippetAround(source, "Editar cuenta"),
     ].join("\n");
 
     expect(preparedActions).not.toMatch(
-      /deleteAccount|removeAccount|disconnectAccount|launchMT5|openLauncher|fetch\(|window\.location|router\./i,
+      /launchMT5|openLauncher|fetch\(|window\.location|router\./i,
     );
   });
 

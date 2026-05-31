@@ -10,6 +10,7 @@ const v1Routes = [
   "/analytics/hourly",
   "/analytics/risk",
   "/trades",
+  "/notes",
   "/calendar",
   "/capital",
   "/tools/calculator",
@@ -58,13 +59,9 @@ async function assertServerReady() {
 await assertServerReady();
 
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({
-  viewport: { width: 1440, height: 900 },
-});
-
 const failures = [];
 
-async function gotoWithRetry(route) {
+async function gotoWithRetry(page, route) {
   const url = `${baseUrl}${route}`;
   let lastError = null;
 
@@ -82,8 +79,12 @@ async function gotoWithRetry(route) {
 }
 
 async function assertRouteHealth(route) {
+  const page = await browser.newPage({
+    viewport: { width: 1440, height: 900 },
+  });
+
   try {
-    await gotoWithRetry(route);
+    await gotoWithRetry(page, route);
     await page.waitForLoadState("domcontentloaded", { timeout: 60000 }).catch(() => {});
     await page.waitForTimeout(350);
 
@@ -91,6 +92,7 @@ async function assertRouteHealth(route) {
       .locator("text=/Runtime Error|Cannot find module|This page couldn|Application error/i")
       .count();
     const headings = await page.locator("h1").count();
+    const upcomingText = await page.locator("text=Próximamente").count();
 
     if (runtimeErrors > 0) {
       failures.push(`${route}: runtime error visible`);
@@ -100,10 +102,12 @@ async function assertRouteHealth(route) {
       failures.push(`${route}: no hay H1 visible`);
     }
 
-    return true;
+    return { loaded: true, upcomingText };
   } catch (error) {
     failures.push(`${route}: ${error.message}`);
-    return false;
+    return { loaded: false, upcomingText: 0 };
+  } finally {
+    await page.close().catch(() => {});
   }
 }
 
@@ -112,11 +116,10 @@ for (const route of v1Routes) {
 }
 
 for (const route of upcomingRoutes) {
-  const routeLoaded = await assertRouteHealth(route);
-  if (!routeLoaded) continue;
+  const routeResult = await assertRouteHealth(route);
+  if (!routeResult.loaded) continue;
 
-  const upcomingText = await page.locator("text=Próximamente").count();
-  if (upcomingText === 0) {
+  if (routeResult.upcomingText === 0) {
     failures.push(`${route}: no muestra estado Próximamente`);
   }
 }

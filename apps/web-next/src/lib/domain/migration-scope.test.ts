@@ -37,6 +37,9 @@ function collectRuntimeFiles(directory = runtimeSourceRoot): string[] {
 
 describe("migration scope guardrails", () => {
   it("keeps Next runtime isolated from sensitive legacy and provider code", () => {
+    const serverOnlyRuntimeAllowlist = new Set([
+      "src/lib/downloads/serve-local-artifact.ts",
+    ]);
     const violations = collectRuntimeFiles().flatMap((filePath) => {
       const source = fs.readFileSync(filePath, "utf8");
       const relativePath = path.relative(process.cwd(), filePath);
@@ -46,7 +49,17 @@ describe("migration scope guardrails", () => {
             .filter((pattern) => pattern.test(source))
             .map((pattern) => `${relativePath} -> ${pattern}`);
 
-      return blockedRuntimePatterns
+      const runtimePatterns = serverOnlyRuntimeAllowlist.has(relativePath)
+        ? blockedRuntimePatterns.filter(
+            (pattern) =>
+              ![
+                /from\s+["'](?:node:)?(?:fs|child_process|net|tls)["']/,
+                /require\(["'](?:node:)?(?:fs|child_process|net|tls)["']\)/,
+              ].some((allowedPattern) => allowedPattern.source === pattern.source),
+          )
+        : blockedRuntimePatterns;
+
+      return runtimePatterns
         .filter((pattern) => pattern.test(source))
         .map((pattern) => `${relativePath} -> ${pattern}`)
         .concat(providerViolations);

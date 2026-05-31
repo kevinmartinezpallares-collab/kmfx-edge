@@ -133,6 +133,7 @@ describe("navigation product contract", () => {
       "Portfolio",
       "Insights",
       "Trades",
+      "Apuntes",
       "Calendario",
       "Calculadora",
       "Biblioteca",
@@ -180,6 +181,7 @@ describe("navigation product contract", () => {
     expect(navigationGroups[1].items.map((item) => item.title)).toEqual([
       "Insights",
       "Trades",
+      "Apuntes",
       "Calendario",
     ]);
 
@@ -273,6 +275,7 @@ describe("navigation product contract", () => {
     expect(mobilePlan.secondary.map((item) => item.href)).toEqual([
       "/analytics",
       "/trades",
+      "/notes",
       "/calendar",
       "/capital",
     ]);

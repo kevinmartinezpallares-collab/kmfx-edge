@@ -649,6 +649,7 @@ function mapAccount(account: RawLiveSnapshotAccount): TradingAccount {
     lastSyncLabel: formatSyncLabel(account.last_sync_at),
     isFunded: inferIsFunded(account),
     planAccess: inferPlanAccess(account),
+    equityHistory: mapEquitySeries(payload),
     funding: mapFundingProfile(account),
   };
 }

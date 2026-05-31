@@ -229,6 +229,35 @@ function getPeriodCapitalCurve(
   return data.slice(-Math.min(12, data.length));
 }
 
+function getAccountPeriodCurve(
+  account: TradingAccount,
+  periodStartMs: number,
+): LivelinePoint[] {
+  const source = normalizeLivelinePoints(
+    (account.equityHistory ?? []).flatMap((point) => {
+      if (!point.timestamp) return [];
+      const time = Date.parse(point.timestamp);
+
+      return Number.isFinite(time) && Number.isFinite(point.value)
+        ? [{ time: Math.floor(time / 1000), value: point.value }]
+        : [];
+    }),
+    60,
+  );
+
+  if (source.length < 2) return [];
+
+  const periodStartSecs = Math.floor(periodStartMs / 1000);
+  const visible = source.filter((point) => point.time >= periodStartSecs);
+
+  if (visible.length >= 2) return visible;
+
+  const previous = source.findLast((point) => point.time < periodStartSecs);
+  if (previous && visible[0]) return [previous, visible[0]];
+
+  return [];
+}
+
 function toStaticLivelineTimeline<T extends { time: number; value: number }>(
   data: T[],
   {
@@ -592,11 +621,7 @@ function formatCalendarValue(
   return formatSignedCurrency(value);
 }
 
-export function CapitalReferenceSection({
-  workspace,
-}: {
-  workspace: WorkspaceState;
-}) {
+function useCapitalReferenceModel(workspace: WorkspaceState) {
   const portfolioChartTheme = useReferenceLivelineTheme();
   const initialPortfolioCalendarOverview = React.useMemo(
     () => getCalendarPeriodOverview(workspace),
@@ -699,10 +724,11 @@ export function CapitalReferenceSection({
     allocationRows.find((row) => row.ruleSource === "Revisar") ??
     null;
   const latestDailyTime =
-    [...workspace.analytics.daily]
-      .map((day) => tradingDayKeyToTime(day.tradingDayKey))
-      .filter((time): time is number => time !== null)
-      .toSorted((a, b) => b - a)[0] ??
+    workspace.analytics.daily.reduce<number | null>((latest, day) => {
+      const dayTime = tradingDayKeyToTime(day.tradingDayKey);
+      if (dayTime === null) return latest;
+      return latest === null ? dayTime : Math.max(latest, dayTime);
+    }, null) ??
     (capitalCurveDisplaySeries.at(-1)?.time ?? PORTFOLIO_FALLBACK_EPOCH_SECONDS) * 1000;
   const periodStartMs = periodStartFromLatest(latestDailyTime, portfolioPeriod);
   const periodDailyRows = workspace.analytics.daily.filter((day) => {
@@ -731,20 +757,6 @@ export function CapitalReferenceSection({
     latestDailyTime,
     portfolioComparisonPeriod,
   );
-  const comparisonPeriodCapitalCurve = getPeriodCapitalCurve(
-    capitalCurveSeries,
-    comparisonPeriodStartMs,
-  );
-  const comparisonCapitalCurveForChart =
-    comparisonPeriodCapitalCurve.length > 0 && comparisonPeriodCapitalCurve.length < 12
-      ? toStaticLivelineTimeline(comparisonPeriodCapitalCurve, {
-          endOffsetSecs: 600,
-          minSpanSecs: 86_400,
-          minStepSecs: 3_600,
-        })
-      : comparisonPeriodCapitalCurve.length >= 2
-        ? comparisonPeriodCapitalCurve
-        : capitalCurveForChart;
   const capitalCurveBase =
     capitalCurveForChart[0]?.value ?? Math.max(1, totalEquity - totalPnl);
   const capitalChartData = capitalCurveForChart.map((point) => ({
@@ -787,43 +799,29 @@ export function CapitalReferenceSection({
   const portfolioComparisonSeries = allocationRows
     .slice(0, 4)
     .map<LivelineSeries>((row, index) => {
-      const accountBase = Math.max(1, row.account.equity - row.account.totalPnl);
-      const accountReturnPct = (row.account.totalPnl / accountBase) * 100;
-      const comparisonTarget =
-        ([7.2, 5.8, 4.6, 3.4][index] ?? 2.8) +
-        Math.max(-1.4, Math.min(1.4, accountReturnPct * 0.05));
-      const pointCount = Math.max(2, comparisonCapitalCurveForChart.length);
-      const data = comparisonCapitalCurveForChart.map((point, pointIndex) => {
-        const progress = pointCount <= 1 ? 1 : pointIndex / (pointCount - 1);
-        const aggregatePct = capitalChartData[pointIndex]?.percent ?? portfolioReturnPct * progress;
-        const wave =
-          Math.sin(progress * Math.PI * (1.25 + index * 0.26) + index * 0.8) *
-          (0.22 + index * 0.045);
-        const pullback =
-          Math.sin(progress * Math.PI * 2.4 + index * 1.1) *
-          (1 - progress) *
-          0.28;
-        const value =
-          aggregatePct * 0.18 +
-          comparisonTarget * (0.14 + progress * 0.86) +
-          wave +
-          pullback;
-
-        return {
-          time: point.time,
-          value: Number(value.toFixed(3)),
-        };
-      });
+      const accountCurve = getAccountPeriodCurve(row.account, comparisonPeriodStartMs);
+      const accountBase = accountCurve[0]?.value ?? 0;
+      const data =
+        accountBase > 0
+          ? accountCurve.map((point) => ({
+              time: point.time,
+              value: Number((((point.value - accountBase) / accountBase) * 100).toFixed(3)),
+            }))
+          : [];
 
       return {
         id: row.account.id,
         label: row.account.label,
         color: PORTFOLIO_SERIES_COLORS[index % PORTFOLIO_SERIES_COLORS.length],
         data: normalizeLivelinePoints(data, 60),
-        value: data.at(-1)?.value ?? accountReturnPct,
+        value: data.at(-1)?.value ?? 0,
       };
-    });
-  const portfolioComparisonData = portfolioComparisonSeries[0]?.data ?? [];
+    })
+    .filter((series) => series.data.length >= 2);
+  const portfolioComparisonData = normalizeLivelinePoints(
+    portfolioComparisonSeries.flatMap((series) => series.data),
+    60,
+  );
   const portfolioComparisonEffectiveWindowSecs = livelineWindowForData(
     portfolioComparisonData,
     portfolioComparisonWindowSecs,
@@ -838,6 +836,12 @@ export function CapitalReferenceSection({
     portfolioComparisonLeader && portfolioComparisonLag
       ? portfolioComparisonLeader.value - portfolioComparisonLag.value
       : 0;
+  const portfolioComparisonLabelByTime = new Map(
+    portfolioComparisonData.map((point) => [
+      point.time,
+      shortDateLabel(point.time * 1000),
+    ]),
+  );
   const currentPeriodPnl = visibleDailyRows.reduce((sum, day) => sum + day.pnl, 0);
   const currentPeriodTrades = visibleDailyRows.reduce((sum, day) => sum + day.trades, 0);
   const currentPeriodWins = visibleDailyRows.reduce((sum, day) => sum + day.wins, 0);
@@ -1117,6 +1121,182 @@ export function CapitalReferenceSection({
       note: staleAccounts > 0 ? `${staleAccounts} por actualizar` : "Cuentas al día",
     },
   ];
+
+  return {
+    accountRows,
+    accountToReview,
+    allocationFunnelData,
+    allocationFunnelLegend,
+    allocationFunnelRows,
+    allocationRows,
+    allocationScore,
+    allocationScoreLabel,
+    baseCurrency,
+    bestContribution,
+    capitalCurveForChart,
+    comparisonPeriodStartMs,
+    concentrationRows,
+    concentrationScore,
+    connectedAccounts,
+    consistencyScore,
+    contributionRows,
+    currentPeriodLosses,
+    currentPeriodPnl,
+    currentPeriodTrades,
+    currentPeriodWinRate,
+    currentPeriodWins,
+    dataQualityScore,
+    decisionContextRows,
+    decisionRows,
+    dispatchPortfolioUi,
+    dominantAllocation,
+    dominantShare,
+    growthScore,
+    handlePortfolioCalendarMonthSelect,
+    healthMetricRows,
+    heatShare,
+    kpiItems,
+    maxAbsPnl,
+    policyBlockers,
+    portfolio,
+    portfolioCalendarActiveDays,
+    portfolioCalendarBaseCapital,
+    portfolioCalendarBestDay,
+    portfolioCalendarMonthTitle,
+    portfolioCalendarOverview,
+    portfolioCalendarPnl,
+    portfolioCalendarReviewDay,
+    portfolioCalendarSelectedDayKey,
+    portfolioCalendarSelectedMonthKey,
+    portfolioCalendarTrades,
+    portfolioCalendarValueMode,
+    portfolioCalendarWeekRows,
+    portfolioCalendarWorstDay,
+    portfolioChartLatest,
+    portfolioChartTheme,
+    portfolioCommand,
+    portfolioCommandCta,
+    portfolioCommandHref,
+    portfolioComparisonData,
+    portfolioComparisonEffectiveWindowSecs,
+    portfolioComparisonLabelByTime,
+    portfolioComparisonLag,
+    portfolioComparisonLatest,
+    portfolioComparisonLeader,
+    portfolioComparisonPeriod,
+    portfolioComparisonSeries,
+    portfolioComparisonSpread,
+    portfolioComparisonWindowSecs,
+    portfolioDisplayMode,
+    portfolioEffectiveWindowSecs,
+    portfolioLabelByTime,
+    portfolioLivelineData,
+    portfolioPeriod,
+    portfolioReadiness,
+    portfolioReturnPct,
+    portfolioShouldExaggerate,
+    portfolioStatusLabel,
+    portfolioWindowSecs,
+    riskDuplicationRows,
+    riskScore,
+    staleAccounts,
+    topExposure,
+    totalEquity,
+    totalPnl,
+    visibleDailyRows,
+    weakestContribution,
+  };
+}
+
+export function CapitalReferenceSection({
+  workspace,
+}: {
+  workspace: WorkspaceState;
+}) {
+  const {
+    accountRows,
+    accountToReview,
+    allocationFunnelData,
+    allocationFunnelLegend,
+    allocationFunnelRows,
+    allocationRows,
+    allocationScore,
+    allocationScoreLabel,
+    baseCurrency,
+    bestContribution,
+    capitalCurveForChart,
+    comparisonPeriodStartMs,
+    concentrationRows,
+    concentrationScore,
+    connectedAccounts,
+    consistencyScore,
+    contributionRows,
+    currentPeriodLosses,
+    currentPeriodPnl,
+    currentPeriodTrades,
+    currentPeriodWinRate,
+    currentPeriodWins,
+    dataQualityScore,
+    decisionContextRows,
+    decisionRows,
+    dispatchPortfolioUi,
+    dominantAllocation,
+    dominantShare,
+    growthScore,
+    handlePortfolioCalendarMonthSelect,
+    healthMetricRows,
+    heatShare,
+    kpiItems,
+    maxAbsPnl,
+    policyBlockers,
+    portfolio,
+    portfolioCalendarActiveDays,
+    portfolioCalendarBaseCapital,
+    portfolioCalendarBestDay,
+    portfolioCalendarMonthTitle,
+    portfolioCalendarOverview,
+    portfolioCalendarPnl,
+    portfolioCalendarReviewDay,
+    portfolioCalendarSelectedDayKey,
+    portfolioCalendarSelectedMonthKey,
+    portfolioCalendarTrades,
+    portfolioCalendarValueMode,
+    portfolioCalendarWeekRows,
+    portfolioCalendarWorstDay,
+    portfolioChartLatest,
+    portfolioChartTheme,
+    portfolioCommand,
+    portfolioCommandCta,
+    portfolioCommandHref,
+    portfolioComparisonData,
+    portfolioComparisonEffectiveWindowSecs,
+    portfolioComparisonLabelByTime,
+    portfolioComparisonLag,
+    portfolioComparisonLatest,
+    portfolioComparisonLeader,
+    portfolioComparisonPeriod,
+    portfolioComparisonSeries,
+    portfolioComparisonSpread,
+    portfolioComparisonWindowSecs,
+    portfolioDisplayMode,
+    portfolioEffectiveWindowSecs,
+    portfolioLabelByTime,
+    portfolioLivelineData,
+    portfolioPeriod,
+    portfolioReadiness,
+    portfolioReturnPct,
+    portfolioShouldExaggerate,
+    portfolioStatusLabel,
+    portfolioWindowSecs,
+    riskDuplicationRows,
+    riskScore,
+    staleAccounts,
+    topExposure,
+    totalEquity,
+    totalPnl,
+    visibleDailyRows,
+    weakestContribution,
+  } = useCapitalReferenceModel(workspace);
 
   return (
     <PageMotion>
@@ -1688,7 +1868,7 @@ export function CapitalReferenceSection({
               <div>
                 <CardTitle>Comparativa por cuenta</CardTitle>
                 <CardDescription>
-                  Rendimiento relativo normalizado para comparar tracción, recuperación y estabilidad entre cuentas.
+                  Rendimiento real normalizado desde el histórico de equity disponible por cuenta.
                 </CardDescription>
               </div>
               <div className="grid gap-2 lg:justify-items-end">
@@ -1743,16 +1923,16 @@ export function CapitalReferenceSection({
                 </p>
               </div>
             </div>
-            {portfolioComparisonSeries.length >= 2 && comparisonCapitalCurveForChart.length >= 2 ? (
+            {portfolioComparisonSeries.length >= 2 && portfolioComparisonData.length >= 2 ? (
               <div data-kmfx-liveline className="h-[320px] w-full md:h-[360px]">
                 <Liveline
                   badge={false}
                   color={portfolioChartTheme.accent}
-                  data={portfolioComparisonSeries[0]?.data ?? portfolioLivelineData}
-                  emptyText="Sin cuentas suficientes"
+                  data={portfolioComparisonSeries[0]?.data ?? []}
+                  emptyText="Sin histórico por cuenta"
                   exaggerate
                   fill={false}
-                  formatTime={(time) => portfolioLabelByTime.get(time) ?? shortDateLabel(time * 1000)}
+                  formatTime={(time) => portfolioComparisonLabelByTime.get(time) ?? shortDateLabel(time * 1000)}
                   formatValue={(value) => `${Number(value).toFixed(2)}%`}
                   grid
                   lineWidth={2}
@@ -1772,7 +1952,7 @@ export function CapitalReferenceSection({
               </div>
             ) : (
               <div className="grid h-[280px] place-items-center border border-dashed border-border/70 bg-background/30 text-sm text-muted-foreground">
-                Conecta al menos dos cuentas para comparar curvas.
+                Hace falta histórico de equity en al menos dos cuentas para comparar curvas reales.
               </div>
             )}
           </CardContent>

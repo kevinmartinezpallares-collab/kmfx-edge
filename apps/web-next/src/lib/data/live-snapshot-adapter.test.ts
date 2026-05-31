@@ -346,6 +346,10 @@ describe("createWorkspaceFromLiveSnapshot", () => {
     );
 
     expect(workspace.trades).toHaveLength(2);
+    expect(workspace.accounts[0]?.equityHistory).toEqual([
+      { label: "27 may", value: 105000, timestamp: "2026-05-27T08:00:00Z" },
+      { label: "28 may", value: 105968.11, timestamp: "2026-05-28T09:00:00Z" },
+    ]);
     expect(workspace.analytics.performance.totalTrades).toBe(2);
     expect(workspace.analytics.performance.winRatePct).toBe(50);
     expect(workspace.dashboard.pulseItems).toEqual(

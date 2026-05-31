@@ -766,7 +766,7 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
             inactiveFill="var(--chart-background)"
             inactiveFillOpacity={1}
             activeFillOpacity={1}
-            defaultLabel="Disponible diario"
+            defaultLabel="Margen estimado"
             formatOptions={{
               maximumFractionDigits: 0,
             }}
@@ -778,14 +778,14 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
             enterStaggerScale={1}
           />
           <p className="max-w-64 text-center text-xs leading-relaxed text-muted-foreground">
-            Espacio antes de entrar en modo defensivo.
+            Estimación según la referencia de riesgo disponible.
           </p>
         </div>
 
         <EfferdSegmentedMeter
           label="Uso diario"
           value={formatPercent(workspace.risk.dailyDrawdownPct, 2)}
-          limit={`Límite ${formatPercent(workspace.risk.dailyLimitPct, 2)}`}
+          limit={`Referencia ${formatPercent(workspace.risk.dailyLimitPct, 2)}`}
           segments={[
             { label: "Usado", pct: dailyUsage, tone: "used" },
             { label: "Disponible", pct: Math.max(0, 100 - dailyUsage), tone: "free" },
@@ -795,7 +795,7 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
         <EfferdSegmentedMeter
           label="Riesgo abierto"
           value={formatPercent(workspace.risk.totalOpenRiskPct, 2)}
-          limit={`Máx. ${formatPercent(workspace.risk.heatLimitPct, 2)}`}
+          limit={`Referencia ${formatPercent(workspace.risk.heatLimitPct, 2)}`}
           segments={[
             { label: "Abierto", pct: heatUsage, tone: "used" },
             { label: "Libre", pct: Math.max(0, 100 - heatUsage), tone: "reserve" },

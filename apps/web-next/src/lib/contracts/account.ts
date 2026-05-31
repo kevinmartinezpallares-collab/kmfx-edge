@@ -31,6 +31,11 @@ export type TradingAccount = {
   lastSyncLabel: string;
   isFunded: boolean;
   planAccess: "active" | "limited";
+  equityHistory?: Array<{
+    label: string;
+    value: number;
+    timestamp?: string;
+  }>;
   funding?: {
     firm: string;
     accountMode: "challenge" | "funded" | "evaluation";
