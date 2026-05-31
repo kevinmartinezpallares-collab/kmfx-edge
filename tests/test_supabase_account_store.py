@@ -199,6 +199,70 @@ class SupabaseAccountStoreTests(unittest.TestCase):
         self.assertEqual("account_id,trade_key", trade_post["query"]["on_conflict"])
         self.assertEqual("t-1", trade_post["payload"][0]["trade_key"])
 
+    def test_lightweight_sync_preserves_previous_full_history_metrics(self):
+        store = MemorySupabaseAccountStore()
+        service = AccountService(store)
+        pending = service.create_pending_account_with_key(
+            user_id="user-123",
+            alias="Darwinex",
+            connection_key="darwinex-key",
+        )
+
+        full = service.ingest_account_snapshot(
+            user_id="user-123",
+            account_info={
+                "broker": "Darwinex",
+                "platform": "mt5",
+                "login": "4000082126",
+                "server": "Darwinex-Live",
+            },
+            connection_mode="connector",
+            payload={
+                "payload_mode": "full",
+                "historyBootstrapFull": True,
+                "balance": 100000,
+                "equity": 106000,
+                "trades": [
+                    {"trade_id": f"t-{index}", "ticket": f"t-{index}", "symbol": "XAUUSD", "profit": 10, "time": "2026-05-25T08:00:00Z"}
+                    for index in range(285)
+                ],
+                "reportMetrics": {"totalTrades": 285, "netProfit": 6000, "winRate": 55},
+            },
+            account_id=pending.account_id,
+            api_key="darwinex-key",
+        )
+        self.assertEqual(285, full.latest_payload["reportMetrics"]["totalTrades"])
+
+        lightweight = service.ingest_account_snapshot(
+            user_id="user-123",
+            account_info={
+                "broker": "Darwinex",
+                "platform": "mt5",
+                "login": "4000082126",
+                "server": "Darwinex-Live",
+            },
+            connection_mode="connector",
+            payload={
+                "payload_mode": "lightweight",
+                "historyBootstrapFull": False,
+                "balance": 100000,
+                "equity": 106250,
+                "trades": [
+                    {"trade_id": f"latest-{index}", "ticket": f"latest-{index}", "symbol": "XAUUSD", "profit": 5, "time": "2026-05-26T08:00:00Z"}
+                    for index in range(20)
+                ],
+                "reportMetrics": {"totalTrades": 20, "netProfit": 100, "winRate": 50},
+            },
+            account_id=pending.account_id,
+            api_key="darwinex-key",
+        )
+
+        self.assertEqual(285, lightweight.latest_payload["totalTrades"])
+        self.assertEqual(285, lightweight.latest_payload["tradesCount"])
+        self.assertEqual(285, lightweight.latest_payload["reportMetrics"]["totalTrades"])
+        self.assertEqual(6000, lightweight.latest_payload["reportMetrics"]["netProfit"])
+        self.assertEqual("preserved_full_metrics_after_lightweight_sync", lightweight.latest_payload["historyCompleteness"])
+
     def test_mt5_dot_timestamp_history_points_are_normalized(self):
         store = MemorySupabaseAccountStore()
         service = AccountService(store)

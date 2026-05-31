@@ -697,6 +697,18 @@ bool KMFXMarkHistoryBootstrapComplete()
    return true;
   }
 
+bool KMFXResetHistoryBootstrapComplete()
+  {
+   string file_name=KMFXHistoryBootstrapFileName();
+   if(!KMFXHasCompletedHistoryBootstrap())
+      return true;
+   ResetLastError();
+   bool deleted=FileDelete(file_name,FILE_COMMON);
+   if(deleted && KMFXVerboseLog)
+      PrintFormat("[KMFX][SYNC][HISTORY_BOOTSTRAP_RESET] file=%s", file_name);
+   return deleted;
+  }
+
 string KMFXPendingSyncPrefix()
   {
    return "KMFX_PENDING_SYNC_";
@@ -2265,6 +2277,13 @@ string KMFXExtractBackendReason(string json)
 
 void KMFXApplyServerSyncPolicy(string json)
   {
+   bool history_bootstrap_required=false;
+   if(KMFXExtractJsonBool(json,"history_bootstrap_required",history_bootstrap_required) && history_bootstrap_required)
+     {
+      if(KMFXResetHistoryBootstrapComplete())
+         KMFXLogStatus("KMFX necesita reenviar el historico completo en el siguiente ciclo.",300);
+     }
+
    double next_sync_after=0.0;
    if(!KMFXExtractJsonDouble(json,"next_sync_after_seconds",next_sync_after))
       return;

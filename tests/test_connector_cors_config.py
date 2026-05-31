@@ -374,6 +374,45 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual(60, len(bounded_payload["history"]))
         self.assertEqual([], issues)
 
+    def test_dashboard_payload_preserves_connector_report_metrics(self) -> None:
+        payload = connector_api.build_dashboard_account_payload(
+            account={
+                "login": "4000082126",
+                "broker": "Darwinex",
+                "server": "Darwinex-Live",
+                "currency": "USD",
+                "balance": 100000,
+                "equity": 106000,
+                "profit": 0,
+            },
+            positions=[],
+            trades=[
+                {
+                    "trade_id": "recent-1",
+                    "ticket": "recent-1",
+                    "symbol": "XAUUSD",
+                    "profit": 10,
+                    "commission": 0,
+                    "swap": 0,
+                    "net": 10,
+                    "time": "2026-05-25T10:00:00Z",
+                }
+            ],
+            raw_payload={
+                "reportMetrics": {
+                    "source": "mt5_mql5_computed",
+                    "totalTrades": 285,
+                    "netProfit": 6304,
+                    "winRate": 54.2,
+                }
+            },
+        )
+
+        self.assertEqual(285, payload["totalTrades"])
+        self.assertEqual(285, payload["reportMetrics"]["totalTrades"])
+        self.assertEqual(6304, payload["closedPnl"])
+        self.assertEqual(54.2, payload["winRate"])
+
     def test_mt5_journal_rejects_oversized_body_without_echoing_payload(self) -> None:
         oversized_body = json.dumps({"batch_id": "batch-1", "events": ["secret-value"]}).encode("utf-8")
         request = self._request(body_bytes=oversized_body)

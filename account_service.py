@@ -103,6 +103,82 @@ def _first_text(*values: Any) -> str:
     return ""
 
 
+def _history_total_trades(payload: dict[str, Any] | None) -> int:
+    safe_payload = payload if isinstance(payload, dict) else {}
+    report_metrics = safe_payload.get("reportMetrics") if isinstance(safe_payload.get("reportMetrics"), dict) else {}
+    for value in (
+        safe_payload.get("totalTrades"),
+        safe_payload.get("tradesCount"),
+        report_metrics.get("totalTrades"),
+    ):
+        parsed = _first_finite_number(value)
+        if parsed is not None:
+            return int(parsed)
+    return 0
+
+
+def _preserve_full_history_metrics(
+    *,
+    compact_payload: dict[str, Any],
+    previous_payload: dict[str, Any] | None,
+    incoming_payload: dict[str, Any] | None,
+) -> dict[str, Any]:
+    incoming = incoming_payload if isinstance(incoming_payload, dict) else {}
+    if incoming.get("historyBootstrapFull") is True or str(incoming.get("payload_mode") or "").lower() != "lightweight":
+        return compact_payload
+
+    previous = previous_payload if isinstance(previous_payload, dict) else {}
+    previous_total = _history_total_trades(previous)
+    incoming_total = _history_total_trades(compact_payload)
+    if previous_total <= incoming_total:
+        return compact_payload
+
+    preserved = deepcopy(compact_payload)
+    preserved["totalTrades"] = previous_total
+    preserved["tradesCount"] = max(previous_total, int(preserved.get("tradesCount") or 0))
+    previous_metrics = previous.get("reportMetrics") if isinstance(previous.get("reportMetrics"), dict) else {}
+    current_metrics = preserved.get("reportMetrics") if isinstance(preserved.get("reportMetrics"), dict) else {}
+    if previous_metrics:
+        historical_keys = (
+            "netProfit",
+            "grossProfit",
+            "grossLoss",
+            "netGrossProfit",
+            "netGrossLoss",
+            "profitFactor",
+            "grossProfitFactor",
+            "netProfitFactor",
+            "profitFactorBasis",
+            "winRate",
+            "totalTrades",
+            "winTrades",
+            "lossTrades",
+            "avgWin",
+            "avgLoss",
+            "bestTrade",
+            "worstTrade",
+            "drawdownPct",
+            "commissions",
+            "swaps",
+            "dividends",
+            "maxConsecutiveWins",
+            "maxConsecutiveLosses",
+            "maxConsecutiveProfit",
+            "maxConsecutiveLoss",
+        )
+        merged_metrics = deepcopy(current_metrics)
+        for key in historical_keys:
+            if key in previous_metrics:
+                merged_metrics[key] = deepcopy(previous_metrics[key])
+        preserved["reportMetrics"] = merged_metrics
+        if "winRate" in previous_metrics:
+            preserved["winRate"] = previous_metrics["winRate"]
+        if "drawdownPct" in previous_metrics:
+            preserved["drawdownPct"] = previous_metrics["drawdownPct"]
+    preserved["historyCompleteness"] = "preserved_full_metrics_after_lightweight_sync"
+    return preserved
+
+
 def account_summary_fields_from_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
     """Expose display-only account totals already present in the latest MT5 snapshot."""
     safe_payload = payload if isinstance(payload, dict) else {}
@@ -1004,6 +1080,11 @@ class AccountService:
             merged_payload["fullPayloadStored"] = True
         else:
             merged_payload = compact_storage_payload_from_payload(payload)
+            merged_payload = _preserve_full_history_metrics(
+                compact_payload=merged_payload,
+                previous_payload=target.latest_payload if target else {},
+                incoming_payload=payload,
+            )
         report_metrics = merged_payload.get("reportMetrics") if isinstance(merged_payload.get("reportMetrics"), dict) else {}
         connector_version = str(merged_payload.get("connectorVersion") or merged_payload.get("connector_version") or "")
 

@@ -5345,6 +5345,25 @@ def trade_profit_components(trade: dict[str, Any]) -> dict[str, float]:
     }
 
 
+def connector_report_metrics(raw_payload: dict[str, Any]) -> dict[str, Any]:
+    metrics = raw_payload.get("reportMetrics") if isinstance(raw_payload.get("reportMetrics"), dict) else {}
+    if not metrics:
+        return {}
+    return {
+        key: deepcopy(value)
+        for key, value in metrics.items()
+        if value not in (None, "")
+    }
+
+
+def merge_report_metrics(*metrics_blocks: dict[str, Any]) -> dict[str, Any]:
+    merged: dict[str, Any] = {}
+    for metrics in metrics_blocks:
+        if isinstance(metrics, dict):
+            merged.update({key: deepcopy(value) for key, value in metrics.items() if value not in (None, "")})
+    return merged
+
+
 def calculate_max_drawdown_pct(history: list[dict[str, Any]], starting_balance: float, trades: list[dict[str, Any]]) -> float:
     points: list[float] = []
     for point in history:
@@ -5626,7 +5645,16 @@ def build_dashboard_account_payload(
         raw_payload.get("symbolSpecs") or raw_payload.get("symbol_specs"),
         safe_str(account.get("currency") or "USD"),
     )
-    report_metrics = build_report_metrics(account, trades, history)
+    derived_report_metrics = build_report_metrics(account, trades, history)
+    connector_metrics = connector_report_metrics(raw_payload)
+    report_metrics = merge_report_metrics(derived_report_metrics, connector_metrics)
+    connector_total_trades = safe_float_or_none(connector_metrics.get("totalTrades"))
+    connector_net_profit = safe_float_or_none(connector_metrics.get("netProfit"))
+    connector_win_rate = safe_float_or_none(connector_metrics.get("winRate"))
+    if connector_net_profit is not None:
+        closed_pnl = connector_net_profit
+    if connector_win_rate is not None:
+        win_rate = connector_win_rate
     account_policy = extract_account_policy_config(previous_payload, raw_payload)
     raw_policy = build_policy(safe_str(account.get("login")), account_policy)
     policy_snapshot, policy_warnings = build_policy_snapshot(raw_policy)
@@ -5683,12 +5711,13 @@ def build_dashboard_account_payload(
         "winRate": win_rate,
         "drawdownPct": summary["peak_to_equity_drawdown_pct"],
         "openPositionsCount": len(positions),
-        "totalTrades": len(trades),
+        "totalTrades": int(connector_total_trades) if connector_total_trades is not None else len(trades),
         "timestamp": safe_timestamp(raw_payload.get("timestamp") or account.get("timestamp")),
         "payloadSource": "mt5_sync_live",
         "payload_mode": safe_str(raw_payload.get("payload_mode")),
         "sync_reason": safe_str(raw_payload.get("sync_reason")),
         "historyBootstrapFull": bool(raw_payload.get("historyBootstrapFull")),
+        "connectorReportMetrics": connector_metrics,
         "positions": positions,
         "symbolSpecs": symbol_specs,
         "trades": trades,
@@ -8108,6 +8137,29 @@ async def mt5_sync(request: Request) -> JSONResponse:
         dashboard_payload["last_sync_at"] = equity_state["last_sync_at"]
         dashboard_payload["connector_version"] = connector_version
         dashboard_payload["connectorVersion"] = connector_version
+        connector_total_trades = safe_float_or_none(ensure_dict(dashboard_payload.get("connectorReportMetrics")).get("totalTrades"))
+        previous_metrics = ensure_dict((previous_account.latest_payload if previous_account else {}).get("reportMetrics"))
+        previous_known_trades = max(
+            safe_float(previous_metrics.get("totalTrades")),
+            safe_float((previous_account.latest_payload if previous_account else {}).get("totalTrades")),
+            safe_float((previous_account.latest_payload if previous_account else {}).get("tradesCount")),
+        )
+        history_bootstrap_required = (
+            not mt5_sync_requests_history_bootstrap(payload)
+            and connector_total_trades is not None
+            and connector_total_trades > max(previous_known_trades, float(len(effective_trades)))
+        )
+        if history_bootstrap_required:
+            issues.append(
+                {
+                    "section": "history",
+                    "field": "trades",
+                    "problem": "normalized_history_behind_connector_metrics",
+                    "connector_total_trades": int(connector_total_trades),
+                    "known_stored_trades": int(previous_known_trades),
+                    "current_payload_trades": len(effective_trades),
+                }
+            )
         if unverified_identity:
             dashboard_payload["identity_status"] = "unverified_identity"
         log.info(
@@ -8213,9 +8265,11 @@ async def mt5_sync(request: Request) -> JSONResponse:
                     "positions_count": len(sanitized_positions),
                     "trades_count": len(sanitized_trades),
                     "history_bootstrap_full": mt5_sync_requests_history_bootstrap(payload),
+                    "history_bootstrap_required": history_bootstrap_required,
                     "issues": issues,
                     "account_id": synced_account.account_id,
                 },
+                "history_bootstrap_required": history_bootstrap_required,
                 **bandwidth_policy_payload(),
                 "timestamp": now_iso(),
             },

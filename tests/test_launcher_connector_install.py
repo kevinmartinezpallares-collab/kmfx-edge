@@ -144,6 +144,9 @@ class LauncherConnectorInstallTests(unittest.TestCase):
         self.assertIn('sync_from_time=KMFXHistoryFromTime();', source)
         self.assertIn('json+="\\"historyBootstrapFull\\":"+KMFXBoolJson(full_history_sync)+",";', source)
         self.assertIn('KMFXMarkHistoryBootstrapComplete();', source)
+        self.assertIn('bool KMFXResetHistoryBootstrapComplete()', source)
+        self.assertIn('KMFXExtractJsonBool(json,"history_bootstrap_required",history_bootstrap_required)', source)
+        self.assertIn('FileDelete(file_name,FILE_COMMON)', source)
         self.assertIn('string KMFXHistoryBootstrapFileName()', source)
         self.assertIn('KMFXConnectionKeyValue()', source)
 
