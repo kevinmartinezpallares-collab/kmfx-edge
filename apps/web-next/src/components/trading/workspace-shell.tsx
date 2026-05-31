@@ -79,6 +79,9 @@ type PromoNotification = {
 };
 
 const LOCATION_SEARCH_CHANGE_EVENT = "kmfx-location-search-change";
+const ORION_FUNDED_REFERRAL_URL =
+  process.env.NEXT_PUBLIC_ORION_FUNDED_REFERRAL_URL ??
+  "https://shop.orionfunded.com/?ref=10578";
 const DARWINEX_ZERO_REFERRAL_URL =
   process.env.NEXT_PUBLIC_DARWINEX_ZERO_REFERRAL_URL ??
   "https://www.darwinexzero.com/";
@@ -159,22 +162,17 @@ function useLocationSearchParams() {
   return React.useMemo(() => new URLSearchParams(search), [search]);
 }
 
-function getPromoNotifications(workspace: WorkspaceState): PromoNotification[] {
-  const firmLabel =
-    workspace.accounts.find((account) => {
-      const firm = account.funding?.firm?.toLowerCase() ?? "";
-      return firm && !firm.includes("darwin");
-    })?.funding?.firm ?? "Fondeo";
-
+function getPromoNotifications(): PromoNotification[] {
   return [
     {
-      id: "funding-discount",
-      partnerLabel: firmLabel,
-      badge: "Promo",
-      title: "Descuento para fondeo",
-      body: "Usa el código en un reto nuevo y revisa reglas antes de aumentar riesgo.",
-      actionLabel: "Copiar código",
-      code: "KMFX15",
+      id: "orion-funded-discount",
+      partnerLabel: "Orion Funded",
+      badge: "15%",
+      title: "15% en Orion Funded",
+      body: "Abre el enlace de referido y usa el código KMFX antes de contratar el reto.",
+      actionLabel: "Abrir enlace",
+      code: "KMFX",
+      href: ORION_FUNDED_REFERRAL_URL,
     },
     {
       id: "darwinex-zero-referral",
@@ -649,24 +647,43 @@ function PromoActionButton({
 }) {
   const [copied, setCopied] = React.useState(false);
 
+  function copyPromoCode() {
+    if (!promo.code) return;
+    void navigator.clipboard?.writeText(promo.code);
+    setCopied(true);
+  }
+
   if (promo.href) {
     return (
-      <Button
-        size={size}
-        variant="outline"
-        className="h-8 justify-between bg-background/35 px-2 text-xs"
-        render={
-          <a
-            href={promo.href}
-            target="_blank"
-            rel="noreferrer"
-            aria-label={`${promo.actionLabel}: ${promo.title}`}
-          />
-        }
-      >
-        <span>{promo.actionLabel}</span>
-        <ExternalLink data-icon="inline-end" />
-      </Button>
+      <>
+        <Button
+          nativeButton={false}
+          size={size}
+          variant="outline"
+          className="h-8 flex-1 justify-between bg-background/35 px-2 text-xs"
+          render={
+            <a
+              href={promo.href}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`${promo.actionLabel}: ${promo.title}`}
+            />
+          }
+        >
+          <span>{promo.actionLabel}</span>
+          <ExternalLink data-icon="inline-end" />
+        </Button>
+        {promo.code ? (
+          <Button
+            size={size}
+            variant="outline"
+            className="h-8 shrink-0 bg-background/35 px-2 text-xs"
+            onClick={copyPromoCode}
+          >
+            {copied ? "Copiado" : promo.code}
+          </Button>
+        ) : null}
+      </>
     );
   }
 
@@ -675,11 +692,7 @@ function PromoActionButton({
       size={size}
       variant="outline"
       className="h-8 justify-between bg-background/35 px-2 text-xs"
-      onClick={() => {
-        if (!promo.code) return;
-        void navigator.clipboard?.writeText(promo.code);
-        setCopied(true);
-      }}
+      onClick={copyPromoCode}
     >
       <span>{copied ? "Copiado" : promo.code ?? promo.actionLabel}</span>
       <ExternalLink data-icon="inline-end" />
@@ -939,8 +952,8 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
     workspace.accounts.find((account) => account.id === selectedAccountId) ??
     workspace.accounts[0];
   const promoNotifications = React.useMemo(
-    () => getPromoNotifications(workspace),
-    [workspace],
+    () => getPromoNotifications(),
+    [],
   );
   const [dismissedPromoIds, setDismissedPromoIds] = React.useState<string[]>([]);
   const activePromo = promoNotifications.find(
