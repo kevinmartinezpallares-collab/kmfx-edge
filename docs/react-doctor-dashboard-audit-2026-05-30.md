@@ -5,7 +5,7 @@
 - App: `apps/web-next`
 - Ruta verificada: `http://localhost:3000/dashboard`
 - React Doctor inicial: `62 / 100`, `481 issues`
-- React Doctor final: `97 / 100`, `109 issues`
+- React Doctor final: `97 / 100`, `108 issues`
 - Estado final: `Great`
 - Captura antes: `/tmp/kmfx-dashboard-before.png`
 - Captura despues: `/tmp/kmfx-dashboard-react-doctor-149-wait.png`
@@ -43,6 +43,8 @@
 - Captura analytics despues del cierre seguro: `/tmp/kmfx-analytics-after-closeout-safe-fixes.png`
 - Captura trades despues del cierre seguro: `/tmp/kmfx-trades-after-closeout-safe-fixes.png`
 - Captura trades despues de extraer modelo de barras: `/tmp/kmfx-trades-after-bar-chart-model-refactor.png`
+- Captura trades antes de extraer secciones internas: `/tmp/kmfx-trades-before-activity-card-extract.png`
+- Captura trades despues de extraer secciones internas: `/tmp/kmfx-trades-after-reference-section-extract.png`
 - Captura calculadora despues: `/tmp/kmfx-calculator-react-doctor-149.png`
 
 ## Cambios aplicados sin intencion visual
@@ -104,6 +106,7 @@
 - Se estabilizo `AnimatedGradient` para no reiniciar WebGL ante cambios de config: el loop lee los parametros desde un ref actualizado en efecto, manteniendo el mismo fallback si WebGL falla.
 - Se cambio el estado de replay de `BarChart` a una clave de animacion ajustada durante render y un unico timer de finalizacion, manteniendo el replay cuando cambian `animationDuration` o `revealSignature`.
 - Se extrajeron el estado de replay y el modelo calculado de `BarChart` a hooks internos (`useBarAnimationState` y `useBarChartModel`), reduciendo el tamano de `ChartInner` sin cambiar JSX visible ni API publica.
+- Se dividio `TradesReferenceSection` en componentes enfocados para resumen/filtros, ledger, detalle y actividad mensual, y se movio la preparacion de datos a `useTradesReferenceModel`; el componente deja de aparecer como gigante en React Doctor sin cambiar textos ni layout intencionadamente.
 - Se separaron subcomponentes de `InputGroup` y `Resizable` en archivos dedicados, manteniendo las mismas clases y exportaciones publicas desde sus modulos originales.
 - Se retiraron `role="group"` de wrappers visuales sin nombre accesible en `Field`/`InputGroup` y se cambio el gauge CSS de Analytics a `<figure aria-label>` con `m-0`.
 - Se renombro el writer del token Turnstile de `setCaptchaToken` a `writeCaptchaToken`, aclarando que no dispara render y eliminando el falso positivo de cascada de estado.
@@ -118,8 +121,8 @@
 - `npm run build`: OK
 - `npm run test -- action-safety-contract`: OK
 - `npm run test -- funding review risk liveline trades`: OK, `8` archivos y `33` tests
-- `npx react-doctor@latest`: `97 / 100`, `109 issues`
-- `npx react-doctor@latest --verbose --diff`: `99 / 100`, `15 issues`
+- `npx react-doctor@latest`: `97 / 100`, `108 issues`
+- `npx react-doctor@latest --verbose --diff`: `99 / 100`, `14 issues`
 - Browser/Playwright local: `http://localhost:3000/dashboard` carga con titulo `KMFX Edge`, contenido de `Panel` visible y sin error de aplicacion.
 - Playwright local: captura dashboard posterior tomada tras esperar `h1`, SVG de liveline y `6000ms` extra para evitar capturas borrosas o a medio cargar.
 - Playwright local: captura posterior a la extraccion del logo tomada con `Panel` visible, SVG de liveline visible y `6000ms` extra; sin error de aplicacion.
@@ -145,6 +148,7 @@
 - Browser in-app: tras estabilizar `AnimatedGradient` y `BarChart`, `http://localhost:3000/accounts` y `http://localhost:3000/trades` cargan tras `8500ms`, sin overlays ni logs `error`/`warn`.
 - Browser in-app: tras separar componentes base y ajustar semantica, `http://localhost:3000/login?next=/dashboard`, `/analytics` y `/trades` cargan tras `8500ms`, sin overlays ni logs `error`/`warn`.
 - Browser in-app: tras extraer el modelo de `BarChart`, `http://localhost:3000/trades` carga tras `8500ms` con titulo `Trades / KMFX Edge` y sin cambio visual apreciable en layout.
+- Playwright local: tras extraer secciones internas de Trades, `http://localhost:3000/trades` carga tras `8500ms`; el ledger y `Actividad mensual` siguen presentes, y la captura posterior mantiene el layout esperado. El screenshot posterior usa locale de Playwright para placeholders de fecha.
 - Browser/Playwright local: `http://localhost:3000/tools/calculator` carga con titulo `KMFX Edge`, contenido de `Calculadora / Lotaje` visible, sin error de aplicacion, y el input `Risk %` acepta `0.50`.
 
 La suite completa de tests sigue bloqueada por una regla preexistente de migracion que detecta `KMFXConnector` en `src/components/trading/accounts/reference-section.tsx`. Ese archivo ya estaba modificado fuera de este pase, asi que no se revirtio ni se mezclo con el trabajo de React Doctor.
@@ -155,6 +159,7 @@ La suite completa de tests sigue bloqueada por una regla preexistente de migraci
 - `react-doctor/use-lazy-motion`: aplicado. La familia de avisos desaparecio.
 - `no-adjust-state-on-prop-change`: aplicado en el slider de cuentas, `AnimatedGradient` y `BarChart`; ya no aparece en el diff de React Doctor.
 - `bar-chart`: el primer intento rapido se revirtio porque bajo React Doctor a `87 / 100`; el pase final usa estado de replay con clave, modelo calculado en hook interno y mantiene QA visual en `/trades`.
+- `trades/reference-section`: aplicado split interno de summary/filtros, ledger, detalle y actividad mensual; ya no aparece en el diff de React Doctor.
 - `no-multi-comp`: aplicado en `logo.tsx`, `input-group` y `resizable`; ya no aparece en el diff de React Doctor.
 - `only-export-components`: aplicado en `button`, `tabs` y `toggle`; quedan las variantes en modulos dedicados.
 - `rerender-memo-before-early-return`: aplicado en `ui/chart` y `ui/field`.
