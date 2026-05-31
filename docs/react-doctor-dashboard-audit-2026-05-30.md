@@ -49,6 +49,8 @@
 - Captura calculadora despues de extraer lot sizing: `/tmp/kmfx-calculator-after-lot-size-extract.png`
 - Captura cuentas antes de extraer seccion de referencia: `/tmp/kmfx-accounts-before-reference-section-extract.png`
 - Captura cuentas despues de extraer seccion de referencia y corregir Label: `/tmp/kmfx-accounts-after-reference-section-label-fix.png`
+- Captura calendario antes de extraer seccion de referencia: `/tmp/kmfx-calendar-before-reference-section-extract.png`
+- Captura calendario despues de extraer seccion de referencia: `/tmp/kmfx-calendar-after-reference-section-extract.png`
 - Captura calculadora despues: `/tmp/kmfx-calculator-react-doctor-149.png`
 
 ## Cambios aplicados sin intencion visual
@@ -121,6 +123,7 @@
 - Cambio visible menor: `Calculando tipo de cambio...` ahora usa el caracter tipografico `…`.
 - Cambio visual de microanimacion: entradas con `scale: 0` pasan a iniciar desde `scale: 0.95` con opacidad, para evitar apariciones desde un punto.
 - Se dividio `AccountsReferenceSection` en tarjeta resumen, dialogo de alta por pasos y hook de modelo; mantiene textos, clases y flujo de conexion, y deja de aparecer como componente gigante en React Doctor.
+- Se dividio `CalendarReferenceSection` en controles, KPI, calendario anual/mensual, curva acumulada, tabla anual y dialogo de dia, con `useCalendarReferenceModel` para la logica; mantiene textos, clases y comportamiento visibles.
 
 ## Verificacion
 
@@ -130,7 +133,7 @@
 - `npm run test -- action-safety-contract`: OK
 - `npm run test -- funding review risk liveline trades`: OK, `8` archivos y `33` tests
 - `npx react-doctor@latest`: `95 / 100`, `111 issues` en working tree local con la ruta untracked `/notes`; no se usa como baseline del commit de este lote.
-- `npx react-doctor@latest --verbose --diff`: `100 / 100`, `10 issues`
+- `npx react-doctor@latest --verbose --diff`: `100 / 100`, `9 issues`
 - Browser/Playwright local: `http://localhost:3000/dashboard` carga con titulo `KMFX Edge`, contenido de `Panel` visible y sin error de aplicacion.
 - Playwright local: captura dashboard posterior tomada tras esperar `h1`, SVG de liveline y `6000ms` extra para evitar capturas borrosas o a medio cargar.
 - Playwright local: captura posterior a la extraccion del logo tomada con `Panel` visible, SVG de liveline visible y `6000ms` extra; sin error de aplicacion.
@@ -162,6 +165,8 @@
 - Browser/Playwright local: `http://localhost:3000/tools/calculator` carga con titulo `KMFX Edge`, contenido de `Calculadora / Lotaje` visible, sin error de aplicacion, y el input `Risk %` acepta `0.50`.
 - Browser in-app: tras extraer `AccountsReferenceSection` y ajustar `Label`, `http://localhost:3000/accounts` carga tras `8500ms` con titulo `Cuentas / KMFX Edge`, contenido visible y sin `Application error`.
 - Playwright local: captura posterior de `/accounts` tomada con `8500ms` de espera; comparada con la captura anterior no hay cambio visual apreciable.
+- Browser in-app: tras extraer `CalendarReferenceSection`, `http://localhost:3000/calendar` carga tras `8500ms` con titulo `Calendario / KMFX Edge`, `Vista mensual` visible y sin `Application error`.
+- Playwright local: captura posterior de `/calendar` tomada con `8500ms` de espera; comparada con la captura anterior no hay cambio visual apreciable.
 
 La suite completa de tests sigue bloqueada por una regla preexistente de migracion que detecta `KMFXConnector` en `src/components/trading/accounts/reference-section.tsx`. Ese archivo ya estaba modificado fuera de este pase, asi que no se revirtio ni se mezclo con el trabajo de React Doctor.
 
@@ -187,6 +192,7 @@ La suite completa de tests sigue bloqueada por una regla preexistente de migraci
 - `no-cascading-set-state`: el aviso de Turnstile se elimino renombrando el writer de token, que solo actualiza un ref y no es setState.
 - `accounts/reference-section`: aplicado `prefer-useReducer`, y retirada la comprobacion de billing desde `useEffect`; sus avisos de `no-fetch-in-effect` y `nextjs-no-client-side-redirect` ya no aparecen en el diff de React Doctor.
 - `accounts/reference-section`: aplicado split de modelo/UI; ya no aparece como `no-giant-component` en el diff de React Doctor.
+- `calendar/reference-section`: aplicado split de modelo/UI; ya no aparece como `no-giant-component` en el diff de React Doctor.
 - `settings/reference-sections`: eliminado el `fetch` inicial en effect para leer billing status dentro de `SubscriptionReferenceSection`; el plan inicial llega desde server y los eventos de Checkout/Portal siguen en cliente.
 - `workspace-shell`: eliminado el fetch/redirect global desde effect. El `proxy` comprueba billing antes de pintar rutas workspace, excluye `/subscription`, `/settings/subscription` y `?demo=1`, y no bloquea si billing status esta temporalmente no disponible.
 - `prefer-dynamic-import`: aplicado para los imports directos de `recharts` dentro de Analytics y `src/components/ui/chart.tsx`; ya no aparece en el diff de React Doctor.
