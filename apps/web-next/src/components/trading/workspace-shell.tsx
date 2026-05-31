@@ -225,6 +225,19 @@ function ShellTrigger({ place }: { place: "sidebar" | "navbar" }) {
   );
 }
 
+function CloseMobileSidebarOnRouteChange() {
+  const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  React.useEffect(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [isMobile, pathname, setOpenMobile]);
+
+  return null;
+}
+
 function getAccountCompanyName(
   account: WorkspaceState["accounts"][number] | undefined,
 ) {
@@ -656,6 +669,7 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
 
   return (
     <SidebarProvider defaultOpen>
+      <CloseMobileSidebarOnRouteChange />
       <WorkspaceSidebar workspace={workspace} />
       <SidebarInset className="min-h-svh bg-background">
         <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--foreground)_4%,transparent),transparent_320px)]" />
