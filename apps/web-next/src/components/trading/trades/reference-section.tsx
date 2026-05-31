@@ -462,7 +462,7 @@ export function TradesReferenceSection({
                   className="border-border/70 bg-background/40"
                 />
               </Field>
-              <Field className="min-w-0">
+              <Field className="col-span-2 min-w-0 sm:col-span-1">
                 <FieldLabel>Desde</FieldLabel>
                 <Input
                   type="date"
@@ -471,7 +471,7 @@ export function TradesReferenceSection({
                   className="border-border/70 bg-background/40"
                 />
               </Field>
-              <Field className="min-w-0">
+              <Field className="col-span-2 min-w-0 sm:col-span-1">
                 <FieldLabel>Hasta</FieldLabel>
                 <Input
                   type="date"
