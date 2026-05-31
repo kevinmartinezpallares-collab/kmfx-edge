@@ -67,7 +67,21 @@ type WorkspaceShellProps = {
   workspace: WorkspaceState;
 };
 
+type PromoNotification = {
+  id: string;
+  partnerLabel: string;
+  badge: string;
+  title: string;
+  body: string;
+  actionLabel: string;
+  code?: string;
+  href?: string;
+};
+
 const LOCATION_SEARCH_CHANGE_EVENT = "kmfx-location-search-change";
+const DARWINEX_ZERO_REFERRAL_URL =
+  process.env.NEXT_PUBLIC_DARWINEX_ZERO_REFERRAL_URL ??
+  "https://www.darwinexzero.com/";
 
 let historyPatchReferenceCount = 0;
 let restoreHistoryPatch: (() => void) | null = null;
@@ -143,6 +157,35 @@ function useLocationSearchParams() {
   );
 
   return React.useMemo(() => new URLSearchParams(search), [search]);
+}
+
+function getPromoNotifications(workspace: WorkspaceState): PromoNotification[] {
+  const firmLabel =
+    workspace.accounts.find((account) => {
+      const firm = account.funding?.firm?.toLowerCase() ?? "";
+      return firm && !firm.includes("darwin");
+    })?.funding?.firm ?? "Fondeo";
+
+  return [
+    {
+      id: "funding-discount",
+      partnerLabel: firmLabel,
+      badge: "Promo",
+      title: "Descuento para fondeo",
+      body: "Usa el código en un reto nuevo y revisa reglas antes de aumentar riesgo.",
+      actionLabel: "Copiar código",
+      code: "KMFX15",
+    },
+    {
+      id: "darwinex-zero-referral",
+      partnerLabel: "Darwinex Zero",
+      badge: "Referido",
+      title: "Descuento Darwinex Zero",
+      body: "Accede desde el enlace de referido para revisar el descuento disponible.",
+      actionLabel: "Abrir enlace",
+      href: DARWINEX_ZERO_REFERRAL_URL,
+    },
+  ];
 }
 
 function getNavBadge(
@@ -597,21 +640,65 @@ function SidebarUserMenu({ workspace }: { workspace: WorkspaceState }) {
   );
 }
 
-function SidebarFundingPromo({ workspace }: { workspace: WorkspaceState }) {
-  const { open } = useSidebar();
-  const [dismissed, setDismissed] = React.useState(false);
+function PromoActionButton({
+  promo,
+  size = "sm",
+}: {
+  promo: PromoNotification;
+  size?: "sm" | "default";
+}) {
   const [copied, setCopied] = React.useState(false);
-  const firmLabel =
-    workspace.accounts.find((account) => account.funding?.firm)?.funding?.firm ??
-    "partner de fondeo";
-  const promoCode = "KMFX15";
 
-  if (dismissed) return null;
-
-  function copyPromoCode() {
-    void navigator.clipboard?.writeText(promoCode);
-    setCopied(true);
+  if (promo.href) {
+    return (
+      <Button
+        size={size}
+        variant="outline"
+        className="h-8 justify-between bg-background/35 px-2 text-xs"
+        render={
+          <a
+            href={promo.href}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`${promo.actionLabel}: ${promo.title}`}
+          />
+        }
+      >
+        <span>{promo.actionLabel}</span>
+        <ExternalLink data-icon="inline-end" />
+      </Button>
+    );
   }
+
+  return (
+    <Button
+      size={size}
+      variant="outline"
+      className="h-8 justify-between bg-background/35 px-2 text-xs"
+      onClick={() => {
+        if (!promo.code) return;
+        void navigator.clipboard?.writeText(promo.code);
+        setCopied(true);
+      }}
+    >
+      <span>{copied ? "Copiado" : promo.code ?? promo.actionLabel}</span>
+      <ExternalLink data-icon="inline-end" />
+    </Button>
+  );
+}
+
+function SidebarFundingPromo({
+  activePromo,
+  remainingCount,
+  onDismiss,
+}: {
+  activePromo: PromoNotification | undefined;
+  remainingCount: number;
+  onDismiss: (promoId: string) => void;
+}) {
+  const { open } = useSidebar();
+
+  if (!activePromo) return null;
 
   if (!open) {
     return (
@@ -619,12 +706,11 @@ function SidebarFundingPromo({ workspace }: { workspace: WorkspaceState }) {
         <SidebarMenuItem>
           <SidebarMenuButton
             size="lg"
-            tooltip="Descuento fondeo"
+            tooltip={activePromo.title}
             className="relative justify-center border border-sidebar-border/70 bg-sidebar-accent/60 text-sidebar-foreground"
-            onClick={() => setCopied(false)}
           >
             <Bell />
-            <span className="sr-only">Descuento fondeo</span>
+            <span className="sr-only">{activePromo.title}</span>
             <span className="absolute right-2 top-2 size-2 rounded-full bg-primary" />
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -638,10 +724,10 @@ function SidebarFundingPromo({ workspace }: { workspace: WorkspaceState }) {
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <Badge variant="outline" className="border-sidebar-border bg-background/35 text-sidebar-foreground">
-              Promo
+              {activePromo.badge}
             </Badge>
             <span className="truncate text-xs font-medium text-sidebar-foreground/70">
-              {firmLabel}
+              {activePromo.partnerLabel}
             </span>
           </div>
           <Button
@@ -649,39 +735,138 @@ function SidebarFundingPromo({ workspace }: { workspace: WorkspaceState }) {
             variant="ghost"
             aria-label="Ocultar promoción"
             className="-mr-1 -mt-1 text-sidebar-foreground/55 hover:text-sidebar-foreground"
-            onClick={() => setDismissed(true)}
+            onClick={() => onDismiss(activePromo.id)}
           >
             <X data-icon="inline-start" />
           </Button>
         </div>
         <div className="mt-3">
           <p className="text-sm font-semibold leading-5 text-sidebar-foreground">
-            Descuento para fondeo
+            {activePromo.title}
           </p>
           <p className="mt-1 text-xs leading-5 text-sidebar-foreground/68">
-            Usa el código en un reto nuevo y revisa reglas antes de aumentar riesgo.
+            {activePromo.body}
           </p>
         </div>
         <div className="mt-3 flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 flex-1 justify-between bg-background/35 px-2 text-xs"
-            onClick={copyPromoCode}
-          >
-            <span>{copied ? "Copiado" : promoCode}</span>
-            <ExternalLink data-icon="inline-end" />
-          </Button>
+          <PromoActionButton promo={activePromo} />
+          {remainingCount > 1 ? (
+            <span className="text-[11px] font-medium text-sidebar-foreground/55">
+              +{remainingCount - 1}
+            </span>
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
 
+function TopbarNotifications({
+  dismissedPromoIds,
+  notifications,
+  onDismiss,
+  onRestore,
+}: {
+  dismissedPromoIds: string[];
+  notifications: PromoNotification[];
+  onDismiss: (promoId: string) => void;
+  onRestore: (promoId: string) => void;
+}) {
+  const visibleCount = notifications.filter(
+    (promo) => !dismissedPromoIds.includes(promo.id),
+  ).length;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            className="relative"
+            variant="outline"
+            size="icon"
+            aria-label="Notificaciones"
+          />
+        }
+      >
+        <Bell data-icon="inline-start" />
+        {notifications.length ? (
+          <span className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-4 text-primary-foreground">
+            {notifications.length}
+          </span>
+        ) : null}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-80 p-2">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="px-1 pb-2 pt-1">
+            Notificaciones
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
+        <div className="flex flex-col gap-2">
+          {notifications.map((promo) => {
+            const dismissed = dismissedPromoIds.includes(promo.id);
+
+            return (
+              <div
+                key={promo.id}
+                className="rounded-lg border border-border/70 bg-card/75 p-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Badge variant="outline">{promo.badge}</Badge>
+                      <span className="truncate text-xs font-medium text-muted-foreground">
+                        {promo.partnerLabel}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-foreground">
+                      {promo.title}
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="shrink-0 text-[10px]">
+                    {dismissed ? "Guardada" : "Sidebar"}
+                  </Badge>
+                </div>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  {promo.body}
+                </p>
+                <div className="mt-3 flex items-center gap-2">
+                  <PromoActionButton promo={promo} />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 px-2 text-xs"
+                    onClick={() =>
+                      dismissed ? onRestore(promo.id) : onDismiss(promo.id)
+                    }
+                  >
+                    {dismissed ? "Mostrar" : "Ocultar"}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <DropdownMenuSeparator />
+        <p className="px-1 pb-1 text-xs leading-5 text-muted-foreground">
+          {visibleCount
+            ? `${visibleCount} visibles en la cola de la sidebar.`
+            : "Todas guardadas para revisar desde aquí."}
+        </p>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function WorkspaceSidebar({
+  activePromo,
+  onDismissPromo,
+  remainingPromoCount,
   selectedAccountId,
   workspace,
 }: {
+  activePromo: PromoNotification | undefined;
+  onDismissPromo: (promoId: string) => void;
+  remainingPromoCount: number;
   selectedAccountId: string | null;
   workspace: WorkspaceState;
 }) {
@@ -732,7 +917,11 @@ function WorkspaceSidebar({
       </SidebarContent>
 
       <SidebarFooter className="gap-2 border-t border-sidebar-border/70 p-2">
-        <SidebarFundingPromo workspace={workspace} />
+        <SidebarFundingPromo
+          activePromo={activePromo}
+          remainingCount={remainingPromoCount}
+          onDismiss={onDismissPromo}
+        />
         <SidebarUserMenu workspace={workspace} />
       </SidebarFooter>
       <SidebarRail />
@@ -749,11 +938,38 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
   const activeAccount =
     workspace.accounts.find((account) => account.id === selectedAccountId) ??
     workspace.accounts[0];
+  const promoNotifications = React.useMemo(
+    () => getPromoNotifications(workspace),
+    [workspace],
+  );
+  const [dismissedPromoIds, setDismissedPromoIds] = React.useState<string[]>([]);
+  const activePromo = promoNotifications.find(
+    (promo) => !dismissedPromoIds.includes(promo.id),
+  );
+  const remainingPromoCount = promoNotifications.filter(
+    (promo) => !dismissedPromoIds.includes(promo.id),
+  ).length;
+
+  function dismissPromo(promoId: string) {
+    setDismissedPromoIds((current) =>
+      current.includes(promoId) ? current : [...current, promoId],
+    );
+  }
+
+  function restorePromo(promoId: string) {
+    setDismissedPromoIds((current) => current.filter((id) => id !== promoId));
+  }
 
   return (
     <SidebarProvider defaultOpen>
       <CloseMobileSidebarOnRouteChange />
-      <WorkspaceSidebar selectedAccountId={selectedAccountId} workspace={workspace} />
+      <WorkspaceSidebar
+        activePromo={activePromo}
+        onDismissPromo={dismissPromo}
+        remainingPromoCount={remainingPromoCount}
+        selectedAccountId={selectedAccountId}
+        workspace={workspace}
+      />
       <SidebarInset className="min-h-svh bg-background">
         <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--foreground)_4%,transparent),transparent_320px)]" />
         <header className="sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-border/70 bg-background/72 px-4 shadow-[0_14px_50px_-42px_rgba(0,0,0,0.55)] backdrop-blur-2xl md:px-6 dark:bg-background/76">
@@ -767,14 +983,12 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
               variant="icon"
               className="hidden size-9 items-center justify-center rounded-full border border-border/70 bg-card/75 text-foreground/70 shadow-[0_12px_34px_-24px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-colors hover:bg-card/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:inline-flex"
             />
-            <Button
-              className="hidden lg:inline-flex"
-              variant="outline"
-              size="icon"
-              aria-label="Notificaciones"
-            >
-              <Bell data-icon="inline-start" />
-            </Button>
+            <TopbarNotifications
+              dismissedPromoIds={dismissedPromoIds}
+              notifications={promoNotifications}
+              onDismiss={dismissPromo}
+              onRestore={restorePromo}
+            />
             <ThemeSwitcher />
             <div className="hidden lg:block">
               <AccountSwitcher
