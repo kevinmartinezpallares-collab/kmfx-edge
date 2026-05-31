@@ -5,7 +5,7 @@
 - App: `apps/web-next`
 - Ruta verificada: `http://localhost:3000/dashboard`
 - React Doctor inicial: `62 / 100`, `481 issues`
-- React Doctor final: `100 / 100`, `6 issues`
+- React Doctor final: `100 / 100`, `0 issues`
 - Estado final: `Great`
 - Captura antes: `/tmp/kmfx-dashboard-before.png`
 - Captura despues: `/tmp/kmfx-dashboard-react-doctor-149-wait.png`
@@ -57,6 +57,9 @@
 - Captura cuentas antes de extraer tarjeta del slider: `/tmp/kmfx-accounts-before-slider-card-extract.png`
 - Captura cuentas despues de extraer tarjeta del slider: `/tmp/kmfx-accounts-after-slider-card-extract.png`
 - Captura calculadora despues: `/tmp/kmfx-calculator-react-doctor-149.png`
+- Captura dashboard cierre React Doctor: `/tmp/kmfx-dashboard-after-react-doctor-final.png`
+- Captura capital cierre React Doctor: `/tmp/kmfx-capital-after-react-doctor-final.png`
+- Captura notes cierre React Doctor: `/tmp/kmfx-notes-after-react-doctor-final.png`
 
 ## Cambios aplicados sin intencion visual
 
@@ -132,16 +135,20 @@
 - Se dividio `SettingsReferenceSection` en tarjeta de perfil, preferencias, acceso, ayuda/legal y dialogos de perfil/cierre de sesion; mantiene textos, clases y comportamiento visibles.
 - Se dividio `SubscriptionReferenceSection` en bienvenida, selector de planes, tarjetas de plan, precio/capacidad, detalle de plan, estado/facturacion, comparativa e incluido ahora; mantiene textos y layout principal de billing.
 - Se extrajo la tarjeta del carrusel de cuentas a `AccountCardSlide`, manteniendo clases, acciones del menu, seleccion y detalle visible sin cambios intencionados.
+- Se agrupo el estado local de `NotesReferenceSection` con `useReducer`, se combinaron filtros/busqueda en una sola pasada y se corrigieron labels accesibles del input de imagen/busqueda, preservando la UI local existente de apuntes con imagenes.
+- Se dividio `NotesReferenceSection` en header, formulario, lista y item de apunte para eliminar el aviso de componente gigante sin cambiar clases ni textos intencionadamente.
+- Se separo la funcion publica de Capital y Legacy Capital del render interno grande, dejando los hooks en componentes React y preservando el JSX visible. Esto elimina los avisos restantes de `no-giant-component` sin redisenar la pagina de Portfolio.
 
 ## Verificacion
 
 - `npm run lint`: OK
 - `npm run typecheck`: OK
 - `npm run build`: OK
+- `npm run test -- theme-contract`: OK, `1` archivo y `5` tests
 - `npm run test -- action-safety-contract`: OK
 - `npm run test -- funding review risk liveline trades`: OK, `8` archivos y `33` tests
-- `npx react-doctor@latest`: `95 / 100`, `111 issues` en working tree local con la ruta untracked `/notes`; no se usa como baseline del commit de este lote.
-- `npx react-doctor@latest --verbose --diff`: `100 / 100`, `6 issues`
+- `npx react-doctor@latest`: no se usa como baseline del commit porque el working tree conserva archivos locales no relacionados; el criterio final es el diff de beta.
+- `npx react-doctor@latest --verbose --diff`: `100 / 100`, `0 issues`
 - Browser/Playwright local: `http://localhost:3000/dashboard` carga con titulo `KMFX Edge`, contenido de `Panel` visible y sin error de aplicacion.
 - Playwright local: captura dashboard posterior tomada tras esperar `h1`, SVG de liveline y `6000ms` extra para evitar capturas borrosas o a medio cargar.
 - Playwright local: captura posterior a la extraccion del logo tomada con `Panel` visible, SVG de liveline visible y `6000ms` extra; sin error de aplicacion.
@@ -179,6 +186,7 @@
 - Playwright local: captura posterior de `/settings` tomada con `8500ms` de espera.
 - Playwright local: tras extraer `SubscriptionReferenceSection`, `http://localhost:3004/subscription` carga tras `8500ms`; el contenido principal de planes mantiene composicion equivalente y no hay error de compilacion/build. Se uso `3004` porque habia un dev server activo en ese puerto durante la verificacion.
 - Playwright local: tras extraer `AccountCardSlide`, `http://127.0.0.1:3000/accounts` responde `200`, mantiene contenido de Cuentas visible y la captura posterior conserva el layout principal del carrusel. La captura anterior de este pase se tomo en Browser integrado con otro ancho de viewport.
+- Browser in-app: cierre final tras esperar carga extra: `http://127.0.0.1:3000/dashboard`, `/capital` y `/notes` cargan con contenido visible y sin `Application error`; capturas posteriores guardadas en `/tmp/kmfx-dashboard-after-react-doctor-final.png`, `/tmp/kmfx-capital-after-react-doctor-final.png` y `/tmp/kmfx-notes-after-react-doctor-final.png`.
 
 La suite completa de tests sigue bloqueada por una regla preexistente de migracion que detecta `KMFXConnector` en `src/components/trading/accounts/reference-section.tsx`. Ese archivo ya estaba modificado fuera de este pase, asi que no se revirtio ni se mezclo con el trabajo de React Doctor.
 
@@ -190,7 +198,7 @@ La suite completa de tests sigue bloqueada por una regla preexistente de migraci
 - `bar-chart`: el primer intento rapido se revirtio porque bajo React Doctor a `87 / 100`; el pase final usa estado de replay con clave, modelo calculado en hook interno y mantiene QA visual en `/trades`.
 - `trades/reference-section`: aplicado split interno de summary/filtros, ledger, detalle y actividad mensual; ya no aparece en el diff de React Doctor.
 - `lot-size-calculator` y `auth-page`: aplicado split de modelo/UI; ya no aparecen en el diff de React Doctor.
-- `notes/reference-section`: queda como siguiente bloque local, pero no se stagea en este lote. React Doctor global lo muestra ahora con `no-giant-component`, `prefer-useReducer`, `rerender-state-only-in-handlers`, `js-combine-iterations` y `control-has-associated-label`; conviene tratarlo en un lote propio porque afecta la nueva ruta `/notes`.
+- `notes/reference-section`: aplicado reducer, labels accesibles, combinacion de iteraciones y split de componentes; ya no aparece en el diff de React Doctor.
 - `no-multi-comp`: aplicado en `logo.tsx`, `input-group` y `resizable`; ya no aparece en el diff de React Doctor.
 - `only-export-components`: aplicado en `button`, `tabs` y `toggle`; quedan las variantes en modulos dedicados.
 - `rerender-memo-before-early-return`: aplicado en `ui/chart` y `ui/field`.
@@ -198,7 +206,7 @@ La suite completa de tests sigue bloqueada por una regla preexistente de migraci
 - `no-autofocus`: aplicado en `command-palette`.
 - `no-many-boolean-props`: aplicado en `funnel-chart` agrupando flags internos en `display`.
 - `label-has-associated-control`: aplicado tambien en el wrapper base `label.tsx` haciendo explicito `htmlFor`; ya no aparece en el diff de React Doctor.
-- `prefer-useReducer`: aplicado en `auth-page`, `trades/reference-section`, `calendar/reference-section`, `settings/reference-sections`, `capital/reference-section` y `accounts/reference-section`.
+- `prefer-useReducer`: aplicado en `auth-page`, `trades/reference-section`, `calendar/reference-section`, `settings/reference-sections`, `capital/reference-section`, `accounts/reference-section` y `notes/reference-section`.
 - `nextjs-no-use-search-params-without-suspense`: aplicado en `auth-page` y `workspace-shell`, leyendo `next` desde `/login` server y observando `location.search` en el shell cliente.
 - `prefer-tag-over-role`: aplicado en wrappers genericos y gauge CSS; ya no aparece en el diff de React Doctor.
 - `no-cascading-set-state`: el aviso de Turnstile se elimino renombrando el writer de token, que solo actualiza un ref y no es setState.

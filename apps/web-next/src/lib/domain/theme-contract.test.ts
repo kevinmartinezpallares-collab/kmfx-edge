@@ -93,6 +93,7 @@ describe("theme contract", () => {
     expect(source).toMatch(/theme=\{chartTheme\.theme\}/);
     expect(source).toMatch(/color=\{chartTheme\.accent\}/);
     expect(source).toMatch(/color=\{compact \? chartTheme\.softAccent : chartTheme\.accent\}/);
+    expect(source).not.toContain("smoothLivelinePoints");
   });
 
   it("keeps calendar and portfolio Liveline charts bound to theme-aware tokens", () => {

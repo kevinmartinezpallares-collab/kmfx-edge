@@ -8,6 +8,7 @@ import { ChevronRight } from "lucide-react";
 import { Gauge } from "@/components/charts/gauge";
 import { PieChart } from "@/components/charts/pie-chart";
 import { PieSlice } from "@/components/charts/pie-slice";
+import { EquityBalanceChart } from "@/components/trading/equity-balance-chart";
 import {
   Card,
   CardContent,
@@ -52,7 +53,6 @@ import {
 import {
   livelineWindowForData,
   normalizeLivelinePoints,
-  smoothLivelinePoints,
 } from "@/lib/charts/liveline-points";
 import { cn } from "@/lib/utils";
 
@@ -537,23 +537,18 @@ function EquityCurveCard({
         : PANEL_EQUITY_WINDOWS[0].secs;
   const selectedWindowSecs =
     windowSecs > availableWindowSecs ? PANEL_EQUITY_WINDOWS[0].secs : windowSecs;
-  const livelineData = smoothLivelinePoints(
-    normalizeLivelinePoints(
-      chartData.map((point) => ({
-        time: point.time,
-        value: point.equity,
-      })),
-      60,
-    ),
-    { radius: 4, minPoints: 24 },
+  const livelineData = normalizeLivelinePoints(
+    chartData.map((point) => ({
+      time: point.time,
+      value: point.equity,
+    })),
+    60,
   );
   const effectiveWindowSecs = livelineWindowForData(livelineData, selectedWindowSecs, {
     minSecs: Math.min(selectedWindowSecs, 86_400),
     padRatio: 0.18,
     maxPadSecs: 86_400,
   });
-  const labelByTime = new Map(chartData.map((point) => [point.time, point.label]));
-
   return (
     <Card className="overflow-hidden border-border/70 bg-card/70">
       <CardHeader>
@@ -578,32 +573,20 @@ function EquityCurveCard({
               onChange={setWindowSecs}
             />
             <div
-              data-kmfx-liveline
+              data-kmfx-equity-balance-chart
               className="h-[320px] w-full xl:h-[340px]"
-              style={chartTheme.isLight ? { filter: "contrast(1.18)" } : undefined}
+              style={chartTheme.isLight ? { filter: "contrast(1.08)" } : undefined}
             >
-              <Liveline
+              <EquityBalanceChart
                 data={livelineData}
                 value={latestValue}
-                theme={chartTheme.theme}
                 color={chartTheme.accent}
-                window={effectiveWindowSecs}
-                grid
-                badge
-                badgeVariant="minimal"
-                badgeTail
-                fill
-                pulse
-                scrub
-                momentum={false}
-                referenceLine={{ value: balance, label: "Balance" }}
+                balance={balance}
+                windowSecs={effectiveWindowSecs}
                 formatValue={(value) =>
                   formatCurrency(Number(value), activeAccount?.baseCurrency ?? "USD")
                 }
-                formatTime={(time) => labelByTime.get(time) ?? shortPanelTimeLabel(time)}
-                lerpSpeed={0.14}
-                lineWidth={2.35}
-                padding={{ top: 18, right: 132, bottom: 34, left: 24 }}
+                formatTime={shortPanelTimeLabel}
               />
             </div>
           </div>

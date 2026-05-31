@@ -1193,11 +1193,22 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
   };
 }
 
+type CapitalReferenceModel = ReturnType<typeof useCapitalReferenceModel>;
+
 export function CapitalReferenceSection({
   workspace,
 }: {
   workspace: WorkspaceState;
 }) {
+  const model = useCapitalReferenceModel(workspace);
+
+  return renderCapitalReferenceSection(workspace, model);
+}
+
+function renderCapitalReferenceSection(
+  workspace: WorkspaceState,
+  model: CapitalReferenceModel,
+) {
   const {
     accountRows,
     allocationFunnelData,
@@ -1258,7 +1269,7 @@ export function CapitalReferenceSection({
     riskDuplicationRows,
     staleAccounts,
     totalEquity,
-  } = useCapitalReferenceModel(workspace);
+  } = model;
 
   return (
     <PageMotion>
@@ -2424,6 +2435,14 @@ export function LegacyCapitalReferenceSection({
   workspace: WorkspaceState;
 }) {
   const capitalChartTheme = useReferenceLivelineTheme();
+
+  return renderLegacyCapitalReferenceSection(workspace, capitalChartTheme);
+}
+
+function renderLegacyCapitalReferenceSection(
+  workspace: WorkspaceState,
+  capitalChartTheme: ReturnType<typeof useReferenceLivelineTheme>,
+) {
   const activeAccount =
     workspace.accounts.find((account) => account.id === workspace.activeAccountId) ??
     workspace.accounts[0];
