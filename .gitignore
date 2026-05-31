@@ -25,3 +25,8 @@ dist/
 **/node_modules/
 **/.next/
 **/.turbo/
+
+# Local Codex/QA artifacts
+.codex-previews/
+output/
+supabase/.temp/

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import * as React from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
@@ -121,9 +121,8 @@ function authFormReducer(
   }
 }
 
-export function AuthPage() {
+export function AuthPage({ nextPath = "/dashboard" }: { nextPath?: string }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [authForm, dispatchAuthForm] = React.useReducer(
     authFormReducer,
     INITIAL_AUTH_FORM_STATE,
@@ -132,7 +131,6 @@ export function AuthPage() {
   const captchaTokenRef = React.useRef("");
   const turnstileContainerRef = React.useRef<HTMLDivElement | null>(null);
   const turnstileWidgetIdRef = React.useRef<string | null>(null);
-  const nextPath = searchParams.get("next") || "/dashboard";
   const authConfigured = hasSupabasePublicConfig();
   const turnstileSiteKey =
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ||

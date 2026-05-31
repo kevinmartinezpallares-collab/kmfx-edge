@@ -45,7 +45,16 @@ import {
   Rocket,
   Trash2,
 } from "lucide-react";
-import { type FormEvent, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import {
+  type FormEvent,
+  type RefObject,
+  useCallback,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import type { AccountRow } from "@/lib/domain/accounts-selectors";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -76,6 +85,63 @@ interface AccountCardData {
 }
 
 type AccountGradientTheme = Omit<CustomConfig, "preset" | "speed">;
+
+function getScrollableWidth(element: HTMLElement | null) {
+  if (!element) return 0;
+  return Math.max(0, element.scrollWidth - element.offsetWidth);
+}
+
+function useScrollableWidth(containerRef: RefObject<HTMLDivElement | null>) {
+  const getSnapshot = useCallback(
+    () => getScrollableWidth(containerRef.current),
+    [containerRef],
+  );
+
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      const element = containerRef.current;
+      let frame: number | null = window.requestAnimationFrame(onStoreChange);
+
+      const cancelFrame = () => {
+        if (frame !== null) {
+          window.cancelAnimationFrame(frame);
+          frame = null;
+        }
+      };
+
+      if (!element) {
+        return cancelFrame;
+      }
+
+      const notify = () => {
+        cancelFrame();
+        frame = window.requestAnimationFrame(onStoreChange);
+      };
+
+      const resizeObserver = new ResizeObserver(notify);
+      resizeObserver.observe(element);
+
+      const mutationObserver = new MutationObserver(notify);
+      mutationObserver.observe(element, {
+        attributes: true,
+        childList: true,
+        subtree: true,
+      });
+
+      window.addEventListener("resize", notify, { passive: true });
+
+      return () => {
+        cancelFrame();
+        resizeObserver.disconnect();
+        mutationObserver.disconnect();
+        window.removeEventListener("resize", notify);
+      };
+    },
+    [containerRef],
+  );
+
+  return useSyncExternalStore(subscribe, getSnapshot, () => 0);
+}
 
 const DEFAULT_LOGO_GRADIENT_THEME: AccountGradientTheme = {
   color1: "#070707",
@@ -707,7 +773,6 @@ export function AccountCardsSlider({
   const router = useRouter();
   const isMobile = useIsMobile();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
   const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null);
   const [renameState, dispatchRename] = useReducer(
     renameDialogReducer,
@@ -724,6 +789,7 @@ export function AccountCardsSlider({
     () => buildCards(accounts, activeAccountId),
     [accounts, activeAccountId],
   );
+  const width = useScrollableWidth(containerRef);
   const [selectedAccountId, setSelectedAccountId] = useState(
     activeAccountId ?? cards[0]?.id ?? "",
   );
@@ -731,14 +797,6 @@ export function AccountCardsSlider({
     accounts.find((account) => account.id === selectedAccountId) ??
     accounts.find((account) => account.id === activeAccountId) ??
     accounts[0];
-
-  useEffect(() => {
-    if (containerRef.current) {
-      setWidth(
-        containerRef.current.scrollWidth - containerRef.current.offsetWidth,
-      );
-    }
-  }, [cards.length]);
 
   const scrollTo = (direction: "left" | "right") => {
     const currentX = x.get();
@@ -1065,7 +1123,7 @@ export function AccountCardsSlider({
 
         <motion.div
           ref={containerRef}
-          className="max-w-full overflow-hidden px-1 py-8 md:cursor-grab md:active:cursor-grabbing"
+          className="w-full max-w-full overflow-hidden px-1 py-8 md:cursor-grab md:active:cursor-grabbing"
           whileTap={{ cursor: "grabbing" }}
         >
           <motion.div

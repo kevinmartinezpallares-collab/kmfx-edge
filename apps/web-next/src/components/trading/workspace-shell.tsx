@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   ChevronDown,
@@ -66,6 +66,84 @@ type WorkspaceShellProps = {
   children: React.ReactNode;
   workspace: WorkspaceState;
 };
+
+const LOCATION_SEARCH_CHANGE_EVENT = "kmfx-location-search-change";
+
+let historyPatchReferenceCount = 0;
+let restoreHistoryPatch: (() => void) | null = null;
+
+function getLocationSearchSnapshot() {
+  return typeof window === "undefined" ? "" : window.location.search;
+}
+
+function retainHistoryPatch() {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  historyPatchReferenceCount += 1;
+
+  if (!restoreHistoryPatch) {
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+    const notifySearchChange = () => {
+      queueMicrotask(() => {
+        window.dispatchEvent(new Event(LOCATION_SEARCH_CHANGE_EVENT));
+      });
+    };
+
+    window.history.pushState = function pushState(...args) {
+      const result = originalPushState.apply(window.history, args);
+      notifySearchChange();
+      return result;
+    };
+    window.history.replaceState = function replaceState(...args) {
+      const result = originalReplaceState.apply(window.history, args);
+      notifySearchChange();
+      return result;
+    };
+
+    restoreHistoryPatch = () => {
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+    };
+  }
+
+  return () => {
+    historyPatchReferenceCount = Math.max(0, historyPatchReferenceCount - 1);
+
+    if (historyPatchReferenceCount === 0 && restoreHistoryPatch) {
+      restoreHistoryPatch();
+      restoreHistoryPatch = null;
+    }
+  };
+}
+
+function subscribeLocationSearch(onStoreChange: () => void) {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const releaseHistoryPatch = retainHistoryPatch();
+  window.addEventListener("popstate", onStoreChange);
+  window.addEventListener(LOCATION_SEARCH_CHANGE_EVENT, onStoreChange);
+
+  return () => {
+    window.removeEventListener("popstate", onStoreChange);
+    window.removeEventListener(LOCATION_SEARCH_CHANGE_EVENT, onStoreChange);
+    releaseHistoryPatch();
+  };
+}
+
+function useLocationSearchParams() {
+  const search = React.useSyncExternalStore(
+    subscribeLocationSearch,
+    getLocationSearchSnapshot,
+    () => "",
+  );
+
+  return React.useMemo(() => new URLSearchParams(search), [search]);
+}
 
 function getNavBadge(
   href: string | undefined,
@@ -334,13 +412,14 @@ function profileInitials(displayName: string) {
 function AccountSwitcher({
   workspace,
   activeAccount,
+  searchParams,
 }: {
   workspace: WorkspaceState;
   activeAccount: WorkspaceState["accounts"][number] | undefined;
+  searchParams: URLSearchParams;
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   function selectAccount(accountId: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -389,7 +468,7 @@ function AccountSwitcher({
           {workspace.accounts.slice(0, 4).map((account) => (
             <DropdownMenuItem
               key={account.id}
-              onSelect={(event) => {
+              onClick={(event) => {
                 event.preventDefault();
                 selectAccount(account.id);
               }}
@@ -599,11 +678,15 @@ function SidebarFundingPromo({ workspace }: { workspace: WorkspaceState }) {
   );
 }
 
-function WorkspaceSidebar({ workspace }: { workspace: WorkspaceState }) {
+function WorkspaceSidebar({
+  selectedAccountId,
+  workspace,
+}: {
+  selectedAccountId: string | null;
+  workspace: WorkspaceState;
+}) {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const selectedAccountId = searchParams.get("account");
 
   return (
     <Sidebar
@@ -659,7 +742,7 @@ function WorkspaceSidebar({ workspace }: { workspace: WorkspaceState }) {
 
 export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const searchParams = useLocationSearchParams();
   const previewMode = searchParams.get("demo") === "1";
   const selectedAccountId =
     searchParams.get("account") ?? workspace.activeAccountId;
@@ -670,7 +753,7 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
   return (
     <SidebarProvider defaultOpen>
       <CloseMobileSidebarOnRouteChange />
-      <WorkspaceSidebar workspace={workspace} />
+      <WorkspaceSidebar selectedAccountId={selectedAccountId} workspace={workspace} />
       <SidebarInset className="min-h-svh bg-background">
         <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--foreground)_4%,transparent),transparent_320px)]" />
         <header className="sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-border/70 bg-background/72 px-4 shadow-[0_14px_50px_-42px_rgba(0,0,0,0.55)] backdrop-blur-2xl md:px-6 dark:bg-background/76">
@@ -694,7 +777,11 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
             </Button>
             <ThemeSwitcher />
             <div className="hidden lg:block">
-              <AccountSwitcher workspace={workspace} activeAccount={activeAccount} />
+              <AccountSwitcher
+                workspace={workspace}
+                activeAccount={activeAccount}
+                searchParams={searchParams}
+              />
             </div>
           </div>
         </header>

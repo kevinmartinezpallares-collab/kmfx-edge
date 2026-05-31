@@ -32,7 +32,7 @@ export function ReactiveBackgroundGrid({
     }, 600);
   };
 
-  const spawnPointerRipple = (e: MouseEvent<HTMLDivElement>) => {
+  const spawnPointerRipple = (e: MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     addRipple(e.clientX - rect.left, e.clientY - rect.top);
   };
@@ -42,7 +42,7 @@ export function ReactiveBackgroundGrid({
     height: 400,
   });
 
-  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = (e: MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -54,7 +54,8 @@ export function ReactiveBackgroundGrid({
   const dotsArray = Array.from({ length: gridSize * gridSize });
 
   return (
-    <div
+    <button
+      type="button"
       onClick={spawnPointerRipple}
       onKeyDown={(event) => {
         if (event.key !== "Enter" && event.key !== " ") {
@@ -66,9 +67,7 @@ export function ReactiveBackgroundGrid({
       }}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setHoveredDot(null)}
-      role="button"
-      tabIndex={0}
-      className="relative h-96 w-full overflow-hidden rounded-2xl border border-border bg-card"
+      className="relative h-96 w-full appearance-none overflow-hidden rounded-2xl border border-border bg-card p-0 text-left"
     >
       <div
         className="absolute inset-0"
@@ -142,6 +141,6 @@ export function ReactiveBackgroundGrid({
           />
         ))}
       </AnimatePresence>
-    </div>
+    </button>
   );
 }

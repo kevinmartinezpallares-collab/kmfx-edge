@@ -1,8 +1,6 @@
 "use client"
 
 import * as React from "react"
-import * as RechartsPrimitive from "recharts"
-import type { TooltipValueType } from "recharts"
 
 import { cn } from "@/lib/utils"
 
@@ -11,6 +9,24 @@ const THEMES = { light: "", dark: ".dark" } as const
 
 const INITIAL_DIMENSION = { width: 320, height: 200 } as const
 type TooltipNameType = number | string
+type TooltipValueType = number | string | Array<number | string>
+type ChartPayloadItem = {
+  color?: string
+  dataKey?: number | string
+  name?: TooltipNameType
+  payload?: Record<string, unknown> & {
+    fill?: string
+  }
+  type?: string
+  value?: TooltipValueType
+}
+type ChartLegendPayloadItem = {
+  color?: string
+  dataKey?: number | string
+  payload?: Record<string, unknown>
+  type?: string
+  value?: number | string
+}
 
 export type ChartConfig = Record<
   string,
@@ -28,6 +44,24 @@ type ChartContextProps = {
 }
 
 const ChartContext = React.createContext<ChartContextProps | null>(null)
+
+const RechartsResponsiveContainer = React.lazy(async () => {
+  const { ResponsiveContainer } = await import("recharts")
+
+  return { default: ResponsiveContainer }
+})
+
+const RechartsTooltip = React.lazy(async () => {
+  const { Tooltip } = await import("recharts")
+
+  return { default: Tooltip }
+})
+
+const RechartsLegend = React.lazy(async () => {
+  const { Legend } = await import("recharts")
+
+  return { default: Legend }
+})
 
 function useChart() {
   const context = React.use(ChartContext)
@@ -48,9 +82,7 @@ function ChartContainer({
   ...props
 }: React.ComponentProps<"div"> & {
   config: ChartConfig
-  children: React.ComponentProps<
-    typeof RechartsPrimitive.ResponsiveContainer
-  >["children"]
+  children: React.ReactNode
   initialDimension?: {
     width: number
     height: number
@@ -72,11 +104,11 @@ function ChartContainer({
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
-        <RechartsPrimitive.ResponsiveContainer
-          initialDimension={initialDimension}
-        >
-          {children}
-        </RechartsPrimitive.ResponsiveContainer>
+        <React.Suspense fallback={null}>
+          <RechartsResponsiveContainer initialDimension={initialDimension}>
+            {children}
+          </RechartsResponsiveContainer>
+        </React.Suspense>
       </div>
     </ChartContext.Provider>
   )
@@ -111,7 +143,13 @@ ${colorConfig
   return <style>{cssText}</style>
 }
 
-const ChartTooltip = RechartsPrimitive.Tooltip
+function ChartTooltip(props: React.ComponentProps<typeof RechartsTooltip>) {
+  return (
+    <React.Suspense fallback={null}>
+      <RechartsTooltip {...props} />
+    </React.Suspense>
+  )
+}
 
 function ChartTooltipContent({
   active,
@@ -127,20 +165,29 @@ function ChartTooltipContent({
   color,
   nameKey,
   labelKey,
-}: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-  React.ComponentProps<"div"> & {
+}: React.ComponentProps<"div"> & {
     hideLabel?: boolean
     hideIndicator?: boolean
     indicator?: "line" | "dot" | "dashed"
     nameKey?: string
     labelKey?: string
-  } & Omit<
-    RechartsPrimitive.DefaultTooltipContentProps<
-      TooltipValueType,
-      TooltipNameType
-    >,
-    "accessibilityLayer"
-  >) {
+    active?: boolean
+    color?: string
+    formatter?: (
+      value: TooltipValueType,
+      name: TooltipNameType,
+      item: ChartPayloadItem,
+      index: number,
+      payload?: ChartPayloadItem["payload"]
+    ) => React.ReactNode
+    label?: React.ReactNode
+    labelClassName?: string
+    labelFormatter?: (
+      label: React.ReactNode,
+      payload: ChartPayloadItem[]
+    ) => React.ReactNode
+    payload?: ChartPayloadItem[]
+  }) {
   const { config } = useChart()
 
   if (!active || !payload?.length) {
@@ -254,7 +301,13 @@ function ChartTooltipContent({
   )
 }
 
-const ChartLegend = RechartsPrimitive.Legend
+function ChartLegend(props: React.ComponentProps<typeof RechartsLegend>) {
+  return (
+    <React.Suspense fallback={null}>
+      <RechartsLegend {...props} />
+    </React.Suspense>
+  )
+}
 
 function ChartLegendContent({
   className,
@@ -265,7 +318,9 @@ function ChartLegendContent({
 }: React.ComponentProps<"div"> & {
   hideIcon?: boolean
   nameKey?: string
-} & RechartsPrimitive.DefaultLegendContentProps) {
+  payload?: ChartLegendPayloadItem[]
+  verticalAlign?: "bottom" | "middle" | "top"
+}) {
   const { config } = useChart()
 
   if (!payload?.length) {
