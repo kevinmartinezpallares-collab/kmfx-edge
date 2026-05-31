@@ -113,7 +113,6 @@ def sanitize_program_dir(program_dir: Path) -> None:
         "MQL5/Files",
         "MQL5/Logs",
         "MQL5/logs",
-        "MQL5/Profiles",
     ):
         reset_directory(program_dir / relative)
 
