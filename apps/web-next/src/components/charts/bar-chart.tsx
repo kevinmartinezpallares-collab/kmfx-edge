@@ -147,32 +147,16 @@ interface BarAnimationState {
   revealKey: string;
 }
 
-function ChartInner({
-  width,
-  height,
-  data,
-  xDataKey,
-  margin,
-  animationDuration,
-  animationEasing,
-  enterTransition,
+function useBarAnimationState(
+  animationDuration: number,
   revealSignature = "",
-  barGap,
-  barWidthProp,
-  orientation,
-  stacked,
-  stackGap,
-  children,
-  containerRef,
-}: ChartInnerProps) {
-  const [tooltipData, setTooltipData] = useState<TooltipData | null>(null);
+) {
   const revealKey = `${animationDuration}:${revealSignature}`;
   const [animationState, setAnimationState] = useState<BarAnimationState>(() => ({
     isLoaded: false,
     revealEpoch: 1,
     revealKey,
   }));
-  const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(null);
   let currentAnimationState = animationState;
 
   if (currentAnimationState.revealKey !== revealKey) {
@@ -184,17 +168,51 @@ function ChartInner({
     setAnimationState(currentAnimationState);
   }
 
-  const { isLoaded, revealEpoch } = currentAnimationState;
+  useEffect(() => {
+    if (currentAnimationState.isLoaded) {
+      return;
+    }
 
-  const isHorizontal = orientation === "horizontal";
+    const timer = setTimeout(() => {
+      setAnimationState((state) =>
+        state.revealKey === revealKey ? { ...state, isLoaded: true } : state,
+      );
+    }, animationDuration);
+    return () => clearTimeout(timer);
+  }, [animationDuration, currentAnimationState.isLoaded, revealKey]);
 
-  // Extract bar configs synchronously from children
+  return currentAnimationState;
+}
+
+function useBarChartModel({
+  barGap,
+  barWidthProp,
+  children,
+  data,
+  height,
+  isHorizontal,
+  margin,
+  stacked,
+  width,
+  xDataKey,
+}: Pick<
+  ChartInnerProps,
+  | "barGap"
+  | "barWidthProp"
+  | "children"
+  | "data"
+  | "height"
+  | "margin"
+  | "stacked"
+  | "width"
+  | "xDataKey"
+> & {
+  isHorizontal: boolean;
+}) {
   const lines = useMemo(() => extractBarConfigs(children), [children]);
-
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
-  // Category accessor function - returns string for categorical scale
   const categoryAccessor = useCallback(
     (d: Record<string, unknown>): string => {
       const value = d[xDataKey];
@@ -209,19 +227,14 @@ function ChartInner({
     [xDataKey]
   );
 
-  // For compatibility with ChartContext, provide a Date-based xAccessor
   const xAccessorDate = useCallback(
     (d: Record<string, unknown>): Date => {
       const value = d[xDataKey];
-      if (value instanceof Date) {
-        return value;
-      }
-      return new Date();
+      return value instanceof Date ? value : new Date();
     },
     [xDataKey]
   );
 
-  // Category scale (band) - for the categorical axis
   const categoryScale = useMemo(() => {
     const domain = data.map((d) => categoryAccessor(d));
     const range: [number, number] = isHorizontal
@@ -234,13 +247,10 @@ function ChartInner({
     });
   }, [innerWidth, innerHeight, data, categoryAccessor, barGap, isHorizontal]);
 
-  // Band width for bars - use prop if provided, otherwise use scale's bandwidth
   const bandWidth = barWidthProp ?? categoryScale.bandwidth();
 
-  // Compute max value considering stacking
   const maxValue = useMemo(() => {
     if (stacked) {
-      // For stacked bars, sum all values at each data point
       let max = 0;
       for (const d of data) {
         let sum = 0;
@@ -256,7 +266,7 @@ function ChartInner({
       }
       return max || 100;
     }
-    // For grouped bars, find max single value
+
     let max = 0;
     for (const line of lines) {
       for (const d of data) {
@@ -269,7 +279,6 @@ function ChartInner({
     return max || 100;
   }, [data, lines, stacked]);
 
-  // Value scale (linear) - for the value axis
   const valueScale = useMemo(() => {
     const range = isHorizontal ? [0, innerWidth] : [innerHeight, 0];
     return scaleLinear({
@@ -279,7 +288,6 @@ function ChartInner({
     });
   }, [innerWidth, innerHeight, maxValue, isHorizontal]);
 
-  // Compute stack offsets for stacked bars
   const stackOffsets = useMemo(() => {
     if (!stacked) {
       return undefined;
@@ -304,7 +312,6 @@ function ChartInner({
     return offsets;
   }, [data, lines, stacked]);
 
-  // Column width for tooltip indicator
   const columnWidth = useMemo(() => {
     if (data.length < 1) {
       return 0;
@@ -312,13 +319,11 @@ function ChartInner({
     return isHorizontal ? innerHeight / data.length : innerWidth / data.length;
   }, [innerWidth, innerHeight, data.length, isHorizontal]);
 
-  // Pre-compute labels for ticker animation
   const dateLabels = useMemo(
     () => data.map((d) => categoryAccessor(d)),
     [data, categoryAccessor]
   );
 
-  // Create a fake time scale for compatibility with ChartContext
   const fakeTimeScale = useMemo(() => {
     const now = Date.now();
     const start = now - data.length * 24 * 60 * 60 * 1000;
@@ -332,19 +337,73 @@ function ChartInner({
     return scale;
   }, [categoryScale, innerWidth, data.length]);
 
-  // Animation timing — replay when motion settings change.
-  useEffect(() => {
-    if (isLoaded) {
-      return;
-    }
+  return {
+    bandWidth,
+    categoryAccessor,
+    categoryScale,
+    columnWidth,
+    dateLabels,
+    fakeTimeScale,
+    innerHeight,
+    innerWidth,
+    lines,
+    stackOffsets,
+    valueScale,
+    xAccessorDate,
+  };
+}
 
-    const timer = setTimeout(() => {
-      setAnimationState((state) =>
-        state.revealKey === revealKey ? { ...state, isLoaded: true } : state,
-      );
-    }, animationDuration);
-    return () => clearTimeout(timer);
-  }, [animationDuration, isLoaded, revealKey]);
+function ChartInner({
+  width,
+  height,
+  data,
+  xDataKey,
+  margin,
+  animationDuration,
+  animationEasing,
+  enterTransition,
+  revealSignature = "",
+  barGap,
+  barWidthProp,
+  orientation,
+  stacked,
+  stackGap,
+  children,
+  containerRef,
+}: ChartInnerProps) {
+  const [tooltipData, setTooltipData] = useState<TooltipData | null>(null);
+  const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(null);
+
+  const isHorizontal = orientation === "horizontal";
+  const { isLoaded, revealEpoch } = useBarAnimationState(
+    animationDuration,
+    revealSignature,
+  );
+  const {
+    bandWidth,
+    categoryAccessor,
+    categoryScale,
+    columnWidth,
+    dateLabels,
+    fakeTimeScale,
+    innerHeight,
+    innerWidth,
+    lines,
+    stackOffsets,
+    valueScale,
+    xAccessorDate,
+  } = useBarChartModel({
+    barGap,
+    barWidthProp,
+    children,
+    data,
+    height,
+    isHorizontal,
+    margin,
+    stacked,
+    width,
+    xDataKey,
+  });
 
   // Mouse move handler
   const handleMouseMove = useCallback(
