@@ -1579,7 +1579,7 @@ export function AnalyticsDailyReferenceSection({
                             <span className="text-sm font-medium text-foreground">
                               {cell.dateNumber}
                             </span>
-                            <span className="rounded-full bg-background/55 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                            <span className="hidden rounded-full bg-background/55 px-1.5 py-0.5 text-[10px] text-muted-foreground md:inline-flex">
                               {day ? `${day.trades} op` : ""}
                             </span>
                           </div>
