@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { requestConnectionAccess } from "@/lib/api/connection-access";
 import { connectorArtifact } from "@/lib/downloads/connector-artifact";
+import { serveLocalDownloadArtifact } from "@/lib/downloads/serve-local-artifact";
 
 export const runtime = "nodejs";
 
@@ -35,5 +36,5 @@ export async function GET(
     return redirectForAccess(request, access.reason);
   }
 
-  return NextResponse.redirect(connectorArtifact.url, 302);
+  return serveLocalDownloadArtifact(connectorArtifact);
 }
