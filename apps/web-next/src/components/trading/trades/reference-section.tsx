@@ -96,11 +96,33 @@ function formatTradeDateTime(value: string) {
   }).format(date);
 }
 
-function toDateInputValue(value: string) {
+function parseTradeDate(value: string) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 
-  return date.toISOString().slice(0, 10);
+function parseTradingDayKey(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+
+  const date = new Date(`${value}T12:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getTradeClosedDate(trade: WorkspaceState["trades"][number]) {
+  const closedAt = parseTradeDate(trade.closedAt);
+  if (closedAt) return closedAt;
+
+  const latestExecutionClose = trade.executions
+    .map((execution) => parseTradeDate(execution.closedAt))
+    .filter((date): date is Date => date !== null)
+    .toSorted((a, b) => b.getTime() - a.getTime())[0];
+  if (latestExecutionClose) return latestExecutionClose;
+
+  return parseTradingDayKey(trade.tradingDayKey) ?? parseTradeDate(trade.openedAt);
+}
+
+function toTradeDateInputValue(trade: WorkspaceState["trades"][number]) {
+  return getTradeClosedDate(trade)?.toISOString().slice(0, 10) ?? "";
 }
 
 function formatTradeDuration(minutes: number | null) {
@@ -184,7 +206,7 @@ export function TradesReferenceSection({
     () =>
       overview.ledgerRows.filter((row) => {
         const { trade } = row;
-        const closedDay = toDateInputValue(trade.closedAt);
+        const closedDay = toTradeDateInputValue(trade);
         const matchesDateFrom = !dateFrom || (closedDay && closedDay >= dateFrom);
         const matchesDateTo = !dateTo || (closedDay && closedDay <= dateTo);
         const matchesSymbol = symbolFilter === "all" || trade.symbol === symbolFilter;
@@ -230,8 +252,8 @@ export function TradesReferenceSection({
   );
   const chartData = React.useMemo(() => {
     const validCloseTimes = filteredRows
-      .map((row) => new Date(row.trade.closedAt).getTime())
-      .filter((value) => !Number.isNaN(value));
+      .map((row) => getTradeClosedDate(row.trade)?.getTime())
+      .filter((value): value is number => typeof value === "number");
 
     const latestDate = validCloseTimes.length
       ? new Date(Math.max(...validCloseTimes))
@@ -264,8 +286,8 @@ export function TradesReferenceSection({
     const rowByKey = new Map(rows.map((row) => [row.key, row]));
 
     filteredRows.forEach((row) => {
-      const closedDate = new Date(row.trade.closedAt);
-      if (Number.isNaN(closedDate.getTime())) return;
+      const closedDate = getTradeClosedDate(row.trade);
+      if (!closedDate) return;
 
       const key = `${closedDate.getFullYear()}-${String(closedDate.getMonth() + 1).padStart(2, "0")}`;
       const chartRow = rowByKey.get(key);
@@ -849,32 +871,39 @@ export function TradesReferenceSection({
             </div>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
+              <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">Trades visibles</p>
-                <p className="mt-1 text-lg font-semibold text-foreground">{chartTradeCount}</p>
+                <p className="mt-1 truncate text-base font-semibold text-foreground sm:text-lg">
+                  {chartTradeCount}
+                </p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">Peak</p>
-                <p className="mt-1 text-lg font-semibold text-foreground">
+                <p className="mt-1 truncate text-base font-semibold text-foreground sm:text-lg">
                   {chartPeak ? `${chartPeak.trades} / ${chartPeak.month}` : "0 / Sin mes"}
                 </p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">PnL neto</p>
-                <p className={cn("mt-1 text-lg font-semibold", signedTextTone(chartNetPnl))}>
+                <p
+                  className={cn(
+                    "mt-1 truncate text-base font-semibold sm:text-lg",
+                    signedTextTone(chartNetPnl),
+                  )}
+                >
                   {formatSignedCurrency(chartNetPnl)}
                 </p>
               </div>
             </div>
 
-            <div className="h-[220px] [--chart-1:oklch(0.82_0_0)] [--chart-3:oklch(0.45_0_0)] sm:h-[240px]">
+            <div className="h-[300px] [--chart-1:oklch(0.82_0_0)] [--chart-3:oklch(0.45_0_0)] sm:h-[240px]">
               <BarChart
                 animationDuration={1100}
                 animationEasing="cubic-bezier(0.85, 0, 0.181, 0.497)"
-                aspectRatio={isMobile ? "1.25 / 1" : "4 / 1.15"}
+                aspectRatio={isMobile ? "1 / 1" : "4 / 1.15"}
                 barGap={0.1}
-                barWidth={isMobile ? 18 : 40}
+                barWidth={isMobile ? 20 : 40}
                 className="h-full"
                 data={chartData}
                 stackGap={3}
