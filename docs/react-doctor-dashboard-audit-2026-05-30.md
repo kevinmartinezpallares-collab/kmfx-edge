@@ -5,7 +5,7 @@
 - App: `apps/web-next`
 - Ruta verificada: `http://localhost:3000/dashboard`
 - React Doctor inicial: `62 / 100`, `481 issues`
-- React Doctor final: `97 / 100`, `108 issues`
+- React Doctor final: `100 / 100`, `6 issues`
 - Estado final: `Great`
 - Captura antes: `/tmp/kmfx-dashboard-before.png`
 - Captura despues: `/tmp/kmfx-dashboard-react-doctor-149-wait.png`
@@ -54,6 +54,8 @@
 - Captura settings despues de extraer seccion de perfil/preferencias: `/tmp/kmfx-settings-after-profile-section-extract.png`
 - Captura subscription antes de extraer seccion de referencia: `/tmp/kmfx-subscription-before-reference-section-extract.png`
 - Captura subscription despues de extraer seccion de referencia: `/tmp/kmfx-subscription-after-reference-section-extract.png`
+- Captura cuentas antes de extraer tarjeta del slider: `/tmp/kmfx-accounts-before-slider-card-extract.png`
+- Captura cuentas despues de extraer tarjeta del slider: `/tmp/kmfx-accounts-after-slider-card-extract.png`
 - Captura calculadora despues: `/tmp/kmfx-calculator-react-doctor-149.png`
 
 ## Cambios aplicados sin intencion visual
@@ -129,6 +131,7 @@
 - Se dividio `CalendarReferenceSection` en controles, KPI, calendario anual/mensual, curva acumulada, tabla anual y dialogo de dia, con `useCalendarReferenceModel` para la logica; mantiene textos, clases y comportamiento visibles.
 - Se dividio `SettingsReferenceSection` en tarjeta de perfil, preferencias, acceso, ayuda/legal y dialogos de perfil/cierre de sesion; mantiene textos, clases y comportamiento visibles.
 - Se dividio `SubscriptionReferenceSection` en bienvenida, selector de planes, tarjetas de plan, precio/capacidad, detalle de plan, estado/facturacion, comparativa e incluido ahora; mantiene textos y layout principal de billing.
+- Se extrajo la tarjeta del carrusel de cuentas a `AccountCardSlide`, manteniendo clases, acciones del menu, seleccion y detalle visible sin cambios intencionados.
 
 ## Verificacion
 
@@ -138,7 +141,7 @@
 - `npm run test -- action-safety-contract`: OK
 - `npm run test -- funding review risk liveline trades`: OK, `8` archivos y `33` tests
 - `npx react-doctor@latest`: `95 / 100`, `111 issues` en working tree local con la ruta untracked `/notes`; no se usa como baseline del commit de este lote.
-- `npx react-doctor@latest --verbose --diff`: `100 / 100`, `7 issues`
+- `npx react-doctor@latest --verbose --diff`: `100 / 100`, `6 issues`
 - Browser/Playwright local: `http://localhost:3000/dashboard` carga con titulo `KMFX Edge`, contenido de `Panel` visible y sin error de aplicacion.
 - Playwright local: captura dashboard posterior tomada tras esperar `h1`, SVG de liveline y `6000ms` extra para evitar capturas borrosas o a medio cargar.
 - Playwright local: captura posterior a la extraccion del logo tomada con `Panel` visible, SVG de liveline visible y `6000ms` extra; sin error de aplicacion.
@@ -175,6 +178,7 @@
 - Browser in-app: tras extraer `SettingsReferenceSection`, `http://localhost:3000/settings` carga tras `8500ms`, muestra `Preferencias` y `Editar perfil`, y no hay `Application error`.
 - Playwright local: captura posterior de `/settings` tomada con `8500ms` de espera.
 - Playwright local: tras extraer `SubscriptionReferenceSection`, `http://localhost:3004/subscription` carga tras `8500ms`; el contenido principal de planes mantiene composicion equivalente y no hay error de compilacion/build. Se uso `3004` porque habia un dev server activo en ese puerto durante la verificacion.
+- Playwright local: tras extraer `AccountCardSlide`, `http://127.0.0.1:3000/accounts` responde `200`, mantiene contenido de Cuentas visible y la captura posterior conserva el layout principal del carrusel. La captura anterior de este pase se tomo en Browser integrado con otro ancho de viewport.
 
 La suite completa de tests sigue bloqueada por una regla preexistente de migracion que detecta `KMFXConnector` en `src/components/trading/accounts/reference-section.tsx`. Ese archivo ya estaba modificado fuera de este pase, asi que no se revirtio ni se mezclo con el trabajo de React Doctor.
 
@@ -203,6 +207,7 @@ La suite completa de tests sigue bloqueada por una regla preexistente de migraci
 - `calendar/reference-section`: aplicado split de modelo/UI; ya no aparece como `no-giant-component` en el diff de React Doctor.
 - `settings/reference-sections`: aplicado split de `SettingsReferenceSection`; ese componente ya no aparece como `no-giant-component` en el diff de React Doctor.
 - `settings/reference-sections`: aplicado split de `SubscriptionReferenceSection`; Settings ya no aporta avisos `no-giant-component` al diff de React Doctor.
+- `uitripled/account-cards-slider-shadcnui`: aplicado split de `AccountCardSlide`; ya no aparece como `no-giant-component` en el diff de React Doctor.
 - `settings/reference-sections`: eliminado el `fetch` inicial en effect para leer billing status dentro de `SubscriptionReferenceSection`; el plan inicial llega desde server y los eventos de Checkout/Portal siguen en cliente.
 - `workspace-shell`: eliminado el fetch/redirect global desde effect. El `proxy` comprueba billing antes de pintar rutas workspace, excluye `/subscription`, `/settings/subscription` y `?demo=1`, y no bloquea si billing status esta temporalmente no disponible.
 - `prefer-dynamic-import`: aplicado para los imports directos de `recharts` dentro de Analytics y `src/components/ui/chart.tsx`; ya no aparece en el diff de React Doctor.

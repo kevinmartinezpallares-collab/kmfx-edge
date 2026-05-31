@@ -763,6 +763,206 @@ function renameDialogReducer(
   }
 }
 
+function AccountCardSlide({
+  card,
+  deletingAccountId,
+  index,
+  onDeleteAccount,
+  onOpenRenameDialog,
+  onSelectAccount,
+  selectedAccountId,
+}: {
+  card: AccountCardData;
+  deletingAccountId: string | null;
+  index: number;
+  onDeleteAccount: (account: AccountRow) => void;
+  onOpenRenameDialog: (account: AccountRow) => void;
+  onSelectAccount: (accountId: string) => void;
+  selectedAccountId: string;
+}) {
+  const gradientConfig = gradientConfigForCard(card.account, index);
+
+  return (
+    <motion.div
+      data-account-card
+      className="h-[500px] min-w-[calc(100svw-3rem)] max-w-[calc(100svw-3rem)] sm:min-w-[320px] sm:max-w-[320px]"
+      whileHover={{ y: -10, transition: { duration: 0.3 } }}
+    >
+      <Card
+        className={cn(
+          "group relative h-full overflow-hidden rounded-3xl border-border/50 bg-card/30 p-0 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10",
+          selectedAccountId === card.id &&
+            "border-primary/60 shadow-2xl shadow-primary/10",
+        )}
+      >
+        <div className="relative h-56 overflow-hidden">
+          <AnimatedGradient config={gradientConfig} />
+          <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-40" />
+
+          <div className="absolute left-4 top-4 z-20">
+            <Badge
+              variant="secondary"
+              className="border-white/10 bg-background/50 px-3 py-1 text-xs font-medium backdrop-blur-md"
+            >
+              {card.category}
+            </Badge>
+          </div>
+
+          <div className="absolute inset-x-4 bottom-4 z-20 flex items-end justify-between gap-4">
+            <AccountLogoFrame
+              src={card.author.avatar}
+              alt={`${card.author.name} logo`}
+              className="size-16 border border-white/20 bg-background/75 shadow-xl ring-4 ring-black/20"
+              size={64}
+            />
+            <div className="min-w-0 rounded-2xl border border-white/10 bg-background/55 px-3 py-2 text-right shadow-lg backdrop-blur-md">
+              <p className="truncate text-sm font-semibold text-foreground">
+                {card.author.name}
+              </p>
+              <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                MT5 {card.account.login}
+              </p>
+            </div>
+          </div>
+
+          <div className="absolute right-4 top-4 z-40">
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <button
+                    type="button"
+                    className="grid size-11 place-items-center rounded-full border border-white/10 bg-background/55 text-foreground shadow-lg backdrop-blur-md transition-all hover:bg-background/80 active:scale-95 sm:size-9"
+                    aria-label={`Abrir acciones de ${card.title}`}
+                  />
+                }
+              >
+                <MoreHorizontal className="size-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>{card.title}</DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onClick={() => onSelectAccount(card.id)}>
+                    <Eye />
+                    Ver detalles
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => copyAccountLogin(card.account)}>
+                    <Copy />
+                    Copiar login MT5
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onOpenRenameDialog(card.account)}>
+                    <Pencil />
+                    Renombrar cuenta
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem disabled>
+                    <Rocket />
+                    Abrir launcher
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      Pendiente
+                    </span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    disabled={deletingAccountId === card.id}
+                    onClick={() => onDeleteAccount(card.account)}
+                    variant="destructive"
+                    className="text-destructive focus:bg-destructive/10 focus:text-destructive [&_svg]:text-destructive"
+                  >
+                    <Trash2 />
+                    {deletingAccountId === card.id ? "Eliminando..." : "Eliminar cuenta"}
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
+            <motion.button
+              type="button"
+              onClick={() => onSelectAccount(card.id)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="pointer-events-auto flex min-h-11 items-center gap-2 rounded-full bg-white/90 px-5 py-2 text-sm font-semibold text-black shadow-lg sm:min-h-9"
+            >
+              Ver detalles
+            </motion.button>
+          </div>
+        </div>
+
+        <div className="flex h-[calc(100%-14rem)] flex-col justify-between p-5 pb-6">
+          <div className="flex flex-col gap-4">
+            <h3 className="text-xl font-bold leading-tight tracking-tight text-foreground transition-colors group-hover:text-primary">
+              {card.title}
+            </h3>
+            <div className="grid gap-3 text-sm leading-relaxed">
+              <div className="grid grid-cols-[70px_1fr] items-baseline gap-3">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Broker
+                </p>
+                <p className="truncate text-right font-medium text-foreground">
+                  {card.broker}
+                </p>
+              </div>
+              <div className="grid grid-cols-[70px_1fr] items-baseline gap-3">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Servidor
+                </p>
+                <p className="truncate text-right text-muted-foreground">
+                  {card.server}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-2xl border border-border/50 bg-background/30 p-3">
+                  <p className="text-[10px] text-muted-foreground">Equity</p>
+                  <p className="mt-1 truncate font-mono text-xs text-foreground">
+                    {card.equity}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-border/50 bg-background/30 p-3">
+                  <p className="text-[10px] text-muted-foreground">P&L</p>
+                  <p className="mt-1 truncate font-mono text-xs text-foreground">
+                    {card.pnl}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-2 flex items-center justify-between gap-3 pt-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <AccountLogoFrame
+                src={card.author.avatar}
+                alt={`${card.author.name} logo`}
+                className="size-8 border border-border/50 bg-background ring-2 ring-background"
+                size={32}
+              />
+              <div className="flex min-w-0 flex-col">
+                <span className="truncate text-xs font-semibold text-foreground">
+                  {card.author.name}
+                </span>
+                <span className="truncate text-[10px] text-muted-foreground">
+                  {card.status} / {card.date}
+                </span>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-secondary/50 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              <Clock className="size-3" />
+              <span>{card.readTime}</span>
+            </div>
+          </div>
+        </div>
+      </Card>
+    </motion.div>
+  );
+}
+
 export function AccountCardsSlider({
   accounts,
   activeAccountId,
@@ -903,191 +1103,6 @@ export function AccountCardsSlider({
     }
   }
 
-  const cardNodes = cards.map((card, index) => {
-    const gradientConfig = gradientConfigForCard(card.account, index);
-
-    return (
-      <motion.div
-        key={card.id}
-        data-account-card
-        className="h-[500px] min-w-[calc(100svw-3rem)] max-w-[calc(100svw-3rem)] sm:min-w-[320px] sm:max-w-[320px]"
-        whileHover={{ y: -10, transition: { duration: 0.3 } }}
-      >
-        <Card
-          className={cn(
-            "group relative h-full overflow-hidden rounded-3xl border-border/50 bg-card/30 p-0 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10",
-            selectedAccount?.id === card.id &&
-              "border-primary/60 shadow-2xl shadow-primary/10",
-          )}
-        >
-          <div className="relative h-56 overflow-hidden">
-            <AnimatedGradient config={gradientConfig} />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-40" />
-
-          <div className="absolute left-4 top-4 z-20">
-            <Badge
-              variant="secondary"
-              className="border-white/10 bg-background/50 px-3 py-1 text-xs font-medium backdrop-blur-md"
-            >
-              {card.category}
-            </Badge>
-          </div>
-
-          <div className="absolute inset-x-4 bottom-4 z-20 flex items-end justify-between gap-4">
-            <AccountLogoFrame
-              src={card.author.avatar}
-              alt={`${card.author.name} logo`}
-              className="size-16 border border-white/20 bg-background/75 shadow-xl ring-4 ring-black/20"
-              size={64}
-            />
-            <div className="min-w-0 rounded-2xl border border-white/10 bg-background/55 px-3 py-2 text-right shadow-lg backdrop-blur-md">
-              <p className="truncate text-sm font-semibold text-foreground">
-                {card.author.name}
-              </p>
-              <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                MT5 {card.account.login}
-              </p>
-            </div>
-          </div>
-
-          <div className="absolute right-4 top-4 z-40">
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <button
-                    type="button"
-                    className="grid size-11 place-items-center rounded-full border border-white/10 bg-background/55 text-foreground shadow-lg backdrop-blur-md transition-all hover:bg-background/80 active:scale-95 sm:size-9"
-                    aria-label={`Abrir acciones de ${card.title}`}
-                  />
-                }
-              >
-                <MoreHorizontal className="size-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>{card.title}</DropdownMenuLabel>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => setSelectedAccountId(card.id)}>
-                    <Eye />
-                    Ver detalles
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => copyAccountLogin(card.account)}>
-                    <Copy />
-                    Copiar login MT5
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => openRenameDialog(card.account)}>
-                    <Pencil />
-                    Renombrar cuenta
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem disabled>
-                    <Rocket />
-                    Abrir launcher
-                    <span className="ml-auto text-[10px] text-muted-foreground">
-                      Pendiente
-                    </span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem
-                    disabled={deletingAccountId === card.id}
-                    onClick={() => void deleteAccount(card.account)}
-                    variant="destructive"
-                    className="text-destructive focus:bg-destructive/10 focus:text-destructive [&_svg]:text-destructive"
-                  >
-                    <Trash2 />
-                    {deletingAccountId === card.id ? "Eliminando..." : "Eliminar cuenta"}
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
-            <motion.button
-              type="button"
-              onClick={() => setSelectedAccountId(card.id)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="pointer-events-auto flex min-h-11 items-center gap-2 rounded-full bg-white/90 px-5 py-2 text-sm font-semibold text-black shadow-lg sm:min-h-9"
-            >
-              Ver detalles
-            </motion.button>
-          </div>
-        </div>
-
-        <div className="flex h-[calc(100%-14rem)] flex-col justify-between p-5 pb-6">
-          <div className="flex flex-col gap-4">
-            <h3 className="text-xl font-bold leading-tight tracking-tight text-foreground transition-colors group-hover:text-primary">
-              {card.title}
-            </h3>
-            <div className="grid gap-3 text-sm leading-relaxed">
-              <div className="grid grid-cols-[70px_1fr] items-baseline gap-3">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                  Broker
-                </p>
-                <p className="truncate text-right font-medium text-foreground">
-                  {card.broker}
-                </p>
-              </div>
-              <div className="grid grid-cols-[70px_1fr] items-baseline gap-3">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                  Servidor
-                </p>
-                <p className="truncate text-right text-muted-foreground">
-                  {card.server}
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-2xl border border-border/50 bg-background/30 p-3">
-                  <p className="text-[10px] text-muted-foreground">Equity</p>
-                  <p className="mt-1 truncate font-mono text-xs text-foreground">
-                    {card.equity}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-border/50 bg-background/30 p-3">
-                  <p className="text-[10px] text-muted-foreground">P&L</p>
-                  <p className="mt-1 truncate font-mono text-xs text-foreground">
-                    {card.pnl}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-2 flex items-center justify-between gap-3 pt-2">
-            <div className="flex min-w-0 items-center gap-2">
-              <AccountLogoFrame
-                src={card.author.avatar}
-                alt={`${card.author.name} logo`}
-                className="size-8 border border-border/50 bg-background ring-2 ring-background"
-                size={32}
-              />
-              <div className="flex min-w-0 flex-col">
-                <span className="truncate text-xs font-semibold text-foreground">
-                  {card.author.name}
-                </span>
-                <span className="truncate text-[10px] text-muted-foreground">
-                  {card.status} / {card.date}
-                </span>
-              </div>
-            </div>
-            <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-secondary/50 px-2.5 py-1 text-xs font-medium text-muted-foreground">
-              <Clock className="size-3" />
-              <span>{card.readTime}</span>
-            </div>
-          </div>
-        </div>
-      </Card>
-    </motion.div>
-    );
-  });
-
   if (cards.length === 0) {
     return (
       <section className="rounded-xl border border-border/70 bg-card/60 p-6 text-sm text-muted-foreground">
@@ -1133,7 +1148,18 @@ export function AccountCardsSlider({
             style={{ x }}
             className="flex gap-6"
           >
-            {cardNodes}
+            {cards.map((card, index) => (
+              <AccountCardSlide
+                key={card.id}
+                card={card}
+                deletingAccountId={deletingAccountId}
+                index={index}
+                onDeleteAccount={(account) => void deleteAccount(account)}
+                onOpenRenameDialog={openRenameDialog}
+                onSelectAccount={setSelectedAccountId}
+                selectedAccountId={selectedAccountId}
+              />
+            ))}
           </motion.div>
         </motion.div>
       </div>
