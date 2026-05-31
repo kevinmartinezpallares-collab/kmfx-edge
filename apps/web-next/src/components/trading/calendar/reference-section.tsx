@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Liveline, type LivelinePoint, type ThemeMode } from "liveline";
+import { type LivelinePoint, type ThemeMode } from "liveline";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import { EquityBalanceChart } from "@/components/trading/equity-balance-chart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -661,32 +662,20 @@ function CumulativeCalendarSection({
       </div>
       <div data-kmfx-liveline className="mt-4 h-72 min-w-0 overflow-hidden">
         {cumulativeLivelineData.length >= 2 ? (
-          <Liveline
-            badge
-            badgeVariant="minimal"
+          <EquityBalanceChart
             color={calendarChartTheme.accent}
             data={cumulativeLivelineData}
-            emptyText="Historial insuficiente"
-            fill
             formatTime={formatCumulativeLivelineTime}
             formatValue={(value) =>
               valueMode === "currency"
                 ? formatSignedCurrency(Number(value))
                 : formatPercent(Number(value), 2)
             }
-            grid
-            lineWidth={2.25}
-            momentum={false}
-            padding={{ top: 12, right: 132, bottom: 28, left: 18 }}
-            pulse
-            referenceLine={{ value: 0, label: valueMode === "currency" ? "0 US$" : "0%" }}
-            scrub
-            style={{ height: "100%" }}
-            theme={calendarChartTheme.theme}
+            minimumRangeRatio={valueMode === "currency" ? 0.08 : 0.2}
+            referenceLabel={valueMode === "currency" ? "0 US$" : "0%"}
+            referenceValue={0}
             value={cumulativeLatest}
-            valueMomentumColor={false}
-            window={cumulativeWindowSecs}
-            windowStyle="rounded"
+            windowSecs={cumulativeWindowSecs}
           />
         ) : (
           <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border/70 text-sm text-muted-foreground">
@@ -951,32 +940,20 @@ function OpenDayCurve({
       </div>
       <div data-kmfx-liveline className="mt-4 h-56">
         {openDayLivelineData.length >= 2 ? (
-          <Liveline
-            badge
-            badgeVariant="minimal"
+          <EquityBalanceChart
             color={calendarChartTheme.accent}
             data={openDayLivelineData}
-            emptyText="Hace falta más de un cierre"
-            fill
             formatTime={formatOpenDayLivelineTime}
             formatValue={(value) =>
               valueMode === "currency"
                 ? formatSignedCurrency(Number(value))
                 : formatPercent(Number(value), 2)
             }
-            grid
-            lineWidth={2.2}
-            momentum={false}
-            padding={{ top: 14, right: 142, bottom: 24, left: 18 }}
-            pulse
-            referenceLine={{ value: 0, label: valueMode === "currency" ? "0 US$" : "0%" }}
-            scrub
-            style={{ height: "100%" }}
-            theme={calendarChartTheme.theme}
+            minimumRangeRatio={valueMode === "currency" ? 0.1 : 0.2}
+            referenceLabel={valueMode === "currency" ? "0 US$" : "0%"}
+            referenceValue={0}
             value={openDayLivelineData.at(-1)?.value ?? 0}
-            valueMomentumColor={false}
-            window={openDayWindowSecs}
-            windowStyle="rounded"
+            windowSecs={openDayWindowSecs}
           />
         ) : (
           <div className="flex h-full items-center justify-center border-t border-dashed border-border/70 text-sm text-muted-foreground">

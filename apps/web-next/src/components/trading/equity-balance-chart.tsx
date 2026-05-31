@@ -7,9 +7,11 @@ import type { LivelinePoint } from "liveline";
 type EquityBalanceChartProps = {
   data: LivelinePoint[];
   value: number;
-  balance: number;
   color: string;
   windowSecs: number;
+  referenceLabel?: string;
+  referenceValue: number;
+  minimumRangeRatio?: number;
   formatValue: (value: number) => string;
   formatTime: (time: number) => string;
 };
@@ -94,9 +96,11 @@ function uniqueTicks(values: number[]) {
 export function EquityBalanceChart({
   data,
   value,
-  balance,
   color,
   windowSecs,
+  referenceLabel = "Balance",
+  referenceValue,
+  minimumRangeRatio = 0.028,
   formatValue,
   formatTime,
 }: EquityBalanceChartProps) {
@@ -151,12 +155,12 @@ export function EquityBalanceChart({
   const firstTime = points[0]?.time ?? 0;
   const lastTime = points.at(-1)?.time ?? firstTime + 1;
   const timeSpan = Math.max(1, lastTime - firstTime);
-  const values = [...points.map((point) => point.value), value, balance];
+  const values = [...points.map((point) => point.value), value, referenceValue];
   const rawMin = Math.min(...values);
   const rawMax = Math.max(...values);
   const rawRange = Math.max(0, rawMax - rawMin);
-  const accountScale = Math.max(Math.abs(balance), Math.abs(value), 1);
-  const minimumRange = Math.max(accountScale * 0.028, rawRange * 1.25, 1);
+  const accountScale = Math.max(Math.abs(referenceValue), Math.abs(value), 1);
+  const minimumRange = Math.max(accountScale * minimumRangeRatio, rawRange * 1.25, 1);
   const domainMid = (rawMin + rawMax) / 2;
   const domainRange = Math.max(rawRange * 1.36, minimumRange);
   const domainMin = domainMid - domainRange / 2;
@@ -174,7 +178,7 @@ export function EquityBalanceChart({
   const firstPoint = plotted[0] ?? { x: chartLeft, y: chartBottom };
   const lastPoint = plotted.at(-1) ?? { x: chartRight, y: yForValue(value) };
   const areaPath = `${linePath} L ${lastPoint.x.toFixed(2)} ${chartBottom} L ${firstPoint.x.toFixed(2)} ${chartBottom} Z`;
-  const balanceY = yForValue(balance);
+  const referenceY = yForValue(referenceValue);
   const yTicks = Array.from({ length: 5 }, (_, index) =>
     domainMin + (domainRange / 4) * index,
   ).reverse();
@@ -186,7 +190,7 @@ export function EquityBalanceChart({
   ]);
 
   return (
-    <div ref={rootRef} className="h-full w-full">
+    <div data-kmfx-equity-balance-chart ref={rootRef} className="h-full w-full">
       <svg
         aria-label="Curva de equity y balance"
         className="h-full w-full overflow-visible"
@@ -233,8 +237,8 @@ export function EquityBalanceChart({
         strokeOpacity="0.64"
         x1={chartLeft}
         x2={chartRight}
-        y1={balanceY}
-        y2={balanceY}
+        y1={referenceY}
+        y2={referenceY}
       />
       <text
         fill="var(--chart-label)"
@@ -243,9 +247,9 @@ export function EquityBalanceChart({
         opacity="0.76"
         textAnchor="middle"
         x={(chartLeft + chartRight) / 2}
-        y={balanceY - 8}
+        y={referenceY - 8}
       >
-        Balance
+        {referenceLabel}
       </text>
 
       <path d={areaPath} fill={`url(#${gradientId})`} />

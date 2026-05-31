@@ -581,7 +581,8 @@ function EquityCurveCard({
                 data={livelineData}
                 value={latestValue}
                 color={chartTheme.accent}
-                balance={balance}
+                referenceLabel="Balance"
+                referenceValue={balance}
                 windowSecs={effectiveWindowSecs}
                 formatValue={(value) =>
                   formatCurrency(Number(value), activeAccount?.baseCurrency ?? "USD")

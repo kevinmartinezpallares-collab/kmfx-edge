@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { AnimatedProgress } from "@/components/uitripled/animated-progress-shadcnui";
+import { EquityBalanceChart } from "@/components/trading/equity-balance-chart";
 import { FunnelChart } from "@/components/charts/funnel-chart";
 import { Gauge as GaugeChart } from "@/components/charts/gauge";
 import { GlassWalletCard } from "@/components/uitripled/glass-wallet-card-shadcnui";
@@ -777,16 +778,6 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     portfolioWindowSecs,
     { minSecs: 86_400, maxPadSecs: 172_800 },
   );
-  const portfolioChartValues = portfolioLivelineData.map((point) => point.value);
-  const portfolioChartRange =
-    portfolioChartValues.length > 1
-      ? Math.max(...portfolioChartValues) - Math.min(...portfolioChartValues)
-      : 0;
-  const portfolioShouldExaggerate =
-    portfolioPeriod === "7D" ||
-    (portfolioDisplayMode === "capital" &&
-      totalEquity > 0 &&
-      portfolioChartRange / totalEquity < 0.004);
   const portfolioLabelByTime = new Map(
     capitalChartData.map((point, index) => [
       capitalCurveForChart[index]?.time ?? PORTFOLIO_FALLBACK_EPOCH_SECONDS + index * 86_400,
@@ -1179,7 +1170,6 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     portfolioPeriod,
     portfolioReadiness,
     portfolioReturnPct,
-    portfolioShouldExaggerate,
     portfolioStatusLabel,
     portfolioWindowSecs,
     riskDuplicationRows,
@@ -1264,7 +1254,6 @@ function renderCapitalReferenceSection(
     portfolioLivelineData,
     portfolioPeriod,
     portfolioReadiness,
-    portfolioShouldExaggerate,
     portfolioStatusLabel,
     riskDuplicationRows,
     staleAccounts,
@@ -1685,37 +1674,20 @@ function renderCapitalReferenceSection(
                       ? formatCurrency(Number(portfolioChartLatest), baseCurrency)
                       : `${Number(portfolioChartLatest).toFixed(2)}%`}
                   </div>
-                  <Liveline
-                    badge
-                    badgeVariant="minimal"
+                  <EquityBalanceChart
                     color={portfolioChartTheme.accent}
                     data={portfolioLivelineData}
-                    emptyText="Historial insuficiente"
-                    exaggerate={portfolioShouldExaggerate}
-                    fill
                     formatTime={(time) => portfolioLabelByTime.get(time) ?? shortDateLabel(time * 1000)}
                     formatValue={(value) =>
                       portfolioDisplayMode === "capital"
                         ? formatCurrency(Number(value), baseCurrency)
                         : `${Number(value).toFixed(2)}%`
                     }
-                    grid
-                    lineWidth={2.2}
-                    momentum={false}
-                    padding={{ top: 96, right: 132, bottom: 34, left: 18 }}
-                    pulse
-                    referenceLine={{
-                      value: portfolioDisplayMode === "capital" ? capitalCurveBase : 0,
-                      label: portfolioDisplayMode === "capital" ? "Base" : "0%",
-                    }}
-                    scrub
-                    showValue={false}
-                    style={{ height: "100%" }}
-                    theme={portfolioChartTheme.theme}
+                    minimumRangeRatio={portfolioDisplayMode === "capital" ? 0.028 : 0.18}
+                    referenceLabel={portfolioDisplayMode === "capital" ? "Base" : "0%"}
+                    referenceValue={portfolioDisplayMode === "capital" ? capitalCurveBase : 0}
                     value={portfolioChartLatest}
-                    valueMomentumColor={false}
-                    window={portfolioEffectiveWindowSecs}
-                    windowStyle="rounded"
+                    windowSecs={portfolioEffectiveWindowSecs}
                   />
                 </div>
               ) : (
