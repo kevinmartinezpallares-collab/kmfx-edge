@@ -39,6 +39,7 @@ import {
 import {
   livelineWindowForData,
   normalizeLivelinePoints,
+  prepareLivelineVisualCurve,
 } from "@/lib/charts/liveline-points";
 import { cn } from "@/lib/utils";
 
@@ -1246,8 +1247,12 @@ function useCalendarReferenceModel({
   const cumulativeLatest = cumulativeChartData.at(-1)?.value ?? 0;
   const cumulativeLivelineData = React.useMemo<LivelinePoint[]>(
     () =>
-      toStaticLivelineTimeline(visibleCumulativeChartData, {
+      prepareLivelineVisualCurve(toStaticLivelineTimeline(visibleCumulativeChartData, {
         minSpanSecs: 86_400,
+        minStepSecs: 86_400,
+      }), {
+        maxPoints: 48,
+        minPoints: 12,
         minStepSecs: 86_400,
       }),
     [visibleCumulativeChartData],
@@ -1338,8 +1343,12 @@ function useCalendarReferenceModel({
   }, [baseCapital, openDayTrades, valueMode]);
   const openDayLivelineData = React.useMemo<LivelinePoint[]>(
     () =>
-      toStaticLivelineTimeline(openDayChartData, {
+      prepareLivelineVisualCurve(toStaticLivelineTimeline(openDayChartData, {
         minSpanSecs: 3_600,
+        minStepSecs: 900,
+      }), {
+        maxPoints: 36,
+        minPoints: 8,
         minStepSecs: 900,
       }),
     [openDayChartData],

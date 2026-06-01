@@ -61,6 +61,7 @@ import { signedTextClass } from "@/lib/domain/semantic-colors";
 import {
   livelineWindowForData,
   normalizeLivelinePoints,
+  prepareLivelineVisualCurve,
 } from "@/lib/charts/liveline-points";
 import { cn } from "@/lib/utils";
 
@@ -768,9 +769,13 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     time: capitalCurveForChart[index]?.time ?? PORTFOLIO_FALLBACK_EPOCH_SECONDS + index * 86_400,
     value: portfolioDisplayMode === "capital" ? point.capital : point.percent,
   }));
-  const portfolioLivelineData = normalizeLivelinePoints(
+  const portfolioLivelineData = prepareLivelineVisualCurve(
     portfolioLivelineSource,
-    60,
+    {
+      maxPoints: 64,
+      minPoints: 28,
+      minStepSecs: 1_800,
+    },
   );
   const portfolioEffectiveWindowSecs = livelineWindowForData(
     portfolioLivelineData,

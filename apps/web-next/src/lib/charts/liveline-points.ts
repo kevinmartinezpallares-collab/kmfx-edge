@@ -11,6 +11,12 @@ type SmoothOptions = {
   minPoints?: number;
 };
 
+type VisualCurveOptions = {
+  maxPoints?: number;
+  minPoints?: number;
+  minStepSecs?: number;
+};
+
 export function normalizeLivelinePoints(
   points: LivelinePoint[],
   minStepSecs = 1,
@@ -72,6 +78,79 @@ export function livelineWindowForData(
   const fittedWindow = Math.max(minSecs, span + pad);
 
   return Math.min(requestedWindowSecs, fittedWindow);
+}
+
+function interpolateLivelineValue(points: LivelinePoint[], time: number) {
+  if (points.length === 0) return 0;
+
+  const first = points[0];
+  const last = points.at(-1);
+  if (!first || !last) return 0;
+  if (time <= first.time) return first.value;
+  if (time >= last.time) return last.value;
+
+  let low = 0;
+  let high = points.length - 1;
+
+  while (high - low > 1) {
+    const middle = Math.floor((low + high) / 2);
+
+    if ((points[middle]?.time ?? 0) <= time) {
+      low = middle;
+    } else {
+      high = middle;
+    }
+  }
+
+  const left = points[low];
+  const right = points[high];
+  if (!left || !right) return last.value;
+
+  const span = right.time - left.time;
+  if (span <= 0) return right.value;
+
+  const ratio = (time - left.time) / span;
+
+  return left.value + (right.value - left.value) * ratio;
+}
+
+export function prepareLivelineVisualCurve(
+  points: LivelinePoint[],
+  {
+    maxPoints = 72,
+    minPoints = 24,
+    minStepSecs = 60,
+  }: VisualCurveOptions = {},
+): LivelinePoint[] {
+  const normalized = normalizeLivelinePoints(points, minStepSecs);
+
+  if (normalized.length < 2) return normalized;
+
+  const first = normalized[0];
+  const last = normalized.at(-1);
+  if (!first || !last || last.time <= first.time) return normalized;
+
+  const span = last.time - first.time;
+  const targetCount = Math.min(
+    maxPoints,
+    Math.max(minPoints, Math.ceil(span / minStepSecs) + 1),
+  );
+
+  if (normalized.length <= targetCount) return normalized;
+
+  const step = span / (targetCount - 1);
+
+  return Array.from({ length: targetCount }, (_, index) => {
+    if (index === 0) return first;
+    if (index === targetCount - 1) return last;
+
+    const time = Math.round(first.time + step * index);
+
+    return {
+      time,
+      value: interpolateLivelineValue(normalized, time),
+    };
+  });
 }
 
 export function smoothLivelinePoints(
