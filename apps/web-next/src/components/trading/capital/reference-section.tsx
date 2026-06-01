@@ -1001,7 +1001,7 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     {
       label: "Consistencia",
       value: consistencyScore,
-      benchmark: 70,
+      target: 70,
       note: currentPeriodWinRate === null
         ? "Sin datos suficientes"
         : `${formatPercent(currentPeriodWinRate, 1)} win rate`,
@@ -1009,13 +1009,13 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     {
       label: "Gestión de riesgo",
       value: riskScore,
-      benchmark: 80,
+      target: 80,
       note: `${Math.round(heatShare)}% del límite usado`,
     },
     {
       label: "Diversificación",
       value: concentrationScore,
-      benchmark: 60,
+      target: 60,
       note: dominantAllocation
         ? `${dominantAllocation.allocationPct.toFixed(1)}% cuenta líder`
         : "Sin cuenta líder",
@@ -1023,7 +1023,7 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     {
       label: "Crecimiento",
       value: growthScore,
-      benchmark: 75,
+      target: 75,
       note: formatPercent(portfolioReturnPct, 2),
     },
   ];
@@ -1634,15 +1634,27 @@ function renderCapitalReferenceSection(
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-foreground">{item.label}</p>
-                          <p className="mt-1 truncate text-xs text-muted-foreground">
-                            Benchmark: {item.benchmark}%
-                          </p>
                         </div>
                         <span className="font-mono text-sm font-semibold text-foreground">
                           {item.value}%
                         </span>
                       </div>
-                      <Progress value={item.value} className="mt-3 h-1.5" />
+                      <div
+                        aria-label={`${item.label}: ${item.value}% sobre objetivo ${item.target}%`}
+                        className="mt-3"
+                        role="img"
+                      >
+                        <div className="relative h-1.5 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="absolute inset-y-0 left-0 rounded-full bg-primary"
+                            style={{ width: `${Math.min(100, Math.max(0, item.value))}%` }}
+                          />
+                          <span
+                            className="absolute top-1/2 h-2.5 w-px -translate-y-1/2 bg-foreground/70"
+                            style={{ left: `${Math.min(100, Math.max(0, item.target))}%` }}
+                          />
+                        </div>
+                      </div>
                       <p className="mt-2 truncate text-xs text-muted-foreground">{item.note}</p>
                     </div>
                   ))}
