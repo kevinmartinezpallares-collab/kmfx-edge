@@ -1156,8 +1156,9 @@ function CurrentPlanDialogCard({
         className="group/plan-card relative h-full min-h-[13rem] overflow-hidden rounded-xl border border-border/70 bg-card/65 text-left shadow-sm transition-colors hover:border-foreground/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
       >
         <AnimatedGradient config={gradientConfig} />
-        <span className="absolute inset-0 bg-black/18" />
-        <span className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/48 to-black/18" />
+        <span className="absolute inset-0 bg-black/6" />
+        <span className="absolute inset-0 bg-gradient-to-t from-black/72 via-black/34 to-black/8" />
+        <span className="absolute inset-0 bg-gradient-to-br from-white/14 via-transparent to-white/6 mix-blend-screen" />
         <span className="relative flex h-full flex-col p-4">
           <span className="flex items-start justify-between gap-3">
             <span className="min-w-0">

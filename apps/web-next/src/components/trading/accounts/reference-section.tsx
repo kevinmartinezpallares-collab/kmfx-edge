@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button-variants";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -309,7 +308,7 @@ function AccountsSummaryCard({
 }) {
   return (
     <Card className="max-w-full overflow-hidden">
-      <CardHeader className="grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+      <CardHeader className="grid-cols-1 gap-3">
         <div className="flex min-w-0 flex-col gap-1.5">
           <CardTitle>Control de cuentas</CardTitle>
           <CardDescription className="max-w-full text-pretty">
@@ -317,9 +316,9 @@ function AccountsSummaryCard({
             y permisos activos.
           </CardDescription>
         </div>
-        <CardAction className="col-start-1 row-span-1 row-start-auto flex w-full flex-col gap-2 justify-self-stretch sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:w-auto sm:flex-row sm:justify-self-end">
+        <div className="grid min-w-0 gap-2 sm:flex sm:w-auto sm:justify-self-start">
           <Button
-            className="w-full sm:w-auto"
+            className="w-full min-w-0 justify-center sm:w-auto"
             size="sm"
             type="button"
             onClick={onOpenAddAccount}
@@ -328,7 +327,7 @@ function AccountsSummaryCard({
             Añadir cuenta
           </Button>
           <Button
-            className="w-full sm:w-auto"
+            className="w-full min-w-0 justify-center sm:w-auto"
             size="sm"
             type="button"
             variant="outline"
@@ -337,7 +336,7 @@ function AccountsSummaryCard({
             Abrir launcher
             <ExternalLink data-icon="inline-end" />
           </Button>
-        </CardAction>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-4">

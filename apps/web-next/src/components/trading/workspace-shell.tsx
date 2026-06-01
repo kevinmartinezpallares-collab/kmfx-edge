@@ -1051,7 +1051,7 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
 
         <main className="relative min-w-0 overflow-x-hidden">
           <div className="h-[calc(100svh-4rem)] overflow-x-hidden overflow-y-auto">
-            <div className="grid min-w-0 max-w-full gap-4 overflow-x-hidden p-4 md:p-6">
+            <div className="grid w-full min-w-0 max-w-full grid-cols-[minmax(0,1fr)] gap-4 overflow-x-hidden p-4 md:p-6">
               {previewMode ? (
                 <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card/85 p-4 shadow-[0_18px_45px_-34px_rgba(0,0,0,0.45)] backdrop-blur-xl md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0">
