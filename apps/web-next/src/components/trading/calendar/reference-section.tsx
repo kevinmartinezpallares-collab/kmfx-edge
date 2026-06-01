@@ -730,7 +730,7 @@ function YearlyReturnTable({
         <div>
           <p className="text-sm font-medium text-foreground">Tabla de rentabilidad</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Matriz anual tipo KMFX Edge. Lectura fija en porcentaje.
+            Rentabilidad mensual y acumulado anual sobre el capital conectado.
           </p>
         </div>
       </div>
