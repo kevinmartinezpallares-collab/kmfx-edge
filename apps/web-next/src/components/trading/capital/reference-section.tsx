@@ -565,6 +565,17 @@ function portfolioGradientConfig(account: TradingAccount, index: number): Custom
   };
 }
 
+function portfolioRuleBadgeLabel(row: {
+  ruleSource: "Definidas" | "Heredadas" | "Revisar";
+  type: "Fondeo" | "Darwinex" | "Real";
+}) {
+  if (row.ruleSource === "Definidas") return "Regla definida";
+  if (row.ruleSource === "Heredadas") return "Límite heredado";
+  if (row.type === "Real" || row.type === "Darwinex") return "Capital propio";
+
+  return "Política pendiente";
+}
+
 function formatPortfolioRole(role: string) {
   const labels: Record<string, string> = {
     lead: "Líder",
@@ -804,11 +815,16 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
             }))
           : [];
 
+      const visualData = prepareLivelineVisualCurve(data, {
+        maxPoints: 64,
+        minPoints: 28,
+        minStepSecs: 1_800,
+      });
       const series = {
         id: row.account.id,
         label: row.account.label,
         color: PORTFOLIO_SERIES_COLORS[index % PORTFOLIO_SERIES_COLORS.length],
-        data: normalizeLivelinePoints(data, 60),
+        data: visualData,
         value: data.at(-1)?.value ?? 0,
       };
 
@@ -1740,11 +1756,7 @@ function renderCapitalReferenceSection(
                         variant={row.ruleSource === "Revisar" ? "secondary" : "outline"}
                         className="border-white/10 bg-background/55 backdrop-blur-md"
                       >
-                        {row.ruleSource === "Definidas"
-                          ? "Regla definida"
-                          : row.ruleSource === "Heredadas"
-                            ? "Límite heredado"
-                            : "Falta regla"}
+                        {portfolioRuleBadgeLabel(row)}
                       </Badge>
                     </div>
                     <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3">
@@ -1895,7 +1907,6 @@ function renderCapitalReferenceSection(
                   color={portfolioChartTheme.accent}
                   data={portfolioComparisonSeries[0]?.data ?? []}
                   emptyText="Sin histórico por cuenta"
-                  exaggerate
                   fill={false}
                   formatTime={(time) => portfolioComparisonLabelByTime.get(time) ?? shortDateLabel(time * 1000)}
                   formatValue={(value) => `${Number(value).toFixed(2)}%`}
@@ -1994,11 +2005,7 @@ function renderCapitalReferenceSection(
                       </div>
                       <div className="flex min-w-0 flex-wrap items-center gap-2 lg:justify-end">
                         <Badge variant={row.ruleSource === "Revisar" ? "secondary" : "outline"}>
-                          {row.ruleSource === "Definidas"
-                            ? "Regla definida"
-                            : row.ruleSource === "Heredadas"
-                              ? "Límite heredado"
-                              : "Falta regla"}
+                          {portfolioRuleBadgeLabel(row)}
                         </Badge>
                         <span className="text-xs text-muted-foreground">{row.action}</span>
                       </div>
