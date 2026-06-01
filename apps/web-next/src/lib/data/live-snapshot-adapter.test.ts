@@ -175,6 +175,61 @@ describe("createWorkspaceFromLiveSnapshot", () => {
     expect(workspace.accounts[0]?.label).toBe("Darwinex MT5");
   });
 
+  it("backfills short equity history with older MT5 closes for portfolio timelines", () => {
+    const workspace = createWorkspaceFromLiveSnapshot(
+      {
+        accounts: [
+          {
+            account_id: "darwinex-live",
+            display_name: "Darwinex MT5",
+            broker: "Tradeslide Trading Tech Limited",
+            login: "4000082126",
+            server: "Darwinex-Live",
+            status: "active",
+            last_sync_at: "2026-05-30T14:30:00Z",
+            dashboard_payload: {
+              balance: 106000,
+              equity: 106000,
+              history: [
+                { timestamp: "2026-03-22T08:00:00Z", value: 103500 },
+                { timestamp: "2026-05-30T14:30:00Z", value: 106000 },
+              ],
+              trades: [
+                {
+                  trade_id: "jan-close-1",
+                  position_id: "jan-position-1",
+                  symbol: "XAUUSD",
+                  direction: "buy",
+                  open_time: "2026-01-12T08:00:00Z",
+                  close_time: "2026-01-12T09:00:00Z",
+                  net: 1000,
+                },
+                {
+                  trade_id: "feb-close-1",
+                  position_id: "feb-position-1",
+                  symbol: "XAUUSD",
+                  direction: "sell",
+                  open_time: "2026-02-10T08:00:00Z",
+                  close_time: "2026-02-10T09:00:00Z",
+                  net: -500,
+                },
+              ],
+            },
+          },
+        ],
+      },
+      "live",
+    );
+
+    const history = workspace.accounts[0]?.equityHistory ?? [];
+
+    expect(history.at(0)?.timestamp).toBe("2026-01-12T08:59:00.000Z");
+    expect(history.at(0)?.value).toBe(103000);
+    expect(history.some((point) => point.timestamp === "2026-03-22T08:00:00Z")).toBe(
+      true,
+    );
+  });
+
   it("groups MT5 partial closes by position_id without duplicating trades", () => {
     const workspace = createWorkspaceFromLiveSnapshot(
       partialCloseSnapshot,

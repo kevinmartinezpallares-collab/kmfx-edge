@@ -662,22 +662,95 @@ function compactHistoryLabel(value: string | undefined, index: number) {
   return COMPACT_HISTORY_LABEL_FORMATTER.format(date);
 }
 
+function parseRawTradeCloseMs(row: RawLiveTrade) {
+  const closedAt = parseDateFromUnixOrIso(
+    row.close_time_unix ?? row.time_unix,
+    row.close_time ?? row.time,
+    "",
+  );
+  const closedMs = new Date(closedAt).getTime();
+
+  return Number.isFinite(closedMs) ? closedMs : null;
+}
+
+function rawTradeNetPnl(row: RawLiveTrade) {
+  const grossPnl = toFiniteNumber(row.profit);
+  const commission = toFiniteNumber(row.commission);
+  const swap = toFiniteNumber(row.swap);
+
+  return toFiniteNumber(row.net, grossPnl + commission + swap);
+}
+
+function buildTradeBackfilledEquitySeries(
+  payload: RawLiveDashboardPayload,
+  historyPoints: MetricPoint[],
+) {
+  const rows = Array.isArray(payload.trades) ? payload.trades : [];
+  if (!rows.length) return historyPoints;
+
+  const firstHistoryMs = historyPoints[0]?.timestamp
+    ? new Date(historyPoints[0].timestamp).getTime()
+    : Number.POSITIVE_INFINITY;
+  const hasHistoryStart = Number.isFinite(firstHistoryMs);
+  const trades = rows
+    .map((row) => ({
+      time: parseRawTradeCloseMs(row),
+      netPnl: rawTradeNetPnl(row),
+    }))
+    .filter((row): row is { time: number; netPnl: number } => row.time !== null)
+    .toSorted((a, b) => a.time - b.time);
+  const preHistoryTrades = hasHistoryStart
+    ? trades.filter((trade) => trade.time < firstHistoryMs)
+    : trades;
+
+  if (!preHistoryTrades.length) return historyPoints;
+
+  const anchorValue = hasHistoryStart
+    ? historyPoints[0]?.value
+    : toFiniteNumber(payload.equity, toFiniteNumber(payload.balance));
+  if (!Number.isFinite(anchorValue)) return historyPoints;
+
+  const preHistoryPnl = preHistoryTrades.reduce((sum, trade) => sum + trade.netPnl, 0);
+  let runningValue = anchorValue - preHistoryPnl;
+  const firstTradeTime = preHistoryTrades[0]?.time ?? 0;
+  const backfilled: MetricPoint[] = [
+    {
+      label: compactHistoryLabel(new Date(Math.max(0, firstTradeTime - 60_000)).toISOString(), 0),
+      value: runningValue,
+      timestamp: new Date(Math.max(0, firstTradeTime - 60_000)).toISOString(),
+    },
+  ];
+
+  preHistoryTrades.forEach((trade, index) => {
+    runningValue += trade.netPnl;
+    const timestamp = new Date(trade.time).toISOString();
+
+    backfilled.push({
+      label: compactHistoryLabel(timestamp, index + 1),
+      value: runningValue,
+      timestamp,
+    });
+  });
+
+  return [...backfilled, ...historyPoints];
+}
+
 function mapEquitySeries(payload: RawLiveDashboardPayload): MetricPoint[] {
   const history = Array.isArray(payload.history) ? payload.history : [];
   if (!history.length) {
-    return [
+    return buildTradeBackfilledEquitySeries(payload, [
       {
         label: "Actual",
         value: toFiniteNumber(payload.equity, toFiniteNumber(payload.balance)),
       },
-    ];
+    ]);
   }
 
-  return history.map((point, index) => ({
+  return buildTradeBackfilledEquitySeries(payload, history.map((point, index) => ({
     label: compactHistoryLabel(point.timestamp, index),
     value: toFiniteNumber(point.value ?? point.equity ?? point.balance),
     timestamp: point.timestamp,
-  }));
+  })));
 }
 
 function mapRisk(payload: RawLiveDashboardPayload): RiskSnapshot {
