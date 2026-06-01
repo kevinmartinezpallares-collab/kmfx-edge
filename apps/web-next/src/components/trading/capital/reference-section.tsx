@@ -1037,7 +1037,7 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
       label: "Gestión de riesgo",
       value: riskScore,
       target: 80,
-      note: `${Math.round(heatShare)}% del límite usado`,
+      note: heatShare > 0 ? `${Math.round(heatShare)}% del límite usado` : "Sin riesgo abierto",
     },
     {
       label: "Diversificación",
@@ -1667,11 +1667,11 @@ function renderCapitalReferenceSection(
                           <p className="truncate text-sm font-medium text-foreground">{item.label}</p>
                         </div>
                         <span className="font-mono text-sm font-semibold text-foreground">
-                          {item.value}%
+                          {item.value}/100
                         </span>
                       </div>
                       <div
-                        aria-label={`${item.label}: ${item.value}% sobre objetivo ${item.target}%`}
+                        aria-label={`${item.label}: ${item.value} sobre 100, objetivo ${item.target}`}
                         className="mt-3"
                         role="img"
                       >
