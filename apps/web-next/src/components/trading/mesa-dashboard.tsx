@@ -817,70 +817,113 @@ function clampPct(value: number) {
   return Math.max(0, Math.min(100, value));
 }
 
-function buildOperationalScore(
+function buildOperationalRoom(
   workspace: WorkspaceState,
   activeAccount: TradingAccount | undefined,
 ) {
   const equity = Math.max(activeAccount?.equity ?? activeAccount?.balance ?? 0, 1);
   const openPositionsCount = activeAccount?.openPositionsCount ?? 0;
+  const hasStaleData =
+    activeAccount != null &&
+    activeAccount.connectionState !== "connected" &&
+    activeAccount.connectionState !== "syncing";
   const hasOpenPositionsWithoutRisk =
     openPositionsCount > 0 && workspace.risk.totalOpenRiskPct <= 0;
-  const sortedTrades = workspace.trades.toSorted(
-    (a, b) => new Date(b.closedAt).getTime() - new Date(a.closedAt).getTime(),
+  const dailyRoomPct =
+    workspace.risk.dailyLimitPct > 0
+      ? Math.min(
+          workspace.risk.dailyLimitPct,
+          Math.max(
+            0,
+            Number.isFinite(workspace.risk.dailyRoomLeftPct)
+              ? workspace.risk.dailyRoomLeftPct
+              : workspace.risk.dailyLimitPct - workspace.risk.dailyDrawdownPct,
+          ),
+        )
+      : null;
+  const maxRoomPct =
+    workspace.risk.maxLimitPct > 0
+      ? Math.max(0, workspace.risk.maxLimitPct - workspace.risk.maxDrawdownPct)
+      : null;
+  const heatRoomPct =
+    workspace.risk.heatLimitPct > 0
+      ? Math.max(0, workspace.risk.heatLimitPct - workspace.risk.totalOpenRiskPct)
+      : null;
+  const roomCandidates = [
+    dailyRoomPct === null
+      ? null
+      : { label: "Límite diario", pct: dailyRoomPct, referencePct: workspace.risk.dailyLimitPct },
+    maxRoomPct === null
+      ? null
+      : { label: "DD máximo", pct: maxRoomPct, referencePct: workspace.risk.maxLimitPct },
+    heatRoomPct === null
+      ? null
+      : { label: "Capacidad de riesgo", pct: heatRoomPct, referencePct: workspace.risk.heatLimitPct },
+  ].filter((candidate): candidate is { label: string; pct: number; referencePct: number } =>
+    Boolean(candidate),
   );
-  const recentPnl = sortedTrades
-    .slice(0, 5)
-    .reduce((sum, trade) => sum + trade.netPnl, 0);
-  const syncPenalty =
-    activeAccount?.connectionState === "connected"
-      ? 0
-      : activeAccount?.connectionState === "syncing"
-        ? 6
-        : activeAccount?.connectionState === "stale"
-          ? 20
-          : 14;
-  const dailyDrawdownPenalty = Math.min(18, workspace.risk.dailyDrawdownPct * 8);
-  const maxDrawdownPenalty = Math.min(18, workspace.risk.maxDrawdownPct * 2);
-  const openRiskPenalty = Math.min(14, workspace.risk.totalOpenRiskPct * 7);
-  const unmeasuredOpenRiskPenalty = hasOpenPositionsWithoutRisk ? 10 : 0;
-  const recentLossPenalty = Math.min(12, (Math.abs(Math.min(0, recentPnl)) / equity) * 100 * 24);
-  const score = Math.round(
-    clampPct(
-      100 -
-        syncPenalty -
-        dailyDrawdownPenalty -
-        maxDrawdownPenalty -
-        openRiskPenalty -
-        unmeasuredOpenRiskPenalty -
-        recentLossPenalty,
-    ),
-  );
+  const limitingRoom =
+    roomCandidates.toSorted((a, b) => a.pct - b.pct)[0] ?? null;
+  const roomPct = limitingRoom?.pct ?? null;
+  const roomAmount = roomPct === null ? null : equity * (roomPct / 100);
+  const gaugeValue =
+    limitingRoom && limitingRoom.referencePct > 0
+      ? Math.round(clampPct((limitingRoom.pct / limitingRoom.referencePct) * 100))
+      : 0;
   const label =
-    hasOpenPositionsWithoutRisk
-      ? "Vigilar"
-      : score >= 80
-      ? "Operable"
-      : score >= 60
-        ? "Vigilar"
-        : "Revisar";
+    !activeAccount
+      ? "Sin cuenta"
+      : !workspace.risk.allowNewTrades || workspace.risk.status === "blocked"
+        ? "Revisar"
+        : hasOpenPositionsWithoutRisk
+          ? "Vigilar"
+          : hasStaleData
+            ? "Vigilar"
+          : roomPct === null
+            ? "Vigilar"
+            : roomPct <= 0
+              ? "Revisar"
+              : gaugeValue >= 55 && workspace.risk.status === "safe"
+                ? "Operable"
+                : "Vigilar";
+  const reason =
+    !activeAccount
+      ? "Sin cuenta conectada"
+      : !workspace.risk.allowNewTrades || workspace.risk.status === "blocked"
+        ? workspace.risk.blockingRule ?? workspace.risk.actionRequired
+        : hasOpenPositionsWithoutRisk
+          ? "Riesgo abierto sin calcular"
+          : hasStaleData
+            ? "Datos MT5 desactualizados"
+          : limitingRoom
+            ? `Límite más cercano: ${limitingRoom.label}`
+            : "Faltan reglas o límites";
   const helper =
-    hasOpenPositionsWithoutRisk
-      ? "Hay posiciones abiertas, pero falta la estimación de riesgo."
-      : score >= 80
-      ? "Cuenta operable con baja presión actual."
-      : score >= 60
-        ? "Operable, pero conviene revisar presión y contexto."
-        : "Revisa datos, DD o contexto antes de aumentar riesgo.";
+    roomPct === null
+      ? "Configura límites para medir margen real antes de operar."
+      : hasOpenPositionsWithoutRisk
+        ? "Margen parcial: hay posiciones abiertas sin riesgo calculado."
+        : hasStaleData
+          ? "Actualiza la sincronización antes de tomar decisiones nuevas."
+        : roomPct <= 0
+          ? "No queda margen frente al límite más cercano."
+          : "Margen disponible antes de tocar el límite operativo más cercano.";
   const toneClass =
-    hasOpenPositionsWithoutRisk
-      ? "text-risk"
-      : score >= 80
+    label === "Operable"
       ? "text-muted-foreground"
-      : score >= 60
+      : label === "Vigilar"
         ? "text-risk"
         : "text-loss";
 
-  return { helper, label, score, toneClass };
+  return {
+    gaugeValue,
+    helper,
+    label,
+    reason,
+    roomAmount,
+    roomPct,
+    toneClass,
+  };
 }
 
 function formatOpenPositionsLabel(count: number) {
@@ -894,7 +937,7 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
   const activeAccount =
     workspace.accounts.find((account) => account.id === workspace.activeAccountId) ??
     workspace.accounts[0];
-  const operationalScore = buildOperationalScore(workspace, activeAccount);
+  const operationalRoom = buildOperationalRoom(workspace, activeAccount);
   const openPositionsCount = activeAccount?.openPositionsCount ?? 0;
   const hasOpenPositions = openPositionsCount > 0;
   const hasMeasuredOpenRisk = workspace.risk.totalOpenRiskPct > 0;
@@ -919,17 +962,17 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
             <CardTitle>Estado operativo</CardTitle>
             <CardDescription>Datos, presión de riesgo y contexto antes de operar.</CardDescription>
           </div>
-          <span className={cn("text-xs font-medium", operationalScore.toneClass)}>
-            {operationalScore.label}
+          <span className={cn("text-xs font-medium", operationalRoom.toneClass)}>
+            {operationalRoom.label}
           </span>
         </div>
       </CardHeader>
       <CardContent className="grid gap-5">
-        <div className="grid justify-items-center gap-2">
+        <div className="grid justify-items-center gap-3">
           <Gauge
             className="mx-auto w-full max-w-[380px]"
-            value={operationalScore.score}
-            centerValue={operationalScore.score}
+            value={operationalRoom.gaugeValue}
+            centerValue={operationalRoom.gaugeValue}
             totalNotches={25}
             spacing={20}
             notchCornerRadius={12}
@@ -942,7 +985,7 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
             inactiveFill="var(--chart-background)"
             inactiveFillOpacity={1}
             activeFillOpacity={1}
-            defaultLabel="Score operativo"
+            defaultLabel="Margen operativo"
             formatOptions={{
               maximumFractionDigits: 0,
             }}
@@ -953,9 +996,28 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
             enterTransition={{ type: "spring", duration: 1, bounce: 0.6 }}
             enterStaggerScale={1}
           />
-          <p className="max-w-64 text-center text-xs leading-relaxed text-muted-foreground">
-            {operationalScore.helper}
-          </p>
+          <div className="grid justify-items-center gap-1 text-center">
+            <p className="text-xs text-muted-foreground">Margen operativo restante</p>
+            <p className="font-mono text-lg font-semibold text-foreground">
+              {operationalRoom.roomPct === null || operationalRoom.roomAmount === null
+                ? "Sin estimación"
+                : `${formatPercent(operationalRoom.roomPct, 2)} / ${formatCurrency(
+                    operationalRoom.roomAmount,
+                    activeAccount?.baseCurrency ?? "USD",
+                  )}`}
+            </p>
+            <p className="max-w-72 text-xs leading-relaxed text-muted-foreground">
+              {operationalRoom.helper}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-[1fr_auto] gap-3 border-t border-border/60 pt-5 text-sm">
+          <div>
+            <p className="text-xs text-muted-foreground">Motivo principal</p>
+            <p className="mt-1 font-medium text-foreground">{operationalRoom.reason}</p>
+          </div>
+          <p className={cn("font-medium", operationalRoom.toneClass)}>{operationalRoom.label}</p>
         </div>
 
         <EfferdSegmentedMeter
