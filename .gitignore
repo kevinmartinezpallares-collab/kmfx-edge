@@ -19,6 +19,8 @@ __pycache__/
 build/
 dist/
 .venv-launcher-macos/
+downloads/* [0-9]*.exe
+downloads/* [0-9]*.sha256
 .vercel
 
 # Local Next.js/tooling artifacts

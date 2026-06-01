@@ -822,6 +822,9 @@ function buildOperationalScore(
   activeAccount: TradingAccount | undefined,
 ) {
   const equity = Math.max(activeAccount?.equity ?? activeAccount?.balance ?? 0, 1);
+  const openPositionsCount = activeAccount?.openPositionsCount ?? 0;
+  const hasOpenPositionsWithoutRisk =
+    openPositionsCount > 0 && workspace.risk.totalOpenRiskPct <= 0;
   const sortedTrades = workspace.trades.toSorted(
     (a, b) => new Date(b.closedAt).getTime() - new Date(a.closedAt).getTime(),
   );
@@ -839,6 +842,7 @@ function buildOperationalScore(
   const dailyDrawdownPenalty = Math.min(18, workspace.risk.dailyDrawdownPct * 8);
   const maxDrawdownPenalty = Math.min(18, workspace.risk.maxDrawdownPct * 2);
   const openRiskPenalty = Math.min(14, workspace.risk.totalOpenRiskPct * 7);
+  const unmeasuredOpenRiskPenalty = hasOpenPositionsWithoutRisk ? 10 : 0;
   const recentLossPenalty = Math.min(12, (Math.abs(Math.min(0, recentPnl)) / equity) * 100 * 24);
   const score = Math.round(
     clampPct(
@@ -847,29 +851,40 @@ function buildOperationalScore(
         dailyDrawdownPenalty -
         maxDrawdownPenalty -
         openRiskPenalty -
+        unmeasuredOpenRiskPenalty -
         recentLossPenalty,
     ),
   );
   const label =
-    score >= 80
+    hasOpenPositionsWithoutRisk
+      ? "Vigilar"
+      : score >= 80
       ? "Operable"
       : score >= 60
         ? "Vigilar"
         : "Revisar";
   const helper =
-    score >= 80
+    hasOpenPositionsWithoutRisk
+      ? "Hay posiciones abiertas, pero falta la estimación de riesgo."
+      : score >= 80
       ? "Cuenta operable con baja presión actual."
       : score >= 60
         ? "Operable, pero conviene revisar presión y contexto."
         : "Revisa datos, DD o contexto antes de aumentar riesgo.";
   const toneClass =
-    score >= 80
+    hasOpenPositionsWithoutRisk
+      ? "text-risk"
+      : score >= 80
       ? "text-muted-foreground"
       : score >= 60
         ? "text-risk"
         : "text-loss";
 
   return { helper, label, score, toneClass };
+}
+
+function formatOpenPositionsLabel(count: number) {
+  return count === 1 ? "1 posición abierta" : `${count} posiciones abiertas`;
 }
 
 function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
@@ -880,6 +895,10 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
     workspace.accounts.find((account) => account.id === workspace.activeAccountId) ??
     workspace.accounts[0];
   const operationalScore = buildOperationalScore(workspace, activeAccount);
+  const openPositionsCount = activeAccount?.openPositionsCount ?? 0;
+  const hasOpenPositions = openPositionsCount > 0;
+  const hasMeasuredOpenRisk = workspace.risk.totalOpenRiskPct > 0;
+  const hasOpenPositionsWithoutRisk = hasOpenPositions && !hasMeasuredOpenRisk;
   const dailyUsage =
     workspace.risk.dailyLimitPct > 0
       ? Math.min(100, (workspace.risk.dailyDrawdownPct / workspace.risk.dailyLimitPct) * 100)
@@ -951,12 +970,23 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
 
         <EfferdSegmentedMeter
           label="Riesgo abierto"
-          value={formatPercent(workspace.risk.totalOpenRiskPct, 2)}
+          value={
+            hasOpenPositionsWithoutRisk
+              ? "Sin estimación"
+              : formatPercent(workspace.risk.totalOpenRiskPct, 2)
+          }
           limit={`Referencia ${formatPercent(workspace.risk.heatLimitPct, 2)}`}
-          segments={[
-            { label: "Abierto", pct: heatUsage, tone: "used" },
-            { label: "Libre", pct: Math.max(0, 100 - heatUsage), tone: "reserve" },
-          ]}
+          segments={
+            hasOpenPositionsWithoutRisk
+              ? [
+                  { label: formatOpenPositionsLabel(openPositionsCount), pct: 8, tone: "used" },
+                  { label: "Riesgo sin calcular", pct: 92, tone: "reserve" },
+                ]
+              : [
+                  { label: "Abierto", pct: heatUsage, tone: "used" },
+                  { label: "Libre", pct: Math.max(0, 100 - heatUsage), tone: "reserve" },
+                ]
+          }
         />
 
         <div className="border-t border-border/60 pt-5">
@@ -964,11 +994,19 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
             <div>
               <p className="text-xs text-muted-foreground">Exposición dominante</p>
               <p className="mt-1 font-medium text-foreground">
-                {dominantExposure ? dominantExposure.symbol : "Sin exposición abierta"}
+                {dominantExposure
+                  ? dominantExposure.symbol
+                  : hasOpenPositions
+                    ? "Posición abierta sin riesgo calculado"
+                    : "Sin exposición abierta"}
               </p>
             </div>
             <p className="font-mono font-semibold text-foreground">
-              {dominantExposure ? formatPercent(dominantExposure.openRiskPct, 2) : "0%"}
+              {dominantExposure
+                ? formatPercent(dominantExposure.openRiskPct, 2)
+                : hasOpenPositions
+                  ? `${openPositionsCount} pos.`
+                  : "0%"}
             </p>
           </div>
         </div>
