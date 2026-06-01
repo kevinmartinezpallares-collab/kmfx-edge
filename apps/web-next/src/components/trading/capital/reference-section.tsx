@@ -68,7 +68,9 @@ import { cn } from "@/lib/utils";
 const PORTFOLIO_PERIOD_OPTIONS = ["7D", "30D", "90D", "YTD"] as const;
 type PortfolioPeriodOption = (typeof PORTFOLIO_PERIOD_OPTIONS)[number];
 type PortfolioDisplayMode = "capital" | "percent";
+type PortfolioComparisonMode = "start" | "common";
 type PortfolioUiState = {
+  comparisonMode: PortfolioComparisonMode;
   comparisonPeriod: PortfolioPeriodOption;
   displayMode: PortfolioDisplayMode;
   period: PortfolioPeriodOption;
@@ -78,6 +80,7 @@ type PortfolioUiState = {
 type PortfolioUiAction =
   | { type: "selectCalendarDay"; dayKey: string }
   | { type: "selectCalendarMonth"; dayKey: string; monthKey: string }
+  | { type: "setComparisonMode"; comparisonMode: PortfolioComparisonMode }
   | { type: "setComparisonPeriod"; comparisonPeriod: PortfolioPeriodOption }
   | { type: "setDisplayMode"; displayMode: PortfolioDisplayMode }
   | { type: "setPeriod"; period: PortfolioPeriodOption };
@@ -90,6 +93,7 @@ function createInitialPortfolioUiState({
   selectedCalendarMonthKey: string;
 }): PortfolioUiState {
   return {
+    comparisonMode: "start",
     comparisonPeriod: "30D",
     displayMode: "capital",
     period: "30D",
@@ -111,6 +115,8 @@ function portfolioUiReducer(
         selectedCalendarDayKey: action.dayKey,
         selectedCalendarMonthKey: action.monthKey,
       };
+    case "setComparisonMode":
+      return { ...state, comparisonMode: action.comparisonMode };
     case "setComparisonPeriod":
       return { ...state, comparisonPeriod: action.comparisonPeriod };
     case "setDisplayMode":
@@ -296,6 +302,19 @@ function getCommonPeriodReturnCurve(
   ];
 
   return normalizeLivelinePoints(rebased, 60);
+}
+
+function getStartPeriodReturnCurve(points: LivelinePoint[]): LivelinePoint[] {
+  const startValue = points[0]?.value ?? 0;
+  if (startValue <= 0) return [];
+
+  return normalizeLivelinePoints(
+    points.map((point) => ({
+      time: point.time,
+      value: Number((((point.value - startValue) / startValue) * 100).toFixed(3)),
+    })),
+    60,
+  );
 }
 
 function toStaticLivelineTimeline<T extends { time: number; value: number }>(
@@ -689,6 +708,7 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     createInitialPortfolioUiState,
   );
   const {
+    comparisonMode: portfolioComparisonMode,
     comparisonPeriod: portfolioComparisonPeriod,
     displayMode: portfolioDisplayMode,
     period: portfolioPeriod,
@@ -850,14 +870,21 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     }))
     .filter((series) => series.data.length >= 2);
   const portfolioComparisonCommonStart =
-    portfolioComparisonSources.length >= 2
+    portfolioComparisonMode === "common" && portfolioComparisonSources.length >= 2
       ? Math.max(...portfolioComparisonSources.map((series) => series.data[0]?.time ?? 0))
       : 0;
+  const portfolioComparisonDescription =
+    portfolioComparisonMode === "common"
+      ? "Rendimiento real normalizado desde el tramo común disponible por cuenta."
+      : "Rendimiento real desde el primer histórico de equity disponible de cada cuenta.";
   const portfolioComparisonSeries = portfolioComparisonSources
     .flatMap<LivelineSeries>((source) => {
-      const data = portfolioComparisonCommonStart
-        ? getCommonPeriodReturnCurve(source.data, portfolioComparisonCommonStart)
-        : [];
+      const data =
+        portfolioComparisonMode === "common"
+          ? portfolioComparisonCommonStart
+            ? getCommonPeriodReturnCurve(source.data, portfolioComparisonCommonStart)
+            : []
+          : getStartPeriodReturnCurve(source.data);
       const visualData = prepareLivelineVisualCurve(data, {
         maxPoints: 64,
         minPoints: 28,
@@ -1219,10 +1246,12 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     portfolioCommandCta,
     portfolioCommandHref,
     portfolioComparisonData,
+    portfolioComparisonDescription,
     portfolioComparisonEffectiveWindowSecs,
     portfolioComparisonLabelByTime,
     portfolioComparisonLatest,
     portfolioComparisonLeader,
+    portfolioComparisonMode,
     portfolioComparisonPeriod,
     portfolioComparisonSeries,
     portfolioComparisonSpread,
@@ -1304,10 +1333,12 @@ function renderCapitalReferenceSection(
     portfolioCommandCta,
     portfolioCommandHref,
     portfolioComparisonData,
+    portfolioComparisonDescription,
     portfolioComparisonEffectiveWindowSecs,
     portfolioComparisonLabelByTime,
     portfolioComparisonLatest,
     portfolioComparisonLeader,
+    portfolioComparisonMode,
     portfolioComparisonPeriod,
     portfolioComparisonSeries,
     portfolioComparisonSpread,
@@ -1900,33 +1931,59 @@ function renderCapitalReferenceSection(
               <div>
                 <CardTitle>Comparativa por cuenta</CardTitle>
                 <CardDescription>
-                  Rendimiento real normalizado desde el tramo común disponible por cuenta.
+                  {portfolioComparisonDescription}
                 </CardDescription>
               </div>
               <div className="grid gap-2 lg:justify-items-end">
-                <ToggleGroup
-                  aria-label="Temporalidad de comparativa por cuenta"
-                  onValueChange={(value) => {
-                    const nextValue = value[0] as PortfolioPeriodOption | undefined;
+                <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
+                  <ToggleGroup
+                    aria-label="Temporalidad de comparativa por cuenta"
+                    onValueChange={(value) => {
+                      const nextValue = value[0] as PortfolioPeriodOption | undefined;
 
-                    if (nextValue) {
-                      dispatchPortfolioUi({
-                        type: "setComparisonPeriod",
-                        comparisonPeriod: nextValue,
-                      });
-                    }
-                  }}
-                  size="sm"
-                  spacing={1}
-                  value={[portfolioComparisonPeriod]}
-                  variant="outline"
-                >
-                  {PORTFOLIO_PERIOD_OPTIONS.map((period) => (
-                    <ToggleGroupItem className="h-11 min-w-11 sm:h-8 sm:min-w-10" key={period} value={period}>
-                      {period}
+                      if (nextValue) {
+                        dispatchPortfolioUi({
+                          type: "setComparisonPeriod",
+                          comparisonPeriod: nextValue,
+                        });
+                      }
+                    }}
+                    size="sm"
+                    spacing={1}
+                    value={[portfolioComparisonPeriod]}
+                    variant="outline"
+                  >
+                    {PORTFOLIO_PERIOD_OPTIONS.map((period) => (
+                      <ToggleGroupItem className="h-11 min-w-11 sm:h-8 sm:min-w-10" key={period} value={period}>
+                        {period}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
+                  <ToggleGroup
+                    aria-label="Modo de comparativa por cuenta"
+                    onValueChange={(value) => {
+                      const nextValue = value[0] as PortfolioComparisonMode | undefined;
+
+                      if (nextValue) {
+                        dispatchPortfolioUi({
+                          type: "setComparisonMode",
+                          comparisonMode: nextValue,
+                        });
+                      }
+                    }}
+                    size="sm"
+                    spacing={1}
+                    value={[portfolioComparisonMode]}
+                    variant="outline"
+                  >
+                    <ToggleGroupItem className="h-11 min-w-[76px] sm:h-8" value="start">
+                      Inicio
                     </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
+                    <ToggleGroupItem className="h-11 min-w-[76px] sm:h-8" value="common">
+                      Común
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
                 <div className="rounded-lg border border-border/60 bg-background/35 px-3 py-2 text-right">
                   <p className="text-xs text-muted-foreground">Unidad</p>
                   <p className="mt-1 font-mono text-sm font-medium text-foreground">% retorno</p>

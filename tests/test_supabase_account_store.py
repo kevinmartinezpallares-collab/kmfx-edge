@@ -374,6 +374,11 @@ class SupabaseAccountStoreTests(unittest.TestCase):
         self.assertEqual("t-1", payload["trades"][0]["trade_id"])
         self.assertEqual(1010, payload["history"][0]["value"])
 
+        equity_get = next(
+            call for call in store.table_calls if call["table"] == "mt5_equity_points" and call["method"] == "GET"
+        )
+        self.assertEqual("2000", equity_get["query"]["limit"])
+
     def test_projected_summary_preserves_report_metrics(self):
         record = _projected_account_record(
             {
