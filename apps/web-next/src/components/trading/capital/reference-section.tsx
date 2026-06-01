@@ -259,6 +259,45 @@ function getAccountPeriodCurve(
   return [];
 }
 
+function getLivelineValueAt(points: LivelinePoint[], time: number) {
+  const first = points[0];
+  const last = points.at(-1);
+
+  if (!first || !last) return 0;
+  if (time <= first.time) return first.value;
+  if (time >= last.time) return last.value;
+
+  const rightIndex = points.findIndex((point) => point.time >= time);
+  const right = points[rightIndex];
+  const left = points[Math.max(0, rightIndex - 1)];
+
+  if (!left || !right) return last.value;
+  if (right.time === left.time) return right.value;
+
+  const ratio = (time - left.time) / (right.time - left.time);
+
+  return left.value + (right.value - left.value) * ratio;
+}
+
+function getCommonPeriodReturnCurve(
+  points: LivelinePoint[],
+  commonStartSecs: number,
+): LivelinePoint[] {
+  const startValue = getLivelineValueAt(points, commonStartSecs);
+  if (startValue <= 0) return [];
+
+  const visible = points.filter((point) => point.time > commonStartSecs);
+  const rebased = [
+    { time: commonStartSecs, value: 0 },
+    ...visible.map((point) => ({
+      time: point.time,
+      value: Number((((point.value - startValue) / startValue) * 100).toFixed(3)),
+    })),
+  ];
+
+  return normalizeLivelinePoints(rebased, 60);
+}
+
 function toStaticLivelineTimeline<T extends { time: number; value: number }>(
   data: T[],
   {
@@ -802,28 +841,32 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
   const portfolioChartLatest =
     portfolioLivelineSource.at(-1)?.value ??
     (portfolioDisplayMode === "capital" ? totalEquity : portfolioReturnPct);
-  const portfolioComparisonSeries = allocationRows
+  const portfolioComparisonSources = allocationRows
     .slice(0, 4)
-    .flatMap<LivelineSeries>((row, index) => {
-      const accountCurve = getAccountPeriodCurve(row.account, comparisonPeriodStartMs);
-      const accountBase = accountCurve[0]?.value ?? 0;
-      const data =
-        accountBase > 0
-          ? accountCurve.map((point) => ({
-              time: point.time,
-              value: Number((((point.value - accountBase) / accountBase) * 100).toFixed(3)),
-            }))
-          : [];
-
+    .map((row, index) => ({
+      account: row.account,
+      data: getAccountPeriodCurve(row.account, comparisonPeriodStartMs),
+      index,
+    }))
+    .filter((series) => series.data.length >= 2);
+  const portfolioComparisonCommonStart =
+    portfolioComparisonSources.length >= 2
+      ? Math.max(...portfolioComparisonSources.map((series) => series.data[0]?.time ?? 0))
+      : 0;
+  const portfolioComparisonSeries = portfolioComparisonSources
+    .flatMap<LivelineSeries>((source) => {
+      const data = portfolioComparisonCommonStart
+        ? getCommonPeriodReturnCurve(source.data, portfolioComparisonCommonStart)
+        : [];
       const visualData = prepareLivelineVisualCurve(data, {
         maxPoints: 64,
         minPoints: 28,
         minStepSecs: 1_800,
       });
       const series = {
-        id: row.account.id,
-        label: row.account.label,
-        color: PORTFOLIO_SERIES_COLORS[index % PORTFOLIO_SERIES_COLORS.length],
+        id: source.account.id,
+        label: source.account.label,
+        color: PORTFOLIO_SERIES_COLORS[source.index % PORTFOLIO_SERIES_COLORS.length],
         data: visualData,
         value: data.at(-1)?.value ?? 0,
       };
@@ -1845,7 +1888,7 @@ function renderCapitalReferenceSection(
               <div>
                 <CardTitle>Comparativa por cuenta</CardTitle>
                 <CardDescription>
-                  Rendimiento real normalizado desde el histórico de equity disponible por cuenta.
+                  Rendimiento real normalizado desde el tramo común disponible por cuenta.
                 </CardDescription>
               </div>
               <div className="grid gap-2 lg:justify-items-end">
