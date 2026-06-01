@@ -863,12 +863,23 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     (portfolioDisplayMode === "capital" ? totalEquity : portfolioReturnPct);
   const portfolioComparisonSources = allocationRows
     .slice(0, 4)
-    .map((row, index) => ({
-      account: row.account,
-      data: getAccountPeriodCurve(row.account, comparisonPeriodStartMs),
-      index,
-    }))
-    .filter((series) => series.data.length >= 2);
+    .reduce<Array<{
+      account: (typeof allocationRows)[number]["account"];
+      data: ReturnType<typeof getAccountPeriodCurve>;
+      index: number;
+    }>>((series, row, index) => {
+      const data = getAccountPeriodCurve(row.account, comparisonPeriodStartMs);
+
+      if (data.length >= 2) {
+        series.push({
+          account: row.account,
+          data,
+          index,
+        });
+      }
+
+      return series;
+    }, []);
   const portfolioComparisonCommonStart =
     portfolioComparisonMode === "common" && portfolioComparisonSources.length >= 2
       ? Math.max(...portfolioComparisonSources.map((series) => series.data[0]?.time ?? 0))
@@ -1680,10 +1691,9 @@ function renderCapitalReferenceSection(
                           {item.value}
                         </span>
                       </div>
-                      <div
+                      <figure
                         aria-label={`${item.label}: ${item.value}`}
-                        className="mt-3"
-                        role="img"
+                        className="m-0 mt-3"
                       >
                         <div className="relative h-1.5 overflow-hidden rounded-full bg-muted">
                           <div
@@ -1703,7 +1713,7 @@ function renderCapitalReferenceSection(
                             />
                           ) : null}
                         </div>
-                      </div>
+                      </figure>
                       <p className="mt-2 truncate text-xs text-muted-foreground">{item.note}</p>
                     </div>
                   ))}

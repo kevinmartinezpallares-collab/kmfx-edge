@@ -334,6 +334,7 @@ describe("createWorkspaceFromLiveSnapshot", () => {
     expect(workspace.trades).toHaveLength(2);
     expect(countClosedTradeExecutions(workspace.trades)).toBe(3);
     expect(workspace.analytics.daily[0]?.trades).toBe(3);
+    expect(workspace.analytics.performance.totalTrades).toBe(3);
     expect(workspace.dashboard.pulseItems).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ label: "Trades cerrados", value: "3" }),

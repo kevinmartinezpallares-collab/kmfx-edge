@@ -1,0 +1,21 @@
+# Reduce Vercel upload/build time and avoid deploying large local artifacts.
+*.log
+*.pyc
+__pycache__/
+
+# Local/dev tooling
+.agents/
+.claude/
+.codex-previews/
+.playwright-cli/
+.venv/
+.venv-*/
+.wrangler/
+
+# Not needed for hosting the dashboard
+output/
+previews/
+tests/
+
+# Large archive not needed on Vercel
+files.zip

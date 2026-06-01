@@ -101,6 +101,33 @@ function formatOperationCount(count: number) {
   return `${count} ${count === 1 ? "operación" : "operaciones"}`;
 }
 
+function buildTradeDistributionPerformance(trades: WorkspaceState["trades"]) {
+  const netPnls = trades.flatMap((trade) =>
+    trade.executions.length
+      ? trade.executions.map((execution) => execution.netPnl)
+      : [trade.netPnl],
+  );
+  const totalTrades = netPnls.length;
+  const winCount = netPnls.filter((netPnl) => netPnl >= 0).length;
+  const lossCount = netPnls.filter((netPnl) => netPnl < 0).length;
+  const grossProfit = netPnls
+    .filter((netPnl) => netPnl > 0)
+    .reduce((sum, netPnl) => sum + netPnl, 0);
+  const grossLoss = Math.abs(
+    netPnls.filter((netPnl) => netPnl < 0).reduce((sum, netPnl) => sum + netPnl, 0),
+  );
+  const netProfit = netPnls.reduce((sum, netPnl) => sum + netPnl, 0);
+
+  return {
+    expectancy: totalTrades > 0 ? netProfit / totalTrades : 0,
+    lossCount,
+    profitFactor: grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? grossProfit : 0,
+    totalTrades,
+    winCount,
+    winRatePct: totalTrades > 0 ? (winCount / totalTrades) * 100 : 0,
+  };
+}
+
 const insightChartColors = {
   neutralStrong: "var(--chart-1)",
   neutral: "var(--chart-2)",
@@ -1970,13 +1997,13 @@ export function AnalyticsOverviewSection({
 }: {
   workspace: WorkspaceState;
 }) {
-  const performance = workspace.analytics.performance;
   const insights = buildInsightAttribution(workspace);
   const actionFindings = buildInsightActionFindings(workspace);
   const analyticsReadiness = getAnalyticsReadiness(workspace);
   const dailyOverview = getAnalyticsDailyOverview(workspace);
   const hourlyOverview = getAnalyticsHourlyOverview(workspace);
   const trades = workspace.trades;
+  const tradeDistributionPerformance = buildTradeDistributionPerformance(trades);
   const bestSession = insights.sessionRows.find((session) => session.pnl > 0) ?? null;
   const worstSession =
     [...insights.sessionRows]
@@ -2042,8 +2069,8 @@ export function AnalyticsOverviewSection({
     ? `${String(bestWindow.start).padStart(2, "0")}:00-${String(bestWindow.end).padStart(2, "0")}:00`
     : "Sin ventana";
   const distributionTitle =
-    performance.expectancy >= 0
-      ? performance.profitFactor >= 1.4
+    tradeDistributionPerformance.expectancy >= 0
+      ? tradeDistributionPerformance.profitFactor >= 1.4
         ? "Edge positivo"
         : "Edge positivo estrecho"
       : "Edge bajo presión";
@@ -2078,9 +2105,9 @@ export function AnalyticsOverviewSection({
     {
       label: "Distribución",
       value: distributionTitle,
-      meta: `PF ${performance.profitFactor.toFixed(2)}`,
-      secondary: `Expectativa ${formatSignedCurrency(performance.expectancy)}`,
-      tone: performance.expectancy >= 0 ? "positive" : "negative",
+      meta: `PF ${tradeDistributionPerformance.profitFactor.toFixed(2)}`,
+      secondary: `Expectativa ${formatSignedCurrency(tradeDistributionPerformance.expectancy)}`,
+      tone: tradeDistributionPerformance.expectancy >= 0 ? "positive" : "negative",
     },
   ] as const;
 
@@ -2093,7 +2120,7 @@ export function AnalyticsOverviewSection({
           </p>
           <p className="text-xs text-muted-foreground">
             {readableSampleLabel(analyticsReadiness.sampleLabel)} /{" "}
-            {formatOperationCount(performance.totalTrades)} cerradas
+            {formatOperationCount(tradeDistributionPerformance.totalTrades)} cerradas
           </p>
         </section>
 
@@ -2121,12 +2148,12 @@ export function AnalyticsOverviewSection({
             <SymbolPerformanceCard rows={symbolRows} />
             <WinLossDistributionCard
               distributionTitle={distributionTitle}
-              expectancy={performance.expectancy}
-              lossCount={performance.lossCount}
-              profitFactor={performance.profitFactor}
-              totalTrades={performance.totalTrades}
-              winCount={performance.winCount}
-              winRatePct={performance.winRatePct}
+              expectancy={tradeDistributionPerformance.expectancy}
+              lossCount={tradeDistributionPerformance.lossCount}
+              profitFactor={tradeDistributionPerformance.profitFactor}
+              totalTrades={tradeDistributionPerformance.totalTrades}
+              winCount={tradeDistributionPerformance.winCount}
+              winRatePct={tradeDistributionPerformance.winRatePct}
             />
           </div>
         </div>

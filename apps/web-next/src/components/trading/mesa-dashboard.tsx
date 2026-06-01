@@ -25,11 +25,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { TradingAccount } from "@/lib/contracts/account";
+import type {
+  EconomicCalendarEvent,
+  EconomicImpact,
+} from "@/lib/contracts/economic-calendar";
 import type { WorkspaceState } from "@/lib/contracts/workspace-state";
+import { macroCalendarConfig } from "@/lib/config/macro-calendar";
 import {
   economicImpactLabel,
   getEconomicCalendarOverview,
-  type EconomicImpact,
 } from "@/lib/domain/economic-calendar-selectors";
 import {
   buildDashboardAttentionItems,
@@ -37,7 +41,6 @@ import {
   buildDashboardSessionRows,
   buildDashboardSymbolRows,
   resolveAccountMode,
-  riskStatusLabel,
   sessionLabel,
 } from "@/lib/domain/dashboard-selectors";
 import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
@@ -65,6 +68,14 @@ const PANEL_EQUITY_WINDOWS = [
   { label: "30D", secs: 2_592_000 },
   { label: "90D", secs: 7_776_000 },
 ] as const;
+const CALENDAR_REFRESH_MS = 60_000;
+const RECENT_RELEASE_WINDOW_MS = 2 * 60 * 60_000;
+const EVENT_DATE_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  day: "numeric",
+  month: "short",
+  timeZone: "Europe/Madrid",
+  weekday: "short",
+});
 type EquityChartPoint = {
   label: string;
   equity: number;
@@ -77,6 +88,117 @@ type MetricDelta = {
   label: string;
   tone?: "positive" | "negative" | "neutral";
 };
+type CalendarSourceState = {
+  events: EconomicCalendarEvent[];
+  fetchedAt?: string;
+  provider?: string;
+  reason?: string;
+  sourceUrl?: string;
+  status: "loading" | "ready" | "error";
+};
+
+type EconomicCalendarApiResponse = {
+  events?: EconomicCalendarEvent[];
+  fetchedAt?: string;
+  ok?: boolean;
+  provider?: string;
+  reason?: string;
+  sourceUrl?: string;
+};
+
+const disabledCalendarSource: CalendarSourceState = {
+  events: [],
+  provider: "Forex Factory",
+  reason: "macro_calendar_disabled",
+  sourceUrl: macroCalendarConfig.forexFactoryCalendarUrl,
+  status: "ready",
+};
+const loadingCalendarSource: CalendarSourceState = {
+  events: [],
+  status: "loading",
+};
+const calendarSourceListeners = new Set<() => void>();
+let calendarSourceSnapshot: CalendarSourceState = macroCalendarConfig.enabled
+  ? loadingCalendarSource
+  : disabledCalendarSource;
+let calendarSourceController: AbortController | null = null;
+let calendarSourceInterval: number | null = null;
+
+function notifyCalendarSourceListeners() {
+  for (const listener of calendarSourceListeners) listener();
+}
+
+function updateCalendarSourceSnapshot(snapshot: CalendarSourceState) {
+  calendarSourceSnapshot = snapshot;
+  notifyCalendarSourceListeners();
+}
+
+async function loadEconomicCalendarSource() {
+  if (!macroCalendarConfig.enabled) return;
+
+  calendarSourceController?.abort();
+  const controller = new AbortController();
+  calendarSourceController = controller;
+
+  try {
+    const response = await fetch("/api/kmfx/economic-calendar", {
+      signal: controller.signal,
+    });
+    const payload = (await response.json()) as EconomicCalendarApiResponse;
+
+    if (!response.ok || payload.ok === false) {
+      throw new Error(payload.reason ?? "calendar_source_error");
+    }
+
+    updateCalendarSourceSnapshot({
+      events: Array.isArray(payload.events) ? payload.events : [],
+      fetchedAt: payload.fetchedAt,
+      provider: payload.provider ?? "Forex Factory",
+      sourceUrl: payload.sourceUrl,
+      status: "ready",
+    });
+  } catch (error) {
+    if (controller.signal.aborted) return;
+
+    updateCalendarSourceSnapshot({
+      events: [],
+      provider: "Forex Factory",
+      reason: error instanceof Error ? error.message : "calendar_source_error",
+      sourceUrl: macroCalendarConfig.forexFactoryCalendarUrl,
+      status: "error",
+    });
+  }
+}
+
+function subscribeEconomicCalendarSource(onStoreChange: () => void) {
+  calendarSourceListeners.add(onStoreChange);
+
+  if (macroCalendarConfig.enabled && calendarSourceListeners.size === 1) {
+    void loadEconomicCalendarSource();
+    calendarSourceInterval = window.setInterval(() => {
+      void loadEconomicCalendarSource();
+    }, CALENDAR_REFRESH_MS);
+  }
+
+  return () => {
+    calendarSourceListeners.delete(onStoreChange);
+
+    if (calendarSourceListeners.size === 0) {
+      if (calendarSourceInterval) window.clearInterval(calendarSourceInterval);
+      calendarSourceInterval = null;
+      calendarSourceController?.abort();
+      calendarSourceController = null;
+    }
+  };
+}
+
+function getEconomicCalendarSourceSnapshot() {
+  return calendarSourceSnapshot;
+}
+
+function getEconomicCalendarServerSnapshot() {
+  return macroCalendarConfig.enabled ? loadingCalendarSource : disabledCalendarSource;
+}
 
 function subscribeThemeClass(onStoreChange: () => void) {
   if (typeof window === "undefined") return () => {};
@@ -126,6 +248,14 @@ function usePanelChartTheme() {
     loss: donutNeutrals.loss,
     breakeven: donutNeutrals.breakeven,
   };
+}
+
+function useEconomicCalendarSource(): CalendarSourceState {
+  return React.useSyncExternalStore(
+    subscribeEconomicCalendarSource,
+    getEconomicCalendarSourceSnapshot,
+    getEconomicCalendarServerSnapshot,
+  );
 }
 
 function makeInitialSeries(base: number, seed: number, count = 120) {
@@ -683,12 +813,63 @@ function SummaryHeroCard({
   );
 }
 
-function impactToneClass(impact: EconomicImpact) {
-  return cn(
-    impact === "alto" && "text-risk",
-    impact === "medio" && "text-info",
-    impact === "bajo" && "text-muted-foreground",
+function clampPct(value: number) {
+  return Math.max(0, Math.min(100, value));
+}
+
+function buildOperationalScore(
+  workspace: WorkspaceState,
+  activeAccount: TradingAccount | undefined,
+) {
+  const equity = Math.max(activeAccount?.equity ?? activeAccount?.balance ?? 0, 1);
+  const sortedTrades = workspace.trades.toSorted(
+    (a, b) => new Date(b.closedAt).getTime() - new Date(a.closedAt).getTime(),
   );
+  const recentPnl = sortedTrades
+    .slice(0, 5)
+    .reduce((sum, trade) => sum + trade.netPnl, 0);
+  const syncPenalty =
+    activeAccount?.connectionState === "connected"
+      ? 0
+      : activeAccount?.connectionState === "syncing"
+        ? 6
+        : activeAccount?.connectionState === "stale"
+          ? 20
+          : 14;
+  const dailyDrawdownPenalty = Math.min(18, workspace.risk.dailyDrawdownPct * 8);
+  const maxDrawdownPenalty = Math.min(18, workspace.risk.maxDrawdownPct * 2);
+  const openRiskPenalty = Math.min(14, workspace.risk.totalOpenRiskPct * 7);
+  const recentLossPenalty = Math.min(12, (Math.abs(Math.min(0, recentPnl)) / equity) * 100 * 24);
+  const score = Math.round(
+    clampPct(
+      100 -
+        syncPenalty -
+        dailyDrawdownPenalty -
+        maxDrawdownPenalty -
+        openRiskPenalty -
+        recentLossPenalty,
+    ),
+  );
+  const label =
+    score >= 80
+      ? "Operable"
+      : score >= 60
+        ? "Vigilar"
+        : "Revisar";
+  const helper =
+    score >= 80
+      ? "Cuenta operable con baja presión actual."
+      : score >= 60
+        ? "Operable, pero conviene revisar presión y contexto."
+        : "Revisa datos, DD o contexto antes de aumentar riesgo.";
+  const toneClass =
+    score >= 80
+      ? "text-muted-foreground"
+      : score >= 60
+        ? "text-risk"
+        : "text-loss";
+
+  return { helper, label, score, toneClass };
 }
 
 function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
@@ -698,8 +879,7 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
   const activeAccount =
     workspace.accounts.find((account) => account.id === workspace.activeAccountId) ??
     workspace.accounts[0];
-  const currency = activeAccount?.baseCurrency ?? "USD";
-  const accountEquity = activeAccount?.equity ?? activeAccount?.balance ?? 0;
+  const operationalScore = buildOperationalScore(workspace, activeAccount);
   const dailyUsage =
     workspace.risk.dailyLimitPct > 0
       ? Math.min(100, (workspace.risk.dailyDrawdownPct / workspace.risk.dailyLimitPct) * 100)
@@ -708,31 +888,9 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
     workspace.risk.heatLimitPct > 0
       ? Math.min(100, (workspace.risk.totalOpenRiskPct / workspace.risk.heatLimitPct) * 100)
       : 0;
-  const dailyRemainingPct =
-    workspace.risk.dailyLimitPct > 0
-      ? Math.max(
-          0,
-          Math.min(
-            100,
-            ((workspace.risk.dailyLimitPct - workspace.risk.dailyDrawdownPct) /
-              workspace.risk.dailyLimitPct) *
-              100,
-          ),
-        )
-      : 100;
-  const dailyRoom = Math.max(
-    0,
-    workspace.risk.dailyLimitPct - workspace.risk.dailyDrawdownPct,
-  );
-  const dailyRoomCurrency = accountEquity * (dailyRoom / 100);
   const dominantExposure = [...workspace.risk.exposureBySymbol].toSorted(
     (a, b) => b.openRiskPct - a.openRiskPct,
   )[0];
-  const statusTone = cn(
-    workspace.risk.status === "blocked" && "text-loss",
-    workspace.risk.status === "caution" && "text-risk",
-    workspace.risk.status === "safe" && "text-muted-foreground",
-  );
 
   return (
     <Card className="h-full border-border/70 bg-card/70 shadow-none">
@@ -740,10 +898,10 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <CardTitle>Estado operativo</CardTitle>
-            <CardDescription>Margen, riesgo abierto y siguiente acción.</CardDescription>
+            <CardDescription>Datos, presión de riesgo y contexto antes de operar.</CardDescription>
           </div>
-          <span className={cn("text-xs font-medium", statusTone)}>
-            {riskStatusLabel(workspace.risk.status)}
+          <span className={cn("text-xs font-medium", operationalScore.toneClass)}>
+            {operationalScore.label}
           </span>
         </div>
       </CardHeader>
@@ -751,8 +909,8 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
         <div className="grid justify-items-center gap-2">
           <Gauge
             className="mx-auto w-full max-w-[380px]"
-            value={dailyRemainingPct}
-            centerValue={dailyRoomCurrency}
+            value={operationalScore.score}
+            centerValue={operationalScore.score}
             totalNotches={25}
             spacing={20}
             notchCornerRadius={12}
@@ -765,11 +923,11 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
             inactiveFill="var(--chart-background)"
             inactiveFillOpacity={1}
             activeFillOpacity={1}
-            defaultLabel="Margen estimado"
+            defaultLabel="Score operativo"
             formatOptions={{
               maximumFractionDigits: 0,
             }}
-            suffix={` ${currency === "USD" ? "US$" : currency}`}
+            suffix="%"
             valueClassName="whitespace-nowrap text-2xl font-semibold leading-none tracking-tight"
             labelClassName="text-xs"
             minWidth={0}
@@ -777,7 +935,7 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
             enterStaggerScale={1}
           />
           <p className="max-w-64 text-center text-xs leading-relaxed text-muted-foreground">
-            Estimación según la referencia de riesgo disponible.
+            {operationalScore.helper}
           </p>
         </div>
 
@@ -843,21 +1001,88 @@ function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
   );
 }
 
+function impactToneClass(impact: EconomicImpact) {
+  return cn(
+    impact === "alto" && "text-risk",
+    impact === "medio" && "text-muted-foreground",
+    impact === "bajo" && "text-muted-foreground",
+  );
+}
+
+function impactDotClass(impact: EconomicImpact) {
+  return cn(
+    "inline-block size-2 rounded-full",
+    impact === "alto" && "bg-loss shadow-[0_0_0_3px_color-mix(in_oklab,var(--loss)_18%,transparent)]",
+    impact === "medio" && "bg-risk/80",
+    impact === "bajo" && "bg-muted-foreground/40",
+  );
+}
+
+function formatEventDate(event: EconomicCalendarEvent) {
+  const scheduledTime = Date.parse(event.scheduledAt);
+
+  if (Number.isNaN(scheduledTime)) return "Fecha pendiente";
+
+  return EVENT_DATE_FORMATTER.format(new Date(scheduledTime)).replace(",", "");
+}
+
+function eventCountryLabel(event: EconomicCalendarEvent) {
+  return event.country ?? event.currency;
+}
+
+function eventSymbolsForWorkspace(
+  event: EconomicCalendarEvent,
+  activeSymbols: string[],
+) {
+  const visibleSymbols = event.affectedSymbols.filter((symbol) =>
+    activeSymbols.includes(symbol),
+  );
+
+  return visibleSymbols.length > 0
+    ? visibleSymbols.join(" / ")
+    : event.affectedSymbols.slice(0, 4).join(" / ");
+}
+
+function isUpcomingEvent(event: EconomicCalendarEvent) {
+  const time = Date.parse(event.scheduledAt);
+
+  return !Number.isNaN(time) && time >= Date.now() - RECENT_RELEASE_WINDOW_MS;
+}
+
+function sortEventsByTime(a: EconomicCalendarEvent, b: EconomicCalendarEvent) {
+  return Date.parse(a.scheduledAt) - Date.parse(b.scheduledAt);
+}
+
 function NewsRiskCard({
   workspace,
+  calendarSource,
   className,
 }: {
+  calendarSource: CalendarSourceState;
   workspace: WorkspaceState;
   className?: string;
 }) {
-  const overview = getEconomicCalendarOverview(workspace);
-  const nextEvent =
-    overview.rows.find((event) => event.impact === "alto") ?? overview.rows[0];
-  const affectedSymbols = nextEvent?.affected.join(" / ") ?? "Sin símbolos";
-  const nextWindows = overview.rows
-    .filter((event) => event.event !== nextEvent?.event)
-    .slice(0, 2);
-  const impactLabel = nextEvent ? economicImpactLabel(nextEvent.impact) : null;
+  const overview = getEconomicCalendarOverview(workspace, calendarSource.events);
+  const watchedSymbols = overview.activeSymbols.join(" / ");
+  const relevantEvents = calendarSource.events
+    .filter((event) => event.impact !== "bajo" && isUpcomingEvent(event))
+    .toSorted(sortEventsByTime);
+  const nextEvent = relevantEvents[0];
+  const nextWindows = relevantEvents.slice(1, 3);
+  const hasLiveEvents = calendarSource.status === "ready" && Boolean(nextEvent);
+  const releaseValues = nextEvent
+    ? [
+        { label: "Real", value: nextEvent.actual ?? "Pendiente" },
+        { label: "Forecast", value: nextEvent.forecast ?? "Sin dato" },
+        { label: "Anterior", value: nextEvent.previous ?? "Sin dato" },
+      ]
+    : [];
+  const statusLabel =
+    calendarSource.status === "loading"
+      ? "Validando fuente"
+      : hasLiveEvents
+        ? calendarSource.provider ?? "Forex Factory"
+        : "Sin eventos activos";
 
   return (
     <Card className={cn("h-full border-border/70 bg-card/70 shadow-none", className)}>
@@ -865,33 +1090,40 @@ function NewsRiskCard({
         <div className="flex items-start justify-between gap-4">
           <div>
             <CardTitle>Noticias</CardTitle>
-            <CardDescription>Eventos macro que pueden afectar la operativa.</CardDescription>
+            <CardDescription>Eventos macro verificados antes de subir riesgo.</CardDescription>
           </div>
-          {nextEvent ? (
-            <p className={cn("shrink-0 text-xs font-medium", impactToneClass(nextEvent.impact))}>
-              {impactLabel}
-            </p>
-          ) : null}
+          <p className="shrink-0 text-xs font-medium text-muted-foreground">{statusLabel}</p>
         </div>
       </CardHeader>
       <CardContent className="flex h-full flex-col gap-5">
-        {nextEvent ? (
+        {hasLiveEvents ? (
           <div className="grid gap-5">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">Próxima ventana</p>
+                <p
+                  className={cn(
+                    "inline-flex items-center gap-2 text-xs font-medium",
+                    impactToneClass(nextEvent.impact),
+                  )}
+                >
+                  <span className={impactDotClass(nextEvent.impact)} aria-hidden="true" />
+                  {economicImpactLabel(nextEvent.impact)}
+                </p>
                 <p className="mt-2 truncate text-lg font-semibold leading-none text-foreground">
-                  {nextEvent.event}
+                  {nextEvent.title}
                 </p>
                 <p className="mt-3 text-xs text-muted-foreground">
-                  {nextEvent.currency} / {nextEvent.window}
+                  {eventCountryLabel(nextEvent)} / {nextEvent.currency} / {formatEventDate(nextEvent)}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Ventana: {nextEvent.protectionWindowLabel}
                 </p>
               </div>
               <div className="text-right">
                 <p className="font-mono text-2xl font-semibold leading-none text-foreground">
-                  {nextEvent.time}
+                  {nextEvent.timeLabel}
                 </p>
-                <p className="mt-2 text-xs text-muted-foreground">{nextEvent.currency}</p>
+                <p className="mt-2 text-xs text-muted-foreground">Hora local</p>
               </div>
             </div>
 
@@ -899,19 +1131,62 @@ function NewsRiskCard({
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">Símbolos expuestos</p>
                 <p className="mt-1 truncate text-sm font-medium text-foreground">
-                  {affectedSymbols}
+                  {eventSymbolsForWorkspace(nextEvent, overview.activeSymbols)}
                 </p>
               </div>
               <div className="min-w-0 sm:text-right">
                 <p className="text-xs text-muted-foreground">Lectura</p>
                 <p className="mt-1 text-sm font-medium text-foreground">
-                  Revisar antes de subir riesgo
+                  {nextEvent.suggestedAction}
+                </p>
+              </div>
+            </div>
+
+            {releaseValues.some((item) => item.value !== "Sin dato") ? (
+              <div className="grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-3">
+                {releaseValues.map((item, index) => (
+                  <div
+                    className={cn(index > 0 && "sm:text-right")}
+                    key={item.label}
+                  >
+                    <p className="text-xs text-muted-foreground">{item.label}</p>
+                    <p className="mt-1 font-mono text-sm font-semibold text-foreground">
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="grid gap-5">
+            <div className="grid gap-2">
+              <p className="text-sm font-medium text-foreground">
+                {calendarSource.status === "loading"
+                  ? "Consultando calendario económico."
+                  : "No hay eventos macro verificados para mostrar."}
+              </p>
+              <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                El Panel solo enseña noticias cuando la exportación semanal de Forex
+                Factory responde con datos válidos. Si no hay fuente, no inventa eventos.
+              </p>
+            </div>
+
+            <div className="grid gap-4 border-t border-border/60 pt-4 sm:grid-cols-2">
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">Símbolos a revisar</p>
+                <p className="mt-1 truncate text-sm font-medium text-foreground">
+                  {watchedSymbols}
+                </p>
+              </div>
+              <div className="min-w-0 sm:text-right">
+                <p className="text-xs text-muted-foreground">Lectura</p>
+                <p className="mt-1 text-sm font-medium text-foreground">
+                  Consultar fuente externa antes de subir riesgo
                 </p>
               </div>
             </div>
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Sin noticias relevantes visibles.</p>
         )}
 
         {nextWindows.length > 0 ? (
@@ -919,18 +1194,27 @@ function NewsRiskCard({
             {nextWindows.map((event) => (
               <div
                 className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-border/60 py-3 last:border-b-0"
-                key={`${event.event}-${event.currency}-${event.time}`}
+                key={event.id}
               >
                 <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">
+                  <p
+                    className={cn(
+                      "inline-flex items-center gap-2 text-xs font-medium",
+                      impactToneClass(event.impact),
+                    )}
+                  >
+                    <span className={impactDotClass(event.impact)} aria-hidden="true" />
                     {economicImpactLabel(event.impact)}
                   </p>
                   <p className="mt-1 truncate text-sm font-medium text-foreground">
-                    {event.event}
+                    {event.title}
+                  </p>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">
+                    {eventCountryLabel(event)} / {formatEventDate(event)}
                   </p>
                 </div>
                 <p className="font-mono text-xs text-muted-foreground">
-                  {event.currency} / {event.time}
+                  {event.currency} / {event.timeLabel}
                 </p>
               </div>
             ))}
@@ -938,12 +1222,19 @@ function NewsRiskCard({
         ) : null}
 
         <Button
-          render={<Link href="/market/economic-calendar" />}
+          render={
+            <a
+              aria-label="Consultar calendario de Forex Factory"
+              href={calendarSource.sourceUrl ?? macroCalendarConfig.forexFactoryCalendarUrl}
+              rel="noreferrer"
+              target="_blank"
+            />
+          }
           nativeButton={false}
           variant="outline"
           className="mt-auto justify-between"
         >
-          Ver calendario macro
+          Consultar Forex Factory
           <ChevronRight data-icon="inline-end" />
         </Button>
       </CardContent>
@@ -1335,7 +1626,13 @@ function buildPanelMetricDeltas(
   };
 }
 
-function OverviewSection({ workspace }: { workspace: WorkspaceState }) {
+function OverviewSection({
+  calendarSource,
+  workspace,
+}: {
+  calendarSource: CalendarSourceState;
+  workspace: WorkspaceState;
+}) {
   const activeAccount =
     workspace.accounts.find((account) => account.id === workspace.activeAccountId) ??
     workspace.accounts[0];
@@ -1409,7 +1706,7 @@ function OverviewSection({ workspace }: { workspace: WorkspaceState }) {
         <div className="grid min-w-0 gap-4 xl:h-full xl:grid-rows-[auto_auto_minmax(0,1fr)]">
           <EquityCurveCard workspace={workspace} activeAccount={activeAccount} />
           <RecentTradesCard workspace={workspace} className="h-full" />
-          <NewsRiskCard workspace={workspace} />
+          <NewsRiskCard calendarSource={calendarSource} workspace={workspace} />
         </div>
         <div className="grid min-w-0 content-start gap-4">
           <DecisionControlCard workspace={workspace} />
@@ -1421,5 +1718,7 @@ function OverviewSection({ workspace }: { workspace: WorkspaceState }) {
 }
 
 export function MesaDashboard({ workspace }: { workspace: WorkspaceState }) {
-  return <OverviewSection workspace={workspace} />;
+  const calendarSource = useEconomicCalendarSource();
+
+  return <OverviewSection calendarSource={calendarSource} workspace={workspace} />;
 }

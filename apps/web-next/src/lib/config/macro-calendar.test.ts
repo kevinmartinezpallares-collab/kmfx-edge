@@ -10,14 +10,17 @@ describe("macro calendar config", () => {
     vi.unstubAllEnvs();
   });
 
-  it("defaults to the free TradingView widget and enabled state", async () => {
+  it("defaults to the free Forex Factory export and enabled state", async () => {
     vi.stubEnv("NEXT_PUBLIC_MACRO_CALENDAR_ENABLED", "");
     vi.stubEnv("NEXT_PUBLIC_MACRO_CALENDAR_PROVIDER", "");
 
     const { macroCalendarConfig } = await loadConfig();
 
     expect(macroCalendarConfig.enabled).toBe(true);
-    expect(macroCalendarConfig.provider).toBe("tradingview");
+    expect(macroCalendarConfig.provider).toBe("forexfactory");
+    expect(macroCalendarConfig.forexFactoryWeeklyJsonUrl).toContain(
+      "nfs.faireconomy.media",
+    );
     expect(macroCalendarConfig.tradingViewScriptSrc).toContain("tradingview.com");
   });
 
@@ -31,12 +34,12 @@ describe("macro calendar config", () => {
     expect(macroCalendarConfig.provider).toBe("tradingview");
   });
 
-  it("falls back to TradingView when a provider is unsupported", async () => {
+  it("falls back to Forex Factory when a provider is unsupported", async () => {
     vi.stubEnv("NEXT_PUBLIC_MACRO_CALENDAR_ENABLED", "true");
     vi.stubEnv("NEXT_PUBLIC_MACRO_CALENDAR_PROVIDER", "fxstreet");
 
     const { macroCalendarConfig } = await loadConfig();
 
-    expect(macroCalendarConfig.provider).toBe("tradingview");
+    expect(macroCalendarConfig.provider).toBe("forexfactory");
   });
 });

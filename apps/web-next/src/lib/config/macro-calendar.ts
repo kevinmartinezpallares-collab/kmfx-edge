@@ -1,4 +1,9 @@
-export const macroCalendarProviders = ["tradingview", "investing", "tradays"] as const;
+export const macroCalendarProviders = [
+  "forexfactory",
+  "tradingview",
+  "investing",
+  "tradays",
+] as const;
 
 export type MacroCalendarProvider = (typeof macroCalendarProviders)[number];
 
@@ -9,6 +14,7 @@ function parseEnabled(value: string | undefined) {
 
 function parseProvider(value: string | undefined): MacroCalendarProvider {
   if (
+    value === "forexfactory" ||
     value === "tradingview" ||
     value === "investing" ||
     value === "tradays"
@@ -16,12 +22,15 @@ function parseProvider(value: string | undefined): MacroCalendarProvider {
     return value;
   }
 
-  return "tradingview";
+  return "forexfactory";
 }
 
 export const macroCalendarConfig = {
   enabled: parseEnabled(process.env.NEXT_PUBLIC_MACRO_CALENDAR_ENABLED),
   provider: parseProvider(process.env.NEXT_PUBLIC_MACRO_CALENDAR_PROVIDER),
+  forexFactoryCalendarUrl: "https://www.forexfactory.com/calendar",
+  forexFactoryWeeklyJsonUrl:
+    "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
   tradingViewScriptSrc:
     "https://s3.tradingview.com/external-embedding/embed-widget-events.js",
   tradingViewAttributionUrl:

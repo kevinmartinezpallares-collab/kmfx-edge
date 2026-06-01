@@ -818,6 +818,7 @@ function mapAnalytics(payload: RawLiveDashboardPayload) {
   const reportMetrics = payload.reportMetrics || {};
   const riskSnapshot = payload.riskSnapshot || {};
   const sortino = riskSnapshot.professional_metrics?.risk_adjusted?.sortino_ratio;
+  const performanceSortino = typeof sortino === "number" ? sortino : null;
   const netProfit = toFiniteNumber(reportMetrics.netProfit, toFiniteNumber(payload.closedPnl));
   const totalTrades = Math.max(
     0,
@@ -865,7 +866,7 @@ function mapAnalytics(payload: RawLiveDashboardPayload) {
       winCount,
       lossCount,
       profitFactor,
-      sortino: typeof sortino === "number" ? sortino : null,
+      sortino: performanceSortino,
       expectancy: totalTrades > 0 ? netProfit / totalTrades : 0,
       avgWin: winCount > 0 ? grossProfit / winCount : 0,
       avgLoss: lossCount > 0 ? grossLoss / lossCount : 0,
@@ -879,7 +880,11 @@ function mapAnalytics(payload: RawLiveDashboardPayload) {
         0,
         Math.round(toFiniteNumber(reportMetrics.bestLosingStreak)),
       ),
-      score: 0,
+      score: computePerformanceScore({
+        winRatePct,
+        profitFactor,
+        sortino: performanceSortino,
+      }),
     },
     summary: [
       {
@@ -929,80 +934,6 @@ function computePerformanceScore({
   return Math.round(
     winRateScore * 0.45 + profitFactorScore * 0.35 + sortinoScore * 0.2,
   );
-}
-
-function aggregateAnalytics(accounts: RawLiveSnapshotAccount[]) {
-  const metrics = accounts.map((account) => {
-    const payload = account.dashboard_payload || {};
-    const analytics = mapAnalytics(payload);
-    return analytics.performance;
-  });
-
-  const totalTrades = metrics.reduce((sum, item) => sum + item.totalTrades, 0);
-
-  if (!metrics.length) {
-    return {
-      netProfit: 0,
-      grossProfit: 0,
-      grossLoss: 0,
-      winRatePct: 0,
-      totalTrades: 0,
-      winCount: 0,
-      lossCount: 0,
-      profitFactor: 0,
-      sortino: null,
-      expectancy: 0,
-      avgWin: 0,
-      avgLoss: 0,
-      bestTrade: null,
-      worstTrade: null,
-      bestWinStreak: 0,
-      bestLossStreak: 0,
-      score: 0,
-    };
-  }
-
-  const netProfit = metrics.reduce((sum, item) => sum + item.netProfit, 0);
-  const grossProfit = metrics.reduce((sum, item) => sum + item.grossProfit, 0);
-  const grossLoss = metrics.reduce((sum, item) => sum + item.grossLoss, 0);
-  const totalWins = metrics.reduce((sum, item) => sum + item.winCount, 0);
-  const totalLosses = metrics.reduce((sum, item) => sum + item.lossCount, 0);
-  const sortinoItems = metrics.filter((item) => typeof item.sortino === "number");
-  const avgSortino = sortinoItems.length
-    ? sortinoItems.reduce((sum, item) => sum + (item.sortino ?? 0), 0) / sortinoItems.length
-    : null;
-  const winRatePct = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
-  const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit;
-  const bestTradeValues = metrics
-    .map((item) => item.bestTrade)
-    .filter((item): item is number => typeof item === "number");
-  const worstTradeValues = metrics
-    .map((item) => item.worstTrade)
-    .filter((item): item is number => typeof item === "number");
-
-  return {
-    netProfit,
-    grossProfit,
-    grossLoss,
-    winRatePct,
-    totalTrades,
-    winCount: totalWins,
-    lossCount: totalLosses,
-    profitFactor,
-    sortino: avgSortino,
-    expectancy: totalTrades > 0 ? netProfit / totalTrades : 0,
-    avgWin: totalWins > 0 ? grossProfit / totalWins : 0,
-    avgLoss: totalLosses > 0 ? grossLoss / totalLosses : 0,
-    bestTrade: bestTradeValues.length ? Math.max(...bestTradeValues) : null,
-    worstTrade: worstTradeValues.length ? Math.min(...worstTradeValues) : null,
-    bestWinStreak: Math.max(...metrics.map((item) => item.bestWinStreak)),
-    bestLossStreak: Math.max(...metrics.map((item) => item.bestLossStreak)),
-    score: computePerformanceScore({
-      winRatePct,
-      profitFactor,
-      sortino: avgSortino,
-    }),
-  };
 }
 
 function countFundingAlerts(accounts: RawLiveSnapshotAccount[]) {
@@ -1127,7 +1058,6 @@ export function createWorkspaceFromLiveSnapshot(
   const tradeBuckets = buildTradeBuckets(trades);
   const risk = mapRisk(activePayload);
   const activeAnalytics = mapAnalytics(activePayload);
-  const performance = aggregateAnalytics(rawAccounts);
 
   return {
     activeAccountId: activeAccount.id,
@@ -1145,7 +1075,6 @@ export function createWorkspaceFromLiveSnapshot(
       ...activeAnalytics,
       daily: tradeBuckets.daily,
       hourly: tradeBuckets.hourly,
-      performance,
     },
     meta: {
       sourceMode,

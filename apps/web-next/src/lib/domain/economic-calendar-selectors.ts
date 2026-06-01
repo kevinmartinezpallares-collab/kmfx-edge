@@ -7,6 +7,7 @@ import type { WorkspaceState } from "@/lib/contracts/workspace-state";
 export type { EconomicImpact } from "@/lib/contracts/economic-calendar";
 
 export type EconomicCalendarEventRow = {
+  scheduledAt: string;
   time: string;
   currency: string;
   event: string;
@@ -31,71 +32,9 @@ export type EconomicCalendarOverview = {
   highImpactCount: number;
 };
 
-export const economicCalendarPreviewEvents: EconomicCalendarEvent[] = [
-  {
-    id: "preview-eur-pmi-composite",
-    scheduledAt: "2026-05-19T10:00:00+02:00",
-    timeLabel: "10:00",
-    currency: "EUR",
-    title: "PMI compuesto",
-    impact: "medio",
-    affectedSymbols: ["EURUSD"],
-    suggestedAction: "Vigilar spread y evitar entradas impulsivas",
-    protectionWindowLabel: "10 min antes / 10 min después",
-    source: {
-      provider: "Preview KMFX",
-      status: "not_connected",
-    },
-  },
-  {
-    id: "preview-us-cpi-monthly",
-    scheduledAt: "2026-05-19T14:30:00+02:00",
-    timeLabel: "14:30",
-    currency: "USD",
-    title: "IPC mensual",
-    impact: "alto",
-    affectedSymbols: ["EURUSD", "XAUUSD", "USDCAD"],
-    suggestedAction: "No abrir riesgo nuevo en la ventana crítica",
-    protectionWindowLabel: "30 min antes / 15 min después",
-    source: {
-      provider: "Preview KMFX",
-      status: "not_connected",
-    },
-  },
-  {
-    id: "preview-us-consumer-confidence",
-    scheduledAt: "2026-05-19T16:00:00+02:00",
-    timeLabel: "16:00",
-    currency: "USD",
-    title: "Confianza del consumidor",
-    impact: "medio",
-    affectedSymbols: ["EURUSD", "XAUUSD"],
-    suggestedAction: "Reducir tamaño si ya hay exposición abierta",
-    protectionWindowLabel: "15 min antes / 10 min después",
-    source: {
-      provider: "Preview KMFX",
-      status: "not_connected",
-    },
-  },
-  {
-    id: "preview-us-fomc-minutes",
-    scheduledAt: "2026-05-19T20:00:00+02:00",
-    timeLabel: "20:00",
-    currency: "USD",
-    title: "Actas FOMC",
-    impact: "alto",
-    affectedSymbols: ["USD", "XAUUSD", "Índices"],
-    suggestedAction: "Solo cerrar o reducir posiciones",
-    protectionWindowLabel: "30 min antes / 30 min después",
-    source: {
-      provider: "Preview KMFX",
-      status: "not_connected",
-    },
-  },
-];
-
 function toEconomicCalendarRow(event: EconomicCalendarEvent): EconomicCalendarEventRow {
   return {
+    scheduledAt: event.scheduledAt,
     time: event.timeLabel,
     currency: event.currency,
     event: event.title,
@@ -127,18 +66,19 @@ export function buildEconomicSymbolContext(workspace: WorkspaceState) {
 
 export function getEconomicCalendarOverview(
   workspace: WorkspaceState,
+  events: EconomicCalendarEvent[] = [],
 ): EconomicCalendarOverview {
   const activeAccount =
     workspace.accounts.find((account) => account.id === workspace.activeAccountId) ??
     workspace.accounts[0];
   const activeSymbols = buildEconomicSymbolContext(workspace);
-  const rows = economicCalendarPreviewEvents.map(toEconomicCalendarRow);
+  const rows = events.map(toEconomicCalendarRow);
   const highImpactCount = rows.filter(
     (event) => event.impact === "alto",
   ).length;
   const nextHighImpact =
     rows.find((event) => event.impact === "alto") ??
-    rows[0];
+    rows[0] ?? null;
 
   return {
     rows,
@@ -147,8 +87,8 @@ export function getEconomicCalendarOverview(
     summaryCards: [
       {
         label: "Próxima noticia",
-        value: `${nextHighImpact.currency} / ${nextHighImpact.time}`,
-        note: nextHighImpact.event,
+        value: nextHighImpact ? `${nextHighImpact.currency} / ${nextHighImpact.time}` : "Sin fuente",
+        note: nextHighImpact?.event ?? "Pendiente de calendario conectado",
       },
       {
         label: "Impacto alto hoy",

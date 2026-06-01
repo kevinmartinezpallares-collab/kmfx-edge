@@ -9,9 +9,29 @@ import {
 
 describe("getEconomicCalendarOverview", () => {
   it("builds a read-only news guard overview without promising enforcement", () => {
-    const overview = getEconomicCalendarOverview(wave1Workspace);
+    const overview = getEconomicCalendarOverview(wave1Workspace, [
+      {
+        id: "calendar-us-ism",
+        scheduledAt: "2026-06-01T16:00:00+02:00",
+        timeLabel: "16:00",
+        currency: "USD",
+        title: "ISM Manufacturing PMI",
+        impact: "alto",
+        affectedSymbols: ["EURUSD", "XAUUSD"],
+        suggestedAction: "Revisar antes de abrir o aumentar riesgo",
+        protectionWindowLabel: "30 min antes / 15 min después",
+        source: {
+          provider: "Forex Factory",
+          status: "connected",
+          provenanceUrl: "https://www.forexfactory.com/calendar",
+          fetchedAt: "2026-06-01T06:00:00.000Z",
+        },
+        forecast: "53.3",
+        previous: "52.7",
+      },
+    ]);
 
-    expect(overview.highImpactCount).toBe(2);
+    expect(overview.highImpactCount).toBe(1);
     expect(overview.summaryCards.map((card) => card.label)).toEqual([
       "Próxima noticia",
       "Impacto alto hoy",
@@ -22,6 +42,17 @@ describe("getEconomicCalendarOverview", () => {
       label: "Protección",
       value: "Solo lectura",
       note: "Recomienda y avisa; no modifica operaciones",
+    });
+  });
+
+  it("does not invent events without a connected calendar source", () => {
+    const overview = getEconomicCalendarOverview(wave1Workspace);
+
+    expect(overview.rows).toEqual([]);
+    expect(overview.highImpactCount).toBe(0);
+    expect(overview.summaryCards[0]).toMatchObject({
+      label: "Próxima noticia",
+      value: "Sin fuente",
     });
   });
 
