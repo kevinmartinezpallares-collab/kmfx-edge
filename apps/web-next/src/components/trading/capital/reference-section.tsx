@@ -935,15 +935,13 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
   const dominantShare = dominantAllocation?.allocationPct ?? 0;
   const concentrationScore = clampScore(100 - Math.max(0, dominantShare - 35) * 2.4);
   const riskScore = clampScore(100 - heatShare);
-  const dataQualityScore =
-    accountRows.length > 0
-      ? clampScore((connectedAccounts / accountRows.length) * 100 - staleAccounts * 12)
-      : 0;
+  const consistencyScore = clampScore(currentPeriodWinRate ?? 0);
+  const growthScore = clampScore(50 + portfolioReturnPct * 4);
   const allocationScore = clampScore(
-    concentrationScore * 0.3 +
-      portfolioReadiness.readinessPct * 0.3 +
+    consistencyScore * 0.25 +
       riskScore * 0.25 +
-      dataQualityScore * 0.15,
+      concentrationScore * 0.25 +
+      growthScore * 0.25,
   );
   const allocationScoreLabel =
     allocationScore >= 82
@@ -951,8 +949,8 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
       : allocationScore >= 64
         ? "Requiere ajuste fino"
         : "Requiere revisión";
-  const consistencyScore = clampScore(currentPeriodWinRate ?? 0);
-  const growthScore = clampScore(50 + portfolioReturnPct * 4);
+  const visibleClosedTrades = currentPeriodWins + currentPeriodLosses;
+  const growthBarValue = Math.min(100, Math.abs(portfolioReturnPct));
   const portfolioCommand = !workspace.risk.allowNewTrades
     ? {
         label: "No añadir riesgo",
@@ -1027,31 +1025,43 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
   const healthMetricRows = [
     {
       label: "Consistencia",
-      value: consistencyScore,
+      value: currentPeriodWinRate === null ? "Sin datos" : formatPercent(currentPeriodWinRate, 1),
+      barValue: currentPeriodWinRate ?? 0,
       target: 70,
-      note: currentPeriodWinRate === null
-        ? "Sin datos suficientes"
-        : `${formatPercent(currentPeriodWinRate, 1)} win rate`,
+      tone: "neutral",
+      note:
+        visibleClosedTrades > 0
+          ? `${currentPeriodWins} ganadas / ${currentPeriodLosses} perdidas`
+          : "Sin cierres en el periodo",
     },
     {
-      label: "Gestión de riesgo",
-      value: riskScore,
-      target: 80,
-      note: heatShare > 0 ? `${Math.round(heatShare)}% del límite usado` : "Sin riesgo abierto",
+      label: "Riesgo abierto",
+      value: formatPercent(workspace.risk.totalOpenRiskPct, 2),
+      barValue: heatShare,
+      target: null,
+      tone: heatShare >= 80 ? "negative" : heatShare >= 50 ? "warning" : "neutral",
+      note:
+        heatShare > 0
+          ? `${Math.round(heatShare)}% del límite ${formatPercent(workspace.risk.heatLimitPct, 2)}`
+          : `Sin riesgo abierto · límite ${formatPercent(workspace.risk.heatLimitPct, 2)}`,
     },
     {
       label: "Diversificación",
-      value: concentrationScore,
-      target: 60,
+      value: dominantAllocation ? `${dominantAllocation.allocationPct.toFixed(1)}%` : "Sin datos",
+      barValue: dominantShare,
+      target: 35,
+      tone: dominantShare > 55 ? "warning" : "neutral",
       note: dominantAllocation
-        ? `${dominantAllocation.allocationPct.toFixed(1)}% cuenta líder`
+        ? `${dominantAllocation.account.label} cuenta líder`
         : "Sin cuenta líder",
     },
     {
       label: "Crecimiento",
-      value: growthScore,
-      target: 75,
-      note: formatPercent(portfolioReturnPct, 2),
+      value: formatPercent(portfolioReturnPct, 2),
+      barValue: growthBarValue,
+      target: null,
+      tone: portfolioReturnPct < 0 ? "negative" : portfolioReturnPct > 0 ? "positive" : "neutral",
+      note: `${formatSignedCurrency(totalPnl, baseCurrency)} P&L agregado visible`,
     },
   ];
   const decisionRows = [
@@ -1667,23 +1677,31 @@ function renderCapitalReferenceSection(
                           <p className="truncate text-sm font-medium text-foreground">{item.label}</p>
                         </div>
                         <span className="font-mono text-sm font-semibold text-foreground">
-                          {item.value}/100
+                          {item.value}
                         </span>
                       </div>
                       <div
-                        aria-label={`${item.label}: ${item.value} sobre 100, objetivo ${item.target}`}
+                        aria-label={`${item.label}: ${item.value}`}
                         className="mt-3"
                         role="img"
                       >
                         <div className="relative h-1.5 overflow-hidden rounded-full bg-muted">
                           <div
-                            className="absolute inset-y-0 left-0 rounded-full bg-primary"
-                            style={{ width: `${Math.min(100, Math.max(0, item.value))}%` }}
+                            className={cn(
+                              "absolute inset-y-0 left-0 rounded-full",
+                              item.tone === "positive" && "bg-profit",
+                              item.tone === "negative" && "bg-loss",
+                              item.tone === "warning" && "bg-risk",
+                              item.tone === "neutral" && "bg-primary",
+                            )}
+                            style={{ width: `${Math.min(100, Math.max(0, item.barValue))}%` }}
                           />
-                          <span
-                            className="absolute top-1/2 h-2.5 w-px -translate-y-1/2 bg-foreground/70"
-                            style={{ left: `${Math.min(100, Math.max(0, item.target))}%` }}
-                          />
+                          {typeof item.target === "number" ? (
+                            <span
+                              className="absolute top-1/2 h-2.5 w-px -translate-y-1/2 bg-foreground/70"
+                              style={{ left: `${Math.min(100, Math.max(0, item.target))}%` }}
+                            />
+                          ) : null}
                         </div>
                       </div>
                       <p className="mt-2 truncate text-xs text-muted-foreground">{item.note}</p>
