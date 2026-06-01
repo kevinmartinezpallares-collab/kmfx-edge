@@ -1019,7 +1019,7 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
         selectedAccountId={selectedAccountId}
         workspace={workspace}
       />
-      <SidebarInset className="min-h-svh bg-background">
+      <SidebarInset className="min-h-svh min-w-0 overflow-x-hidden bg-background">
         <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--foreground)_4%,transparent),transparent_320px)]" />
         <header className="sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-border/70 bg-background/72 px-4 shadow-[0_14px_50px_-42px_rgba(0,0,0,0.55)] backdrop-blur-2xl md:px-6 dark:bg-background/76">
           <ShellTrigger place="navbar" />
@@ -1049,9 +1049,9 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
           </div>
         </header>
 
-        <main className="relative">
-          <div className="h-[calc(100svh-4rem)] overflow-y-auto">
-            <div className="grid gap-4 p-4 md:p-6">
+        <main className="relative min-w-0 overflow-x-hidden">
+          <div className="h-[calc(100svh-4rem)] overflow-x-hidden overflow-y-auto">
+            <div className="grid min-w-0 max-w-full gap-4 overflow-x-hidden p-4 md:p-6">
               {previewMode ? (
                 <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card/85 p-4 shadow-[0_18px_45px_-34px_rgba(0,0,0,0.45)] backdrop-blur-xl md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0">

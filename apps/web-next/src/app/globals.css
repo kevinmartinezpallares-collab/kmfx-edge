@@ -193,6 +193,7 @@
 @layer base {
   html {
     @apply font-sans;
+    overflow-x: hidden;
   }
 
   * {
@@ -201,6 +202,7 @@
 
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
   }
 
   ::selection {

@@ -308,17 +308,18 @@ function AccountsSummaryCard({
   onOpenAddAccount: () => void;
 }) {
   return (
-    <Card>
-      <CardHeader>
+    <Card className="max-w-full overflow-hidden">
+      <CardHeader className="grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
         <div className="flex min-w-0 flex-col gap-1.5">
           <CardTitle>Control de cuentas</CardTitle>
-          <CardDescription>
+          <CardDescription className="max-w-full text-pretty">
             Gestiona cuentas conectadas, broker, firma, servidor, login, estado de conexión
             y permisos activos.
           </CardDescription>
         </div>
-        <CardAction className="flex flex-col gap-2 sm:flex-row">
+        <CardAction className="col-start-1 row-span-1 row-start-auto flex w-full flex-col gap-2 justify-self-stretch sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:w-auto sm:flex-row sm:justify-self-end">
           <Button
+            className="w-full sm:w-auto"
             size="sm"
             type="button"
             onClick={onOpenAddAccount}
@@ -327,6 +328,7 @@ function AccountsSummaryCard({
             Añadir cuenta
           </Button>
           <Button
+            className="w-full sm:w-auto"
             size="sm"
             type="button"
             variant="outline"
@@ -338,7 +340,7 @@ function AccountsSummaryCard({
         </CardAction>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-4">
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Capital conectado</p>
             <p className="mt-2 text-3xl font-semibold">

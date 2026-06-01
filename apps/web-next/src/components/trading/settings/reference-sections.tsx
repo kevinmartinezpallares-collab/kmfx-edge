@@ -1156,30 +1156,31 @@ function CurrentPlanDialogCard({
         className="group/plan-card relative h-full min-h-[13rem] overflow-hidden rounded-xl border border-border/70 bg-card/65 text-left shadow-sm transition-colors hover:border-foreground/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
       >
         <AnimatedGradient config={gradientConfig} />
-        <span className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/62 to-background/20" />
+        <span className="absolute inset-0 bg-black/18" />
+        <span className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/48 to-black/18" />
         <span className="relative flex h-full flex-col p-4">
           <span className="flex items-start justify-between gap-3">
             <span className="min-w-0">
-              <span className="text-xs font-medium uppercase text-white/70">
+              <span className="text-xs font-medium uppercase text-white/80">
                 Plan actual
               </span>
               <span className="mt-2 block text-2xl font-semibold tracking-tight text-white">
                 {currentOption.name}
               </span>
-              <span className="mt-1 block text-sm text-white/75">
+              <span className="mt-1 block text-sm text-white/85">
                 {usedAccountsLabel}/{displayedIncludedAccountsLabel} cuentas conectadas
               </span>
             </span>
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/20 bg-background/35 text-white/75 transition-colors group-hover/plan-card:text-white">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/25 bg-black/25 text-white/80 transition-colors group-hover/plan-card:text-white">
               <Plus className="size-4" />
             </span>
           </span>
           <Progress
-            className="mt-4 [&_[data-slot=progress-indicator]]:bg-white/85 [&_[data-slot=progress-track]]:bg-white/20"
+            className="mt-4 [&_[data-slot=progress-indicator]]:bg-white/90 [&_[data-slot=progress-track]]:bg-white/28"
             value={displayedUsagePercent}
           />
-          <span className="mt-auto flex items-center justify-between gap-3 border-t border-white/20 pt-4">
-            <span className="text-sm leading-6 text-white/75">
+          <span className="mt-auto flex items-center justify-between gap-3 border-t border-white/25 pt-4">
+            <span className="text-sm leading-6 text-white/85">
               {displayedAccountNote}
             </span>
             <span className="shrink-0 text-xs font-medium text-white">
@@ -1188,23 +1189,25 @@ function CurrentPlanDialogCard({
           </span>
         </span>
       </button>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
+      <DialogContent className="max-h-[calc(100svh-1rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-xl">
+        <DialogHeader className="px-4 pb-3 pt-4 pr-12 sm:px-6 sm:pt-6">
           <DialogTitle>{currentOption.name}</DialogTitle>
           <DialogDescription>
             Información del plan activo y límites disponibles.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4">
-          <div className="grid overflow-hidden rounded-lg border border-border/70 sm:grid-cols-2">
+        <div className="grid min-h-0 gap-4 overflow-y-auto px-4 pb-4 sm:px-6">
+          <div className="grid border-y border-border/70 sm:grid-cols-2">
             {currentPlanDetails.map((item, index) => (
               <div
                 key={item.label}
                 className={cn(
-                  "min-w-0 border-border/70 bg-background/25 p-3",
-                  index < 2 && "border-b",
+                  "min-w-0 border-border/70 py-3",
+                  index < currentPlanDetails.length - 1 && "border-b",
                   index % 2 === 0 && "sm:border-r",
+                  index >= 2 && "sm:border-b-0",
                   index === 1 && "sm:border-b",
+                  index % 2 === 0 ? "sm:pr-4" : "sm:pl-4",
                 )}
               >
                 <p className="text-xs font-medium uppercase text-muted-foreground">
@@ -1222,11 +1225,11 @@ function CurrentPlanDialogCard({
 
           <div>
             <p className="text-sm font-medium text-foreground">Incluido</p>
-            <div className="mt-3 grid gap-2">
+            <div className="mt-3 divide-y divide-border/70 border-y border-border/70">
               {includedFeatures.map((feature) => (
                 <div
                   key={feature}
-                  className="flex items-start gap-3 rounded-lg border border-border/70 bg-background/25 px-3 py-2"
+                  className="flex items-start gap-3 py-3"
                 >
                   <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                   <span className="text-sm leading-6 text-muted-foreground">
@@ -1239,7 +1242,7 @@ function CurrentPlanDialogCard({
 
           <Separator />
 
-          <div className="grid gap-2 text-sm">
+          <div className="grid gap-3 text-sm">
             {paymentRows.map((row) => (
               <div
                 key={row.label}
@@ -1258,7 +1261,7 @@ function CurrentPlanDialogCard({
             ))}
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="mx-0 mb-0 rounded-none rounded-b-xl border-border/70 bg-muted/45 px-4 py-3 sm:px-6">
           <Button
             type="button"
             variant="outline"
