@@ -12,6 +12,7 @@ type SmoothOptions = {
 };
 
 type VisualCurveOptions = {
+  bucketSecs?: number;
   maxPoints?: number;
   minPoints?: number;
   minStepSecs?: number;
@@ -150,6 +151,72 @@ export function prepareLivelineVisualCurve(
       time,
       value: interpolateLivelineValue(normalized, time),
     };
+  });
+}
+
+function inferHistoricalBucketSecs(spanSecs: number) {
+  if (spanSecs >= 60 * 86_400) return 86_400;
+  if (spanSecs >= 21 * 86_400) return 21_600;
+  if (spanSecs >= 7 * 86_400) return 7_200;
+  if (spanSecs >= 2 * 86_400) return 1_800;
+
+  return 300;
+}
+
+export function bucketLivelinePoints(
+  points: LivelinePoint[],
+  bucketSecs: number,
+): LivelinePoint[] {
+  const normalized = normalizeLivelinePoints(points, 1);
+  if (normalized.length < 2 || bucketSecs <= 1) return normalized;
+
+  const buckets = new Map<number, LivelinePoint>();
+
+  for (const point of normalized) {
+    const bucketStart = Math.floor(point.time / bucketSecs) * bucketSecs;
+    buckets.set(bucketStart, {
+      time: bucketStart + Math.floor(bucketSecs / 2),
+      value: point.value,
+    });
+  }
+
+  const first = normalized[0];
+  const last = normalized.at(-1);
+  const bucketed = [...buckets.entries()]
+    .toSorted(([left], [right]) => left - right)
+    .map(([, point]) => point);
+
+  if (first && bucketed[0]) {
+    bucketed[0] = { time: first.time, value: first.value };
+  }
+
+  if (last && bucketed.at(-1)) {
+    bucketed[bucketed.length - 1] = { time: last.time, value: last.value };
+  }
+
+  return normalizeLivelinePoints(bucketed, Math.min(bucketSecs, 60));
+}
+
+export function prepareHistoricalLivelineCurve(
+  points: LivelinePoint[],
+  options: VisualCurveOptions = {},
+): LivelinePoint[] {
+  const normalized = normalizeLivelinePoints(points, 1);
+  const first = normalized[0];
+  const last = normalized.at(-1);
+
+  if (normalized.length < 2 || !first || !last || last.time <= first.time) {
+    return normalized;
+  }
+
+  const spanSecs = last.time - first.time;
+  const bucketSecs = options.bucketSecs ?? inferHistoricalBucketSecs(spanSecs);
+  const bucketed = bucketLivelinePoints(normalized, bucketSecs);
+
+  return prepareLivelineVisualCurve(bucketed, {
+    maxPoints: options.maxPoints,
+    minPoints: options.minPoints,
+    minStepSecs: Math.max(options.minStepSecs ?? 60, Math.min(bucketSecs, 60)),
   });
 }
 

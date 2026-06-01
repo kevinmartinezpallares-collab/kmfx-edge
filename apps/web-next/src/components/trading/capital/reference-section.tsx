@@ -61,7 +61,7 @@ import { signedTextClass } from "@/lib/domain/semantic-colors";
 import {
   livelineWindowForData,
   normalizeLivelinePoints,
-  prepareLivelineVisualCurve,
+  prepareHistoricalLivelineCurve,
 } from "@/lib/charts/liveline-points";
 import { cn } from "@/lib/utils";
 
@@ -839,7 +839,7 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     time: capitalCurveForChart[index]?.time ?? PORTFOLIO_FALLBACK_EPOCH_SECONDS + index * 86_400,
     value: portfolioDisplayMode === "capital" ? point.capital : point.percent,
   }));
-  const portfolioLivelineData = prepareLivelineVisualCurve(
+  const portfolioLivelineData = prepareHistoricalLivelineCurve(
     portfolioLivelineSource,
     {
       maxPoints: 64,
@@ -896,7 +896,7 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
             ? getCommonPeriodReturnCurve(source.data, portfolioComparisonCommonStart)
             : []
           : getStartPeriodReturnCurve(source.data);
-      const visualData = prepareLivelineVisualCurve(data, {
+      const visualData = prepareHistoricalLivelineCurve(data, {
         maxPoints: 64,
         minPoints: 28,
         minStepSecs: 1_800,
@@ -1054,7 +1054,7 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
       note:
         heatShare > 0
           ? `${Math.round(heatShare)}% del límite ${formatPercent(workspace.risk.heatLimitPct, 2)}`
-          : `Sin riesgo abierto · límite ${formatPercent(workspace.risk.heatLimitPct, 2)}`,
+          : `Sin riesgo abierto / límite ${formatPercent(workspace.risk.heatLimitPct, 2)}`,
     },
     {
       label: "Diversificación",

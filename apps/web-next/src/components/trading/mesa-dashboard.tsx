@@ -54,7 +54,7 @@ import {
 } from "@/lib/domain/semantic-colors";
 import {
   livelineWindowForData,
-  prepareLivelineVisualCurve,
+  prepareHistoricalLivelineCurve,
 } from "@/lib/charts/liveline-points";
 import { cn } from "@/lib/utils";
 
@@ -666,7 +666,7 @@ function EquityCurveCard({
         : PANEL_EQUITY_WINDOWS[0].secs;
   const selectedWindowSecs =
     windowSecs > availableWindowSecs ? PANEL_EQUITY_WINDOWS[0].secs : windowSecs;
-  const livelineData = prepareLivelineVisualCurve(
+  const livelineData = prepareHistoricalLivelineCurve(
     chartData.map((point) => ({
       time: point.time,
       value: point.equity,
