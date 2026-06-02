@@ -550,7 +550,12 @@ function SegmentLabel({
   const displayValue = stage.displayValue ?? formatValue(stage.value);
 
   const valueEl = display.values && (
-    <span className="whitespace-nowrap font-semibold text-foreground text-sm">
+    <span
+      className={cn(
+        "whitespace-nowrap font-semibold text-foreground",
+        isHorizontal ? "text-sm" : "text-xs"
+      )}
+    >
       {displayValue}
     </span>
   );
@@ -560,7 +565,12 @@ function SegmentLabel({
     </span>
   );
   const labelEl = display.labels && (
-    <span className="whitespace-nowrap font-medium text-muted-foreground text-xs">
+    <span
+      className={cn(
+        "whitespace-nowrap font-medium text-muted-foreground text-xs",
+        !isHorizontal && "max-w-[112px] overflow-hidden text-ellipsis"
+      )}
+    >
       {stage.label}
     </span>
   );
@@ -595,13 +605,13 @@ function SegmentLabel({
           </>
         ) : (
           <>
-            <div className="flex w-[16%] items-center justify-end pr-2">
+            <div className="flex w-[30%] items-center justify-end pr-2">
               {valueEl}
             </div>
-            <div className="flex flex-1 items-center justify-center">
+            <div className="flex min-w-0 flex-1 items-center justify-center">
               {pctEl}
             </div>
-            <div className="flex w-[16%] items-center justify-start pl-2">
+            <div className="flex w-[30%] items-center justify-start pl-2">
               {labelEl}
             </div>
           </>

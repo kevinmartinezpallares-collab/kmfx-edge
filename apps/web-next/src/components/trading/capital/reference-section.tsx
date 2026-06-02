@@ -1417,34 +1417,66 @@ function renderCapitalReferenceSection(
                 </div>
 
                 {allocationFunnelData.length > 0 ? (
-                  <div className="relative mt-4 overflow-hidden">
-                    <FunnelChart
-                      className="h-[320px]"
-                      color="oklch(0.82 0 0)"
-                      data={allocationFunnelData}
-                      edges="curved"
-                      enterTransition={{
-                        duration: 0.55,
-                        ease: [0.4, 0, 0.2, 1],
-                      }}
-                      formatPercentage={(percentage) => `${Math.round(percentage)}%`}
-                      gap={2}
-                      grid={{
-                        bands: false,
-                        lineColor: "var(--border)",
-                        lineOpacity: 0.8,
-                        lineWidth: 1,
-                        lines: true,
-                      }}
-                      labelLayout="spread"
-                      layers={3}
-                      orientation="horizontal"
-                      showLabels
-                      showPercentage
-                      showValues
-                      staggerDelay={0.12}
-                    />
-                    <div className="border-t border-border/60">
+                  <div className="relative mt-4 overflow-visible sm:overflow-hidden">
+                    <div className="sm:hidden">
+                      <FunnelChart
+                        color="oklch(0.82 0 0)"
+                        data={allocationFunnelData}
+                        edges="curved"
+                        enterTransition={{
+                          duration: 0.55,
+                          ease: [0.4, 0, 0.2, 1],
+                        }}
+                        formatPercentage={(percentage) => `${Math.round(percentage)}%`}
+                        gap={8}
+                        grid={{
+                          bands: false,
+                          lineColor: "var(--border)",
+                          lineOpacity: 0.65,
+                          lineWidth: 1,
+                          lines: true,
+                        }}
+                        labelLayout="spread"
+                        layers={3}
+                        orientation="vertical"
+                        showLabels
+                        showPercentage
+                        showValues
+                        staggerDelay={0.12}
+                        style={{
+                          height: Math.max(360, allocationFunnelData.length * 112),
+                        }}
+                      />
+                    </div>
+                    <div className="hidden sm:block">
+                      <FunnelChart
+                        className="h-[320px]"
+                        color="oklch(0.82 0 0)"
+                        data={allocationFunnelData}
+                        edges="curved"
+                        enterTransition={{
+                          duration: 0.55,
+                          ease: [0.4, 0, 0.2, 1],
+                        }}
+                        formatPercentage={(percentage) => `${Math.round(percentage)}%`}
+                        gap={2}
+                        grid={{
+                          bands: false,
+                          lineColor: "var(--border)",
+                          lineOpacity: 0.8,
+                          lineWidth: 1,
+                          lines: true,
+                        }}
+                        labelLayout="spread"
+                        layers={3}
+                        orientation="horizontal"
+                        showLabels
+                        showPercentage
+                        showValues
+                        staggerDelay={0.12}
+                      />
+                    </div>
+                    <div className="hidden border-t border-border/60 sm:block">
                       <div className="grid divide-y divide-border/50 sm:auto-cols-fr sm:grid-flow-col sm:divide-x sm:divide-y-0">
                         {allocationFunnelLegend.map((item) => (
                           <div
