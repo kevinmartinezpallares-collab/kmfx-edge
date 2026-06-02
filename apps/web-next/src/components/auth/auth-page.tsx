@@ -315,7 +315,12 @@ function useAuthPageModel(nextPath: string) {
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo },
+        options: {
+          redirectTo,
+          ...(provider === "google"
+            ? { queryParams: { prompt: "select_account" } }
+            : {}),
+        },
       });
 
       if (error) {
