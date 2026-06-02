@@ -84,7 +84,7 @@ const ORION_FUNDED_REFERRAL_URL =
   "https://shop.orionfunded.com/?ref=10578";
 const DARWINEX_ZERO_REFERRAL_URL =
   process.env.NEXT_PUBLIC_DARWINEX_ZERO_REFERRAL_URL ??
-  "https://www.darwinexzero.com/";
+  "https://www.darwinexzero.com/?fpr=n1d7v&coupon=KMFX";
 
 let historyPatchReferenceCount = 0;
 let restoreHistoryPatch: (() => void) | null = null;
@@ -177,10 +177,11 @@ function getPromoNotifications(): PromoNotification[] {
     {
       id: "darwinex-zero-referral",
       partnerLabel: "Darwinex Zero",
-      badge: "Referido",
-      title: "Descuento Darwinex Zero",
-      body: "Accede desde el enlace de referido para revisar el descuento disponible.",
+      badge: "20%+5%",
+      title: "20% + 5% en Darwinex Zero",
+      body: "20% de descuento en el alta y 5% adicional en planes anuales y trianuales con el cupón KMFX.",
       actionLabel: "Abrir enlace",
+      code: "KMFX",
       href: DARWINEX_ZERO_REFERRAL_URL,
     },
   ];
