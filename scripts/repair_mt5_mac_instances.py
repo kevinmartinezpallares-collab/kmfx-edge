@@ -145,14 +145,46 @@ def _write_command_shortcut(prefix: Path, program_dir: Path) -> Path:
     return script
 
 
-def _write_app_shortcut(command_path: Path, name: str) -> Path:
+def _write_app_shortcut(prefix: Path, program_dir: Path, name: str) -> Path:
     app_path = Path.home() / "Desktop" / f"{name}.app"
     if app_path.exists():
         shutil.rmtree(app_path, ignore_errors=False)
     macos_dir = app_path / "Contents" / "MacOS"
     macos_dir.mkdir(parents=True, exist_ok=True)
     executable = macos_dir / name
-    executable.write_text(f"#!/bin/bash\nexec {str(command_path)!r}\n", encoding="utf-8")
+    executable.write_text(
+        "\n".join(
+            [
+                "#!/bin/bash",
+                "set -euo pipefail",
+                f"export WINEPREFIX='{prefix}'",
+                "export WINEARCH='win64'",
+                "export WINEDEBUG='-all'",
+                "export WINEDLLOVERRIDES='mmdevapi=d;mscoree,mshtml='",
+                "WINE_ROOT='/Applications/MetaTrader 5.app/Contents/SharedSupport/wine'",
+                "export PATH=\"$WINE_ROOT/bin:$PATH\"",
+                "export DYLD_FALLBACK_LIBRARY_PATH=\"$WINE_ROOT/lib:$WINE_ROOT/lib/external:${DYLD_FALLBACK_LIBRARY_PATH:-}\"",
+                "WINE_BIN=\"$WINE_ROOT/bin/wine\"",
+                "if [ ! -x \"$WINE_BIN\" ]; then",
+                "  WINE_BIN=\"$WINE_ROOT/bin/wine64\"",
+                "fi",
+                "if [ ! -x \"$WINE_BIN\" ]; then",
+                f"  osascript -e 'display alert \"{name}\" message \"No se encontro Wine dentro de MetaTrader 5.app\"'",
+                "  exit 1",
+                "fi",
+                f"TERMINAL='{program_dir / 'terminal64.exe'}'",
+                "if [ ! -f \"$TERMINAL\" ]; then",
+                f"  osascript -e 'display alert \"{name}\" message \"No se encontro terminal64.exe\"'",
+                "  exit 1",
+                "fi",
+                "LOG_DIR=\"$HOME/Library/Logs/KMFX MT5 Instances\"",
+                "mkdir -p \"$LOG_DIR\"",
+                f"exec \"$WINE_BIN\" \"$TERMINAL\" /portable >> \"$LOG_DIR/{name}.log\" 2>&1",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
     executable.chmod(0o755)
     (app_path / "Contents" / "Info.plist").write_text(
         f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -199,7 +231,7 @@ def repair(dry_run: bool = False) -> int:
             continue
         actions = _copy_profiles(source_program, program_dir, stamp)
         shortcut = _write_command_shortcut(prefix, program_dir)
-        app = _write_app_shortcut(shortcut, label)
+        app = _write_app_shortcut(prefix, program_dir, label)
         print(f"  shortcut={shortcut}")
         print(f"  app={app}")
         for action in actions:
