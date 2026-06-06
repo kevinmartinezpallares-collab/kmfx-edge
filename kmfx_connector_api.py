@@ -401,6 +401,7 @@ BILLING_STATUS_VALUES = {
     *BILLING_ATTENTION_STATUSES,
     *BILLING_RESTRICTED_STATUSES,
 }
+DEFAULT_VIP_PROMOTION_CODES = {"comunidad100"}
 CONNECTION_RATE_LIMIT_WINDOW_SECONDS = 60
 CONNECTION_RATE_LIMIT_BUCKETS: dict[str, tuple[float, int]] = {}
 SENSITIVE_RATE_LIMIT_WINDOW_SECONDS = 60
@@ -2278,6 +2279,45 @@ def billing_trial_requires_card() -> bool:
     if not configured:
         return False
     return configured.lower() in {"1", "true", "yes", "y", "on"}
+
+
+def normalize_promotion_code(value: Any) -> str:
+    return safe_str(value).strip().lower()
+
+
+def vip_promotion_codes() -> set[str]:
+    configured = _env_value("KMFX_VIP_PROMOTION_CODES", "STRIPE_VIP_PROMOTION_CODES")
+    if not configured:
+        return set(DEFAULT_VIP_PROMOTION_CODES)
+    codes = {normalize_promotion_code(item) for item in _split_env_list(configured)}
+    return {code for code in codes if code}
+
+
+def promotion_code_skips_trial(value: Any) -> bool:
+    code = normalize_promotion_code(value)
+    return bool(code and code in vip_promotion_codes())
+
+
+def resolve_stripe_promotion_code_id(value: Any) -> str:
+    code = normalize_promotion_code(value)
+    if not code:
+        return ""
+    payload = stripe_api_request(
+        "GET",
+        "/promotion_codes",
+        {
+            "active": True,
+            "code": code,
+            "limit": 1,
+        },
+    )
+    promotion_codes = payload.get("data") if isinstance(payload.get("data"), list) else []
+    if not promotion_codes:
+        raise RuntimeError("promotion_code_not_found")
+    promotion_code_id = safe_str(ensure_dict(promotion_codes[0]).get("id"))
+    if not promotion_code_id:
+        raise RuntimeError("promotion_code_not_found")
+    return promotion_code_id
 
 
 def stripe_secret_key() -> str:
@@ -8714,6 +8754,14 @@ async def billing_checkout(request: Request) -> JSONResponse:
         customer_id = ensure_billing_customer(context)
         user_id = safe_str(context.get("user_id")).lower()
         email = safe_str(context.get("email")).lower()
+        promotion_code = normalize_promotion_code(
+            payload.get("promotionCode")
+            or payload.get("promotion_code")
+            or payload.get("couponCode")
+            or payload.get("coupon_code")
+        )
+        promotion_code_id = resolve_stripe_promotion_code_id(promotion_code) if promotion_code else ""
+        skip_trial = promotion_code_skips_trial(promotion_code)
         price_reference = resolve_stripe_price_reference(plan, interval)
         existing_subscription = existing_kmfx_subscription_for_checkout(context, customer_id)
         if existing_subscription:
@@ -8763,6 +8811,8 @@ async def billing_checkout(request: Request) -> JSONResponse:
             "interval": interval,
             "stripe_lookup_key": price_reference.get("lookup_key") or "",
             "price_lookup_key": price_reference.get("lookup_key") or "",
+            "kmfx_promotion_code": promotion_code,
+            "kmfx_vip_promotion": "true" if skip_trial else "false",
         }
         subscription_data: dict[str, Any] = {
             "metadata": {
@@ -8775,10 +8825,12 @@ async def billing_checkout(request: Request) -> JSONResponse:
                 "plan_key": plan,
                 "kmfx_interval": interval,
                 "interval": interval,
+                "kmfx_promotion_code": promotion_code,
+                "kmfx_vip_promotion": "true" if skip_trial else "false",
             },
         }
         trial_days = billing_trial_period_days()
-        if trial_days > 0:
+        if trial_days > 0 and not skip_trial:
             subscription_data["trial_period_days"] = trial_days
             if not billing_trial_requires_card():
                 subscription_data["trial_settings"] = {
@@ -8792,7 +8844,7 @@ async def billing_checkout(request: Request) -> JSONResponse:
             "client_reference_id": user_id,
             "success_url": billing_safe_return_url(payload.get("success_url") or payload.get("successUrl"), billing_success_url()),
             "cancel_url": billing_safe_return_url(payload.get("cancel_url") or payload.get("cancelUrl"), billing_cancel_url()),
-            "allow_promotion_codes": _env_flag("STRIPE_ALLOW_PROMOTION_CODES", default=True),
+            "allow_promotion_codes": False if promotion_code_id else _env_flag("STRIPE_ALLOW_PROMOTION_CODES", default=True),
             "line_items": [
                 {
                     "price": price_reference["price_id"],
@@ -8802,19 +8854,26 @@ async def billing_checkout(request: Request) -> JSONResponse:
             "metadata": checkout_metadata,
             "subscription_data": subscription_data,
         }
-        if trial_days > 0 and not billing_trial_requires_card():
+        if promotion_code_id:
+            checkout_params["discounts"] = [{"promotion_code": promotion_code_id}]
+        if trial_days > 0 and not skip_trial and not billing_trial_requires_card():
             checkout_params["payment_method_collection"] = "if_required"
         session = stripe_api_request(
             "POST",
             "/checkout/sessions",
             checkout_params,
-            idempotency_key=stripe_idempotency_key("kmfx_checkout", user_id, plan, interval),
+            idempotency_key=stripe_idempotency_key("kmfx_checkout", user_id, plan, interval, promotion_code),
         )
     except ValueError as exc:
         return billing_json_response({"ok": False, "reason": safe_str(exc) or "invalid_request", "error": safe_str(exc) or "invalid_request"}, status_code=400)
     except RuntimeError as exc:
         reason = safe_str(exc) or "billing_checkout_failed"
-        status_code = 503 if reason in {"stripe_not_configured", "supabase_service_role_not_configured", "price_not_configured"} else 502
+        if reason in {"promotion_code_not_found"}:
+            status_code = 400
+        elif reason in {"stripe_not_configured", "supabase_service_role_not_configured", "price_not_configured"}:
+            status_code = 503
+        else:
+            status_code = 502
         return billing_json_response({"ok": False, "reason": reason, "error": reason}, status_code=status_code)
 
     checkout_url = safe_str(session.get("url"))

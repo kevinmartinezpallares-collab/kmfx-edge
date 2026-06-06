@@ -69,6 +69,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import type { BillingAccessNotice } from "@/lib/api/billing-status";
 import type { WorkspaceState } from "@/lib/contracts/workspace-state";
 import {
   billingPlanKeyFromPayload,
@@ -716,25 +717,123 @@ type CurrentPlanDetail = {
   value: string;
 };
 
-function SubscriptionWelcomeCard() {
+const ACCESS_NOTICE_DATE_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
+
+type SubscriptionWelcomeContent = {
+  ctaLabel: string;
+  description: string;
+  eyebrow: string;
+  steps: [string, string, string][];
+  title: string;
+};
+
+const SUBSCRIPTION_WELCOME_CONTENT: Record<
+  BillingAccessNotice,
+  SubscriptionWelcomeContent
+> = {
+  billing_attention: {
+    ctaLabel: "Regularizar acceso",
+    description:
+      "La suscripción necesita atención antes de volver al dashboard completo. Revisa el método de pago o reactiva el plan desde el portal seguro.",
+    eyebrow: "Pago pendiente",
+    steps: [
+      ["1", "Datos guardados", "Tus cuentas y el histórico siguen vinculados."],
+      ["2", "Portal seguro", "Revisa pago, factura o método de cobro."],
+      ["3", "Acceso completo", "Al regularizar, MT5 vuelve a sincronizar."],
+    ],
+    title: "Revisa la suscripción para continuar",
+  },
+  billing_paused: {
+    ctaLabel: "Reactivar plan",
+    description:
+      "El acceso está pausado. Reactiva un plan para añadir cuentas, descargar archivos y seguir leyendo MT5.",
+    eyebrow: "Acceso pausado",
+    steps: [
+      ["1", "Cuenta intacta", "No eliminamos tus cuentas ni tus métricas."],
+      ["2", "Reactivación", "Gestiona el plan desde la sesión segura."],
+      ["3", "Lectura MT5", "El EA continuará cuando el plan esté activo."],
+    ],
+    title: "Tu acceso a KMFX Edge está pausado",
+  },
+  plan_limit: {
+    ctaLabel: "Ampliar plan",
+    description:
+      "Has alcanzado el límite operativo del plan actual. Amplía el plan para conectar más cuentas MT5.",
+    eyebrow: "Límite alcanzado",
+    steps: [
+      ["1", "Revisa capacidad", "Comprueba cuántas cuentas permite tu plan."],
+      ["2", "Elige plan", "Sube a Pro o Unlimited si necesitas más MT5."],
+      ["3", "Conecta MT5", "Genera una KMFX Key por cada cuenta nueva."],
+    ],
+    title: "Tu plan necesita más capacidad",
+  },
+  plan_required: {
+    ctaLabel: "Elegir plan",
+    description:
+      "El panel ya está preparado. Activa un plan para añadir cuentas, descargar launcher/EA y leer métricas reales desde MT5.",
+    eyebrow: "Plan pendiente",
+    steps: [
+      ["1", "Plan activo", "Desbloquea conexión, descargas y alta de cuentas."],
+      ["2", "Launcher y EA", "Instala la versión preparada para la beta."],
+      ["3", "Lectura completa", "La primera carga trae el histórico y después solo cambios."],
+    ],
+    title: "Activa KMFX Edge para conectar MT5",
+  },
+  trial_expired: {
+    ctaLabel: "Activar plan",
+    description:
+      "La prueba gratuita ha terminado. Tus cuentas y datos siguen guardados; activa un plan para recuperar el acceso completo y continuar sincronizando MT5.",
+    eyebrow: "Prueba finalizada",
+    steps: [
+      ["1", "Datos guardados", "Tus cuentas y el histórico siguen disponibles."],
+      ["2", "Elige plan", "Selecciona Basic, Pro o Unlimited según tu operativa."],
+      ["3", "Continúa MT5", "La lectura vuelve cuando el plan queda activo."],
+    ],
+    title: "Tu prueba gratuita ha finalizado",
+  },
+};
+
+function formatAccessNoticeDate(value: string) {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return "";
+
+  return ACCESS_NOTICE_DATE_FORMATTER.format(new Date(timestamp));
+}
+
+function SubscriptionWelcomeCard({
+  accessNotice,
+  accessNoticeDate = "",
+}: {
+  accessNotice: BillingAccessNotice;
+  accessNoticeDate?: string;
+}) {
+  const content = SUBSCRIPTION_WELCOME_CONTENT[accessNotice];
+  const formattedDate = formatAccessNoticeDate(accessNoticeDate);
+
   return (
     <Card className="overflow-hidden border-border/70 bg-card/80">
       <CardHeader className="gap-4 border-b border-border/60 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase text-muted-foreground">
             <LockKeyhole className="size-4" />
-            <span>Plan pendiente</span>
+            <span>{content.eyebrow}</span>
           </div>
-          <CardTitle>Activa KMFX Edge para conectar MT5</CardTitle>
-          <CardDescription>
-            El panel ya está preparado. Activa un plan para añadir cuentas,
-            descargar launcher/EA y leer métricas reales desde MT5.
-          </CardDescription>
+          <CardTitle>{content.title}</CardTitle>
+          <CardDescription>{content.description}</CardDescription>
+          {formattedDate ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Fecha detectada: {formattedDate}
+            </p>
+          ) : null}
         </div>
         <CardAction className="flex flex-wrap gap-2">
           <Button onClick={scrollToPlanOptions} type="button">
             <CreditCard data-icon="inline-start" />
-            Elegir plan
+            {content.ctaLabel}
           </Button>
           <Button
             nativeButton={false}
@@ -747,11 +846,7 @@ function SubscriptionWelcomeCard() {
         </CardAction>
       </CardHeader>
       <CardContent className="grid gap-4 p-4 sm:grid-cols-3 sm:p-6">
-        {[
-          ["1", "Plan activo", "Desbloquea conexión, descargas y alta de cuentas."],
-          ["2", "Launcher y EA", "Instala la versión preparada para la beta."],
-          ["3", "Lectura completa", "La primera carga trae el historial y después solo cambios."],
-        ].map(([step, title, description]) => (
+        {content.steps.map(([step, title, description]) => (
           <div
             key={step}
             className="grid gap-2 border-l border-border/70 pl-4 first:border-l-0 first:pl-0 sm:first:border-l sm:first:pl-4"
@@ -805,9 +900,11 @@ function PlanOptionCard({
   featured,
   gradientConfig,
   onManagePlan,
+  onReactivatePlan,
   onSelectPlan,
   option,
   priceForInterval,
+  reactivationRequired,
   intervalCaption,
 }: {
   billingAction: BillingActionState;
@@ -819,24 +916,35 @@ function PlanOptionCard({
   gradientConfig: CustomConfig;
   intervalCaption: string;
   onManagePlan: () => void;
+  onReactivatePlan: (planKey: PlanOptionKey) => void;
   onSelectPlan: (planKey: PlanOptionKey) => void;
   option: SettingsPlanOption;
   priceForInterval: string;
+  reactivationRequired: boolean;
 }) {
   const visual = PLAN_CARD_VISUALS[option.key];
   const actionLabel =
     billingPending && billingAction.planKey === option.key
       ? "Abriendo..."
-      : current
+      : current && reactivationRequired
+        ? "Reactivar"
+        : current
         ? "Gestionar"
         : "Seleccionar";
   const footerActionLabel =
     billingPending && billingAction.planKey === option.key
       ? "Abriendo..."
-      : current
+      : current && reactivationRequired
+        ? "Reactivar"
+        : current
         ? "Gestionar"
         : "Elegir";
   const handleAction = () => {
+    if (current && reactivationRequired) {
+      onReactivatePlan(option.key);
+      return;
+    }
+
     if (current) {
       onManagePlan();
       return;
@@ -996,9 +1104,11 @@ function PlanOptionsGrid({
   canManageBilling,
   maxAccountCapacity,
   onManagePlan,
+  onReactivatePlan,
   onSelectPlan,
   planChartData,
   planOptions,
+  reactivationRequired,
   billingInterval,
 }: {
   billingAction: BillingActionState;
@@ -1007,9 +1117,11 @@ function PlanOptionsGrid({
   canManageBilling: boolean;
   maxAccountCapacity: number;
   onManagePlan: () => void;
+  onReactivatePlan: (planKey: PlanOptionKey) => void;
   onSelectPlan: (planKey: PlanOptionKey) => void;
   planChartData: PlanChartItem[];
   planOptions: SettingsPlanOption[];
+  reactivationRequired: boolean;
 }) {
   return (
     <div id="kmfx-plan-options" className="scroll-mt-24 grid gap-5 lg:grid-cols-3">
@@ -1038,9 +1150,11 @@ function PlanOptionsGrid({
             intervalCaption={intervalCaption}
             key={option.key}
             onManagePlan={onManagePlan}
+            onReactivatePlan={onReactivatePlan}
             onSelectPlan={onSelectPlan}
             option={option}
             priceForInterval={priceForInterval}
+            reactivationRequired={reactivationRequired}
           />
         );
       })}
@@ -1131,6 +1245,7 @@ function CurrentPlanDialogCard({
   onOpenChange,
   open,
   paymentRows,
+  reactivationRequired,
   usedAccountsLabel,
 }: {
   billingPending: boolean;
@@ -1146,6 +1261,7 @@ function CurrentPlanDialogCard({
   onOpenChange: (open: boolean) => void;
   open: boolean;
   paymentRows: SettingsOverview["plan"]["paymentRows"];
+  reactivationRequired: boolean;
   usedAccountsLabel: string;
 }) {
   return (
@@ -1276,7 +1392,7 @@ function CurrentPlanDialogCard({
             onClick={onManagePlan}
           >
             <CreditCard data-icon="inline-start" />
-            Gestionar plan
+            {reactivationRequired ? "Reactivar plan" : "Gestionar plan"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1301,6 +1417,8 @@ function PlanSelectionCard({
   onBillingIntervalChange,
   onManagePlan,
   onPlanDetailsOpenChange,
+  onPromotionCodeChange,
+  onReactivatePlan,
   onSelectPlan,
   overLimit,
   paymentRows,
@@ -1308,7 +1426,10 @@ function PlanSelectionCard({
   planChartData,
   planDetailsOpen,
   planOptions,
+  promotionCode,
+  reactivationRequired,
   statusBadgeVariant,
+  statusLabel,
 }: {
   billingAction: BillingActionState;
   billingInterval: BillingInterval;
@@ -1326,6 +1447,8 @@ function PlanSelectionCard({
   onBillingIntervalChange: (billingInterval: BillingInterval) => void;
   onManagePlan: () => void;
   onPlanDetailsOpenChange: (open: boolean) => void;
+  onPromotionCodeChange: (promotionCode: string) => void;
+  onReactivatePlan: (planKey: PlanOptionKey) => void;
   onSelectPlan: (planKey: PlanOptionKey) => void;
   overLimit: boolean;
   paymentRows: SettingsOverview["plan"]["paymentRows"];
@@ -1333,7 +1456,10 @@ function PlanSelectionCard({
   planChartData: PlanChartItem[];
   planDetailsOpen: boolean;
   planOptions: SettingsPlanOption[];
+  promotionCode: string;
+  reactivationRequired: boolean;
   statusBadgeVariant: "secondary" | "destructive";
+  statusLabel: string;
 }) {
   return (
     <Card className="overflow-hidden border-border/70 bg-card/80">
@@ -1356,7 +1482,7 @@ function PlanSelectionCard({
               ) : (
                 <CheckCircle2 data-icon="inline-start" />
               )}
-              {plan.statusLabel}
+              {statusLabel}
             </Badge>
             <BillingIntervalToggle
               billingInterval={billingInterval}
@@ -1377,6 +1503,22 @@ function PlanSelectionCard({
         >
           {billingMessage}
         </p>
+        <div className="mt-4 grid gap-2 sm:max-w-sm">
+          <Field>
+            <FieldLabel>Código VIP o descuento</FieldLabel>
+            <Input
+              autoCapitalize="none"
+              autoComplete="off"
+              disabled={billingPending}
+              onChange={(event) => onPromotionCodeChange(event.target.value)}
+              placeholder="comunidad100"
+              value={promotionCode}
+            />
+          </Field>
+          <p className="text-xs leading-5 text-muted-foreground">
+            Si usas un código VIP como comunidad100, abrimos Checkout sin prueba gratuita.
+          </p>
+        </div>
       </CardHeader>
       <CardContent className="grid gap-5 p-4 sm:p-6">
         <PlanOptionsGrid
@@ -1386,9 +1528,11 @@ function PlanSelectionCard({
           canManageBilling={plan.managementReady}
           maxAccountCapacity={maxAccountCapacity}
           onManagePlan={onManagePlan}
+          onReactivatePlan={onReactivatePlan}
           onSelectPlan={onSelectPlan}
           planChartData={planChartData}
           planOptions={planOptions}
+          reactivationRequired={reactivationRequired}
         />
 
         <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.38fr)]">
@@ -1412,6 +1556,7 @@ function PlanSelectionCard({
             onOpenChange={onPlanDetailsOpenChange}
             open={planDetailsOpen}
             paymentRows={paymentRows}
+            reactivationRequired={reactivationRequired}
             usedAccountsLabel={plan.usedAccountsLabel}
           />
         </div>
@@ -1426,12 +1571,14 @@ function BillingStatusCard({
   onManagePlan,
   paymentRows,
   plan,
+  reactivationRequired,
 }: {
   billingAction: BillingActionState;
   billingPending: boolean;
   onManagePlan: () => void;
   paymentRows: SettingsOverview["plan"]["paymentRows"];
   plan: SettingsOverview["plan"];
+  reactivationRequired: boolean;
 }) {
   return (
     <Card className="border-border/70 bg-card/70">
@@ -1451,7 +1598,9 @@ function BillingStatusCard({
               <CreditCard data-icon="inline-start" />
               {billingPending && !billingAction.planKey
                 ? "Abriendo..."
-                : plan.primaryActionLabel}
+                : reactivationRequired
+                  ? "Reactivar plan"
+                  : plan.primaryActionLabel}
             </Button>
             <Button variant="outline" render={<Link href="/accounts" />} nativeButton={false}>
               <WalletCards data-icon="inline-start" />
@@ -1764,10 +1913,14 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
 }
 
 export function SubscriptionReferenceSection({
+  accessNotice = null,
+  accessNoticeDate = "",
   initialBillingPlanKey = null,
   welcome = false,
   workspace,
 }: {
+  accessNotice?: BillingAccessNotice | null;
+  accessNoticeDate?: string;
   initialBillingPlanKey?: PlanOptionKey | null;
   welcome?: boolean;
   workspace: WorkspaceState;
@@ -1781,6 +1934,7 @@ export function SubscriptionReferenceSection({
   const [billingPlanKey, setBillingPlanKey] =
     React.useState<PlanOptionKey | null>(initialBillingPlanKey);
   const [planDetailsOpen, setPlanDetailsOpen] = React.useState(false);
+  const [promotionCode, setPromotionCode] = React.useState("");
   const [billingAction, setBillingAction] = React.useState<{
     status: "idle" | "pending" | "success" | "error";
     message: string;
@@ -1790,6 +1944,16 @@ export function SubscriptionReferenceSection({
     status: "idle",
   });
   const statusBadgeVariant = plan.statusTone === "ready" ? "secondary" : "destructive";
+  const reactivationRequired =
+    accessNotice === "billing_paused" || accessNotice === "trial_expired";
+  const subscriptionStatusLabel =
+    accessNotice === "trial_expired"
+      ? "Prueba finalizada"
+      : accessNotice === "billing_paused"
+        ? "Acceso pausado"
+        : accessNotice === "billing_attention"
+          ? "Pago pendiente"
+          : plan.statusLabel;
   const fallbackPlanKey =
     plan.options.find((option) => option.current)?.key ?? plan.options[0]?.key ?? "core";
   const effectivePlanKey = billingPlanKey ?? fallbackPlanKey;
@@ -1858,7 +2022,13 @@ export function SubscriptionReferenceSection({
   const billingPending = billingAction.status === "pending";
   const billingMessage =
     billingAction.message ||
-    (billingPending ? "Preparando conexión segura..." : plan.managementNote);
+    (billingPending
+      ? "Preparando conexión segura..."
+      : reactivationRequired
+        ? "El plan sigue guardado, pero el acceso operativo está pausado. Reactiva para recuperar dashboard, descargas y sincronización MT5."
+        : accessNotice === "billing_attention"
+          ? "La suscripción necesita atención. Revisa pago o método de cobro desde el portal seguro."
+          : plan.managementNote);
   const displayedIncludedAccountsLabel = includedAccountsLabelForPlan(currentOption);
   const displayedUsagePercent = usagePercentForPlan(currentOption, settingsOverview.accountCount);
   const displayedAccountNote =
@@ -1904,6 +2074,8 @@ export function SubscriptionReferenceSection({
   }
 
   async function startCheckout(planKey: PlanOptionKey) {
+    const cleanedPromotionCode = promotionCode.trim();
+
     setBillingAction({
       message: "Preparando Checkout seguro...",
       planKey,
@@ -1916,6 +2088,7 @@ export function SubscriptionReferenceSection({
           cancelUrl: "/subscription?checkout=cancelled",
           interval: billingInterval,
           plan: planKey,
+          ...(cleanedPromotionCode ? { promotionCode: cleanedPromotionCode } : {}),
           successUrl: "/subscription?checkout=success&session_id={CHECKOUT_SESSION_ID}",
         }),
         headers: {
@@ -1959,7 +2132,57 @@ export function SubscriptionReferenceSection({
         message:
           reason === "rate_limited"
             ? "Demasiados intentos seguidos. Espera un momento y vuelve a probar."
+            : reason === "promotion_code_not_found"
+              ? "No se pudo validar ese código. Revisa que esté escrito exactamente igual."
             : "No se pudo abrir Checkout. Revisa sesión y configuración de billing.",
+        planKey,
+        status: "error",
+      });
+    }
+  }
+
+  async function reactivateSubscription(planKey: PlanOptionKey) {
+    setBillingAction({
+      message: "Reactivando plan...",
+      planKey,
+      status: "pending",
+    });
+
+    try {
+      const response = await fetch("/api/kmfx/billing/subscription", {
+        body: JSON.stringify({ action: "resume" }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const payload = await readBillingPayload(response);
+
+      if (!payload) return;
+
+      setBillingPlanKey(billingPlanKeyFromPayload(payload) ?? planKey);
+      setBillingAction({
+        message: payload.message || "Plan reactivado correctamente.",
+        planKey,
+        status: "success",
+      });
+      router.refresh();
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "billing_resume_failed";
+      if (
+        reason === "stripe_http_400" ||
+        reason === "stripe_http_402" ||
+        reason === "subscription_not_found"
+      ) {
+        await openBillingPortal("No se pudo reactivar automáticamente. Abriendo portal seguro...");
+        return;
+      }
+
+      setBillingAction({
+        message:
+          reason === "rate_limited"
+            ? "Demasiados intentos seguidos. Espera un momento y vuelve a probar."
+            : "No se pudo reactivar el plan. Abre el portal seguro para revisar pago y renovación.",
         planKey,
         status: "error",
       });
@@ -2006,7 +2229,12 @@ export function SubscriptionReferenceSection({
   return (
     <PageMotion>
       <div className="grid max-w-7xl gap-4">
-        {welcome ? <SubscriptionWelcomeCard /> : null}
+        {welcome || accessNotice ? (
+          <SubscriptionWelcomeCard
+            accessNotice={accessNotice ?? "plan_required"}
+            accessNoticeDate={accessNoticeDate}
+          />
+        ) : null}
 
         <PlanSelectionCard
           billingAction={billingAction}
@@ -2023,8 +2251,14 @@ export function SubscriptionReferenceSection({
           maxAccountCapacity={maxAccountCapacity}
           maxChartPrice={maxChartPrice}
           onBillingIntervalChange={setBillingInterval}
-          onManagePlan={() => void openBillingPortal()}
+          onManagePlan={() =>
+            reactivationRequired
+              ? void reactivateSubscription(currentOption.key)
+              : void openBillingPortal()
+          }
           onPlanDetailsOpenChange={setPlanDetailsOpen}
+          onPromotionCodeChange={setPromotionCode}
+          onReactivatePlan={(planKey) => void reactivateSubscription(planKey)}
           onSelectPlan={(planKey) => void startCheckout(planKey)}
           overLimit={overLimit}
           paymentRows={plan.paymentRows}
@@ -2032,16 +2266,24 @@ export function SubscriptionReferenceSection({
           planChartData={planChartData}
           planDetailsOpen={planDetailsOpen}
           planOptions={planOptions}
-          statusBadgeVariant={statusBadgeVariant}
+          promotionCode={promotionCode}
+          reactivationRequired={reactivationRequired}
+          statusBadgeVariant={accessNotice ? "destructive" : statusBadgeVariant}
+          statusLabel={subscriptionStatusLabel}
         />
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)]">
           <BillingStatusCard
             billingAction={billingAction}
             billingPending={billingPending}
-            onManagePlan={() => void openBillingPortal()}
+            onManagePlan={() =>
+              reactivationRequired
+                ? void reactivateSubscription(currentOption.key)
+                : void openBillingPortal()
+            }
             paymentRows={plan.paymentRows}
             plan={plan}
+            reactivationRequired={reactivationRequired}
           />
 
           <PlanComparisonCard

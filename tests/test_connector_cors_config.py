@@ -1997,6 +1997,97 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertNotIn(user_id, stripe_mock.call_args.kwargs.get("idempotency_key", ""))
         self.assertNotIn("billing@example.com", stripe_mock.call_args.kwargs.get("idempotency_key", ""))
 
+    def test_billing_checkout_applies_vip_promotion_without_trial(self) -> None:
+        request = self._request(
+            headers={"authorization": "Bearer billing-token"},
+            json_body={
+                "plan": "unlimited",
+                "interval": "monthly",
+                "promotionCode": "comunidad100",
+            },
+        )
+        user_id = "11111111-1111-4111-8111-111111111111"
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "billing@example.com",
+                "app_metadata": {"plan": "free"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "resolve_stripe_price_reference",
+            return_value={"price_id": "price_unlimited_monthly", "lookup_key": "kmfx_unlimited_monthly"},
+        ), patch.object(
+            connector_api,
+            "ensure_billing_customer",
+            return_value="cus_123",
+        ), patch.object(
+            connector_api,
+            "existing_kmfx_subscription_for_checkout",
+            return_value={},
+        ), patch.object(
+            connector_api,
+            "stripe_api_request",
+            side_effect=[
+                {"data": [{"id": "promo_vip_100"}]},
+                {"id": "cs_123", "url": "https://checkout.stripe.test/session"},
+            ],
+        ) as stripe_mock:
+            response = asyncio.run(connector_api.billing_checkout(request))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["ok"])
+        promo_call, checkout_call = stripe_mock.call_args_list
+        self.assertEqual("/promotion_codes", promo_call.args[1])
+        self.assertEqual("comunidad100", promo_call.args[2]["code"])
+        self.assertEqual("/checkout/sessions", checkout_call.args[1])
+        params = checkout_call.args[2]
+        self.assertEqual([{"promotion_code": "promo_vip_100"}], params["discounts"])
+        self.assertFalse(params["allow_promotion_codes"])
+        self.assertNotIn("trial_period_days", params["subscription_data"])
+        self.assertNotIn("payment_method_collection", params)
+        self.assertEqual("comunidad100", params["metadata"]["kmfx_promotion_code"])
+        self.assertEqual("true", params["metadata"]["kmfx_vip_promotion"])
+
+    def test_billing_checkout_rejects_unknown_explicit_promotion_code(self) -> None:
+        request = self._request(
+            headers={"authorization": "Bearer billing-token"},
+            json_body={"plan": "pro", "interval": "monthly", "promotionCode": "missing-code"},
+        )
+        user_id = "11111111-1111-4111-8111-111111111111"
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "billing@example.com",
+                "app_metadata": {"plan": "free"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "ensure_billing_customer",
+            return_value="cus_123",
+        ), patch.object(
+            connector_api,
+            "existing_kmfx_subscription_for_checkout",
+            return_value={},
+        ), patch.object(
+            connector_api,
+            "stripe_api_request",
+            return_value={"data": []},
+        ) as stripe_mock:
+            response = asyncio.run(connector_api.billing_checkout(request))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(400, response.status_code)
+        self.assertEqual("promotion_code_not_found", body["reason"])
+        stripe_mock.assert_called_once()
+
     def test_billing_checkout_keeps_existing_subscription_without_opening_portal(self) -> None:
         request = self._request(
             headers={"authorization": "Bearer billing-existing-token"},
