@@ -2117,12 +2117,52 @@ export function SubscriptionReferenceSection({
 
   async function reactivateSubscription(planKey: PlanOptionKey) {
     setBillingAction({
-      message: "Abriendo Stripe para reactivar el plan...",
+      message: "Reactivando plan...",
       planKey,
       status: "pending",
     });
 
-    await openBillingPortal("Abriendo Stripe para reactivar el plan...");
+    try {
+      const response = await fetch("/api/kmfx/billing/subscription", {
+        body: JSON.stringify({ action: "resume" }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const payload = await readBillingPayload(response);
+
+      if (!payload) return;
+
+      setBillingPlanKey(billingPlanKeyFromPayload(payload) ?? planKey);
+      setBillingAction({
+        message: payload.message || "Plan reactivado correctamente.",
+        planKey,
+        status: "success",
+      });
+      router.refresh();
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "billing_resume_failed";
+      if (
+        reason === "stripe_http_400" ||
+        reason === "stripe_http_402" ||
+        reason === "subscription_not_found"
+      ) {
+        await openBillingPortal(
+          "Stripe necesita revisar el método de pago antes de reactivar.",
+        );
+        return;
+      }
+
+      setBillingAction({
+        message:
+          reason === "rate_limited"
+            ? "Demasiados intentos seguidos. Espera un momento y vuelve a probar."
+            : "No se pudo reactivar el plan. Abre el portal seguro para revisar pago y renovación.",
+        planKey,
+        status: "error",
+      });
+    }
   }
 
   async function openBillingPortal(message = "Abriendo portal de suscripción...") {
