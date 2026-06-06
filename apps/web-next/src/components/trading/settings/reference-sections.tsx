@@ -1417,7 +1417,6 @@ function PlanSelectionCard({
   onBillingIntervalChange,
   onManagePlan,
   onPlanDetailsOpenChange,
-  onPromotionCodeChange,
   onReactivatePlan,
   onSelectPlan,
   overLimit,
@@ -1426,7 +1425,6 @@ function PlanSelectionCard({
   planChartData,
   planDetailsOpen,
   planOptions,
-  promotionCode,
   reactivationRequired,
   statusBadgeVariant,
   statusLabel,
@@ -1447,7 +1445,6 @@ function PlanSelectionCard({
   onBillingIntervalChange: (billingInterval: BillingInterval) => void;
   onManagePlan: () => void;
   onPlanDetailsOpenChange: (open: boolean) => void;
-  onPromotionCodeChange: (promotionCode: string) => void;
   onReactivatePlan: (planKey: PlanOptionKey) => void;
   onSelectPlan: (planKey: PlanOptionKey) => void;
   overLimit: boolean;
@@ -1456,7 +1453,6 @@ function PlanSelectionCard({
   planChartData: PlanChartItem[];
   planDetailsOpen: boolean;
   planOptions: SettingsPlanOption[];
-  promotionCode: string;
   reactivationRequired: boolean;
   statusBadgeVariant: "secondary" | "destructive";
   statusLabel: string;
@@ -1503,22 +1499,6 @@ function PlanSelectionCard({
         >
           {billingMessage}
         </p>
-        <div className="mt-4 grid gap-2 sm:max-w-sm">
-          <Field>
-            <FieldLabel>Código VIP o descuento</FieldLabel>
-            <Input
-              autoCapitalize="none"
-              autoComplete="off"
-              disabled={billingPending}
-              onChange={(event) => onPromotionCodeChange(event.target.value)}
-              placeholder="comunidad100"
-              value={promotionCode}
-            />
-          </Field>
-          <p className="text-xs leading-5 text-muted-foreground">
-            Si usas un código VIP como comunidad100, abrimos Checkout sin prueba gratuita.
-          </p>
-        </div>
       </CardHeader>
       <CardContent className="grid gap-5 p-4 sm:p-6">
         <PlanOptionsGrid
@@ -1934,7 +1914,6 @@ export function SubscriptionReferenceSection({
   const [billingPlanKey, setBillingPlanKey] =
     React.useState<PlanOptionKey | null>(initialBillingPlanKey);
   const [planDetailsOpen, setPlanDetailsOpen] = React.useState(false);
-  const [promotionCode, setPromotionCode] = React.useState("");
   const [billingAction, setBillingAction] = React.useState<{
     status: "idle" | "pending" | "success" | "error";
     message: string;
@@ -2025,7 +2004,7 @@ export function SubscriptionReferenceSection({
     (billingPending
       ? "Preparando conexión segura..."
       : reactivationRequired
-        ? "El plan sigue guardado, pero el acceso operativo está pausado. Reactiva para recuperar dashboard, descargas y sincronización MT5."
+        ? "El plan sigue guardado, pero el acceso operativo está pausado. Reactiva desde Stripe para recuperar dashboard, descargas y sincronización MT5."
         : accessNotice === "billing_attention"
           ? "La suscripción necesita atención. Revisa pago o método de cobro desde el portal seguro."
           : plan.managementNote);
@@ -2074,8 +2053,6 @@ export function SubscriptionReferenceSection({
   }
 
   async function startCheckout(planKey: PlanOptionKey) {
-    const cleanedPromotionCode = promotionCode.trim();
-
     setBillingAction({
       message: "Preparando Checkout seguro...",
       planKey,
@@ -2088,7 +2065,6 @@ export function SubscriptionReferenceSection({
           cancelUrl: "/subscription?checkout=cancelled",
           interval: billingInterval,
           plan: planKey,
-          ...(cleanedPromotionCode ? { promotionCode: cleanedPromotionCode } : {}),
           successUrl: "/subscription?checkout=success&session_id={CHECKOUT_SESSION_ID}",
         }),
         headers: {
@@ -2132,8 +2108,6 @@ export function SubscriptionReferenceSection({
         message:
           reason === "rate_limited"
             ? "Demasiados intentos seguidos. Espera un momento y vuelve a probar."
-            : reason === "promotion_code_not_found"
-              ? "No se pudo validar ese código. Revisa que esté escrito exactamente igual."
             : "No se pudo abrir Checkout. Revisa sesión y configuración de billing.",
         planKey,
         status: "error",
@@ -2143,50 +2117,12 @@ export function SubscriptionReferenceSection({
 
   async function reactivateSubscription(planKey: PlanOptionKey) {
     setBillingAction({
-      message: "Reactivando plan...",
+      message: "Abriendo Stripe para reactivar el plan...",
       planKey,
       status: "pending",
     });
 
-    try {
-      const response = await fetch("/api/kmfx/billing/subscription", {
-        body: JSON.stringify({ action: "resume" }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-      });
-      const payload = await readBillingPayload(response);
-
-      if (!payload) return;
-
-      setBillingPlanKey(billingPlanKeyFromPayload(payload) ?? planKey);
-      setBillingAction({
-        message: payload.message || "Plan reactivado correctamente.",
-        planKey,
-        status: "success",
-      });
-      router.refresh();
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : "billing_resume_failed";
-      if (
-        reason === "stripe_http_400" ||
-        reason === "stripe_http_402" ||
-        reason === "subscription_not_found"
-      ) {
-        await openBillingPortal("No se pudo reactivar automáticamente. Abriendo portal seguro...");
-        return;
-      }
-
-      setBillingAction({
-        message:
-          reason === "rate_limited"
-            ? "Demasiados intentos seguidos. Espera un momento y vuelve a probar."
-            : "No se pudo reactivar el plan. Abre el portal seguro para revisar pago y renovación.",
-        planKey,
-        status: "error",
-      });
-    }
+    await openBillingPortal("Abriendo Stripe para reactivar el plan...");
   }
 
   async function openBillingPortal(message = "Abriendo portal de suscripción...") {
@@ -2257,7 +2193,6 @@ export function SubscriptionReferenceSection({
               : void openBillingPortal()
           }
           onPlanDetailsOpenChange={setPlanDetailsOpen}
-          onPromotionCodeChange={setPromotionCode}
           onReactivatePlan={(planKey) => void reactivateSubscription(planKey)}
           onSelectPlan={(planKey) => void startCheckout(planKey)}
           overLimit={overLimit}
@@ -2266,7 +2201,6 @@ export function SubscriptionReferenceSection({
           planChartData={planChartData}
           planDetailsOpen={planDetailsOpen}
           planOptions={planOptions}
-          promotionCode={promotionCode}
           reactivationRequired={reactivationRequired}
           statusBadgeVariant={accessNotice ? "destructive" : statusBadgeVariant}
           statusLabel={subscriptionStatusLabel}
