@@ -150,8 +150,20 @@ def _write_app_shortcut(prefix: Path, program_dir: Path, name: str) -> Path:
     if app_path.exists():
         shutil.rmtree(app_path, ignore_errors=False)
     macos_dir = app_path / "Contents" / "MacOS"
+    resources_dir = app_path / "Contents" / "Resources"
     macos_dir.mkdir(parents=True, exist_ok=True)
+    resources_dir.mkdir(parents=True, exist_ok=True)
     executable = macos_dir / name
+    icon_source = MAC_MAIN_APP / "Contents" / "Resources" / "AppIcon.icns"
+    if icon_source.exists():
+        shutil.copy2(icon_source, resources_dir / "AppIcon.icns")
+    if name == "MT5-Orion":
+        window_match = (
+            'windowName contains "80571774" or windowName contains "OGMInternational" '
+            'or windowName contains "OGM International"'
+        )
+    else:
+        window_match = 'windowName contains "MetaTrader"'
     executable.write_text(
         "\n".join(
             [
@@ -177,14 +189,14 @@ def _write_app_shortcut(prefix: Path, program_dir: Path, name: str) -> Path:
                 f"  osascript -e 'display alert \"{name}\" message \"No se encontro terminal64.exe\"'",
                 "  exit 1",
                 "fi",
-                "if pgrep -f \"$TERMINAL.* /portable\" >/dev/null 2>&1; then",
+                "raise_mt5_window() {",
                 "  osascript <<'OSA' >/dev/null 2>&1 || true",
                 "tell application \"System Events\"",
                 "  repeat with p in (processes whose name is \"wine\")",
                 "    repeat with w in windows of p",
                 "      try",
                 "        set windowName to name of w as text",
-                "        if windowName contains \"MetaTrader\" then",
+                f"        if {window_match} then",
                 "          set frontmost of p to true",
                 "          perform action \"AXRaise\" of w",
                 "          return",
@@ -194,11 +206,17 @@ def _write_app_shortcut(prefix: Path, program_dir: Path, name: str) -> Path:
                 "  end repeat",
                 "end tell",
                 "OSA",
+                "}",
+                "if pgrep -f \"$TERMINAL.* /portable\" >/dev/null 2>&1; then",
+                "  raise_mt5_window",
                 "  exit 0",
                 "fi",
                 "LOG_DIR=\"$HOME/Library/Logs/KMFX MT5 Instances\"",
                 "mkdir -p \"$LOG_DIR\"",
-                f"exec \"$WINE_BIN\" \"$TERMINAL\" /portable >> \"$LOG_DIR/{name}.log\" 2>&1",
+                f"\"$WINE_BIN\" \"$TERMINAL\" /portable >> \"$LOG_DIR/{name}.log\" 2>&1 &",
+                "sleep 5",
+                "raise_mt5_window",
+                "wait $! || true",
                 "",
             ]
         ),
@@ -216,8 +234,14 @@ def _write_app_shortcut(prefix: Path, program_dir: Path, name: str) -> Path:
   <string>com.kmfx.mt5.{name.lower()}</string>
   <key>CFBundleName</key>
   <string>{name}</string>
+  <key>CFBundleDisplayName</key>
+  <string>{name}</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>10.13</string>
 </dict>
 </plist>
 """,
