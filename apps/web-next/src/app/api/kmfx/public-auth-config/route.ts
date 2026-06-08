@@ -16,7 +16,10 @@ export function GET() {
       ok: Boolean(supabaseUrl && supabasePublishableKey),
       supabasePublishableKey,
       supabaseUrl,
-      turnstileSiteKey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? "",
+      turnstileSiteKey:
+        process.env["NEXT_PUBLIC_TURNSTILE_SITE_KEY"]?.trim() ??
+        process.env["TURNSTILE_SITE_KEY"]?.trim() ??
+        "",
     },
     {
       headers: {
