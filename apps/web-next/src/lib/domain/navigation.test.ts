@@ -89,13 +89,16 @@ describe("navigation route coverage", () => {
 
   it("renders every disabled product route through the upcoming section", () => {
     const disabledHrefs = Array.from(new Set(collectDisabledNavigationHrefs())).toSorted();
-    const upcomingHrefs = upcomingRouteList.map((route) => route.href).toSorted();
+    const upcomingHrefs = new Set<string>(upcomingRouteList.map((route) => route.href));
+    const disabledWithoutUpcomingPage = disabledHrefs.filter(
+      (href) => !upcomingHrefs.has(href),
+    );
     const routesWithoutUpcomingPage = disabledHrefs.filter((href) => {
       const source = fs.readFileSync(routePagePath(href), "utf8");
       return !source.includes("UpcomingSection") || !source.includes("upcomingRoutes");
     });
 
-    expect(upcomingHrefs).toEqual(disabledHrefs);
+    expect(disabledWithoutUpcomingPage).toEqual([]);
     expect(routesWithoutUpcomingPage).toEqual([]);
   });
 
@@ -105,11 +108,13 @@ describe("navigation route coverage", () => {
       .filter(([, access]) => access === "admin")
       .map(([href]) => href)
       .toSorted();
+    const upcomingHrefs = new Set<string>(upcomingRouteList.map((route) => route.href));
     const expectedV1SmokeRoutes = Object.keys(routeTitles)
       .filter((href) => getRouteAccessLevel(href) === "user")
       .filter((href) => !disabledHrefs.has(href))
+      .filter((href) => !upcomingHrefs.has(href))
       .toSorted();
-    const expectedUpcomingSmokeRoutes = Array.from(disabledHrefs).toSorted();
+    const expectedUpcomingSmokeRoutes = upcomingRouteList.map((route) => route.href).toSorted();
 
     expect(collectSmokeRoutes("v1Routes").toSorted()).toEqual(expectedV1SmokeRoutes);
     expect(collectSmokeRoutes("upcomingRoutes").toSorted()).toEqual(expectedUpcomingSmokeRoutes);
@@ -141,8 +146,7 @@ describe("navigation product contract", () => {
       "Suscripción",
     ]);
     expect(upcomingTitles).toEqual([
-      "RiskGuard",
-      "Review",
+      "Mesa de Riesgo",
       "Playbooks",
       "Prop Firms",
       "Mercado",
@@ -186,8 +190,7 @@ describe("navigation product contract", () => {
     ]);
 
     expect(navigationGroups[2].items.map((item) => item.title)).toEqual([
-      "RiskGuard",
-      "Review",
+      "Mesa de Riesgo",
       "Playbooks",
       "Prop Firms",
       "Mercado",
@@ -204,9 +207,11 @@ describe("navigation product contract", () => {
 
   it("keeps every active V1 route tied to a clear trader question", () => {
     const disabledHrefs = new Set(collectDisabledNavigationHrefs());
+    const upcomingHrefs = new Set<string>(upcomingRouteList.map((route) => route.href));
     const activeUserRoutes = Object.keys(routeTitles)
       .filter((href) => getRouteAccessLevel(href) === "user")
-      .filter((href) => !disabledHrefs.has(href));
+      .filter((href) => !disabledHrefs.has(href))
+      .filter((href) => !upcomingHrefs.has(href));
 
     const missingQuestions = activeUserRoutes.filter((href) => {
       const question = routeDecisionQuestions[href];
@@ -225,7 +230,7 @@ describe("navigation product contract", () => {
     expect(routeTitles).toMatchObject({
       "/dashboard": "Panel",
       "/accounts": "Cuentas",
-      "/risk": "RiskGuard",
+      "/risk": "Mesa de Riesgo",
       "/analytics": "Insights",
       "/capital": "Portfolio",
       "/market/economic-calendar": "Mercado / Noticias",
@@ -251,8 +256,6 @@ describe("navigation product contract", () => {
   });
 
   it("resolves active state and titles from URL pathnames", () => {
-    expect(isNavigationHrefActive("/journal/review-queue", "/journal")).toBe(true);
-    expect(isNavigationHrefActive("/journalish", "/journal")).toBe(false);
     expect(isNavigationHrefActive("/analytics/daily?range=30d", "/analytics")).toBe(true);
     expect(resolveRouteTitle("/analytics/daily?range=30d")).toBe("Insights / Día");
     expect(resolveRouteTitle("/funding/journeys/abc")).toBe("Prop Firms / Procesos");

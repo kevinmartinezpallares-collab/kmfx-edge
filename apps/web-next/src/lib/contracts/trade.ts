@@ -31,6 +31,17 @@ export type ClosedTrade = {
   session: TradeSession;
   setup: string | null;
   tradingDayKey: string;
+  initialStopPrice?: number | null;
+  targetPrice?: number | null;
+  plannedRiskAmount?: number | null;
+  plannedRewardAmount?: number | null;
+  plannedRewardRiskRatio?: number | null;
+  capturedR?: number | null;
+  maxFavorableExcursionAmount?: number | null;
+  maxAdverseExcursionAmount?: number | null;
+  mfeR?: number | null;
+  maeR?: number | null;
+  exitEfficiencyPct?: number | null;
   executions: ClosedTradeExecution[];
 };
 

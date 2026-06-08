@@ -4,6 +4,7 @@ import type { RawLiveAccountsSnapshot } from "@/lib/contracts/live-snapshot";
 import { createWorkspaceFromLiveSnapshot } from "@/lib/data/live-snapshot-adapter";
 import fixtureSnapshot from "@/lib/data/fixtures/live-accounts-snapshot.fixture.json";
 import { getAccountsOverview } from "@/lib/domain/accounts-selectors";
+import { resolveFundingRuleForAccount } from "@/lib/domain/funding-rule-catalog";
 import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
 
 const partialCloseSnapshot = {
@@ -173,6 +174,126 @@ describe("createWorkspaceFromLiveSnapshot", () => {
     );
 
     expect(workspace.accounts[0]?.label).toBe("Darwinex MT5");
+  });
+
+  it("identifies The Funding Pips exam metadata from connected account labels", () => {
+    const workspace = createWorkspaceFromLiveSnapshot(
+      {
+        accounts: [
+          {
+            account_id: "tfp-step-2",
+            display_name: "The Funding Pips 100K 2-Step Standard Step 2",
+            broker: "The Funding Pips",
+            login: "77***02",
+            server: "TFP-Server01",
+            status: "active",
+            last_sync_at: "2026-05-30T14:30:00Z",
+            dashboard_payload: {
+              balance: 100000,
+              equity: 100000,
+              riskSnapshot: {
+                policy: {
+                  daily_dd_limit_pct: 5,
+                  max_dd_limit_pct: 10,
+                  portfolio_heat_limit_pct: 5,
+                },
+                summary: {
+                  daily_drawdown_pct: 0,
+                  distance_to_daily_dd_limit_pct: 5,
+                  max_drawdown_limit_pct: 10,
+                  peak_to_equity_drawdown_pct: 0,
+                  portfolio_heat_limit_pct: 5,
+                  total_open_risk_pct: 0,
+                },
+              },
+            },
+          },
+        ],
+      },
+      "live",
+    );
+
+    const account = workspace.accounts[0]!;
+
+    expect(account.funding).toMatchObject({
+      accountMode: "evaluation",
+      firm: "The Funding Pips",
+      objectivePct: 5,
+      phaseLabel: "Step 2",
+      playbookLabel: "2 Step Standard",
+    });
+    expect(resolveFundingRuleForAccount(account)).toMatchObject({
+      status: "verified",
+    });
+  });
+
+  it("identifies The5ers High Stakes phase 1 when target is present in the account name", () => {
+    const workspace = createWorkspaceFromLiveSnapshot(
+      {
+        accounts: [
+          {
+            account_id: "the5ers-high-stakes",
+            display_name: "The5ers High Stakes 100K Phase 1 10%",
+            broker: "The5ers",
+            login: "88***10",
+            server: "The5ers-Demo",
+            status: "active",
+            last_sync_at: "2026-05-30T14:30:00Z",
+            dashboard_payload: {
+              balance: 100000,
+              equity: 100000,
+              riskSnapshot: {
+                policy: {
+                  daily_dd_limit_pct: 5,
+                  max_dd_limit_pct: 10,
+                  portfolio_heat_limit_pct: 5,
+                },
+              },
+            },
+          },
+        ],
+      },
+      "live",
+    );
+
+    const account = workspace.accounts[0]!;
+
+    expect(account.funding).toMatchObject({
+      accountMode: "challenge",
+      firm: "The5ers",
+      objectivePct: 10,
+      phaseLabel: "Fase 1",
+      playbookLabel: "High Stakes",
+    });
+    expect(resolveFundingRuleForAccount(account)).toMatchObject({
+      status: "verified",
+    });
+  });
+
+  it("does not classify a normal Darwinex MT5 account as Darwinex Zero", () => {
+    const workspace = createWorkspaceFromLiveSnapshot(
+      {
+        accounts: [
+          {
+            account_id: "darwinex-live-normal",
+            display_name: "Darwinex MT5",
+            broker: "Darwinex",
+            login: "40***26",
+            server: "Darwinex-Live",
+            status: "active",
+            last_sync_at: "2026-05-30T14:30:00Z",
+            dashboard_payload: {
+              balance: 100000,
+              equity: 100000,
+            },
+          },
+        ],
+      },
+      "live",
+    );
+
+    expect(workspace.accounts[0]?.isFunded).toBe(false);
+    expect(workspace.accounts[0]?.funding).toBeUndefined();
   });
 
   it("backfills short equity history with older MT5 closes for portfolio timelines", () => {

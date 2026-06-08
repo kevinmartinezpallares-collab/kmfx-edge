@@ -22,10 +22,6 @@ const v1Routes = [
 
 const upcomingRoutes = [
   "/risk",
-  "/journal",
-  "/journal/review-queue",
-  "/journal/entries",
-  "/journal/ai-review",
   "/strategies",
   "/strategies/backtest-vs-real",
   "/strategies/portfolio",
@@ -41,6 +37,7 @@ const upcomingRoutes = [
 
 const adminBlockedRoutes = [
   "/debug",
+  "/strategy-lab",
 ];
 
 async function assertServerReady() {

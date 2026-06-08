@@ -19,6 +19,7 @@ export interface ChartSelection {
 interface UseChartInteractionParams {
   xScale: ScaleTime;
   yScale: ScaleLinear;
+  yScales?: Record<string, ScaleLinear>;
   data: Record<string, unknown>[];
   lines: LineConfig[];
   margin: Margin;

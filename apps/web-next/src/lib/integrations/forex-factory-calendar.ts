@@ -3,6 +3,7 @@ import type {
   EconomicCalendarEvent,
   EconomicImpact,
 } from "@/lib/contracts/economic-calendar";
+import { enrichEventsWithInvestingReleases } from "@/lib/integrations/investing-economic-calendar";
 
 type ForexFactoryImpact = "High" | "Medium" | "Low" | "Holiday";
 
@@ -143,7 +144,7 @@ export async function fetchForexFactoryCalendarEvents() {
       accept: "application/json",
     },
     next: {
-      revalidate: 60,
+      revalidate: 30,
     },
   });
 
@@ -152,12 +153,20 @@ export async function fetchForexFactoryCalendarEvents() {
   }
 
   const payload: unknown = await response.json();
-  const events = parseForexFactoryCalendarEvents(payload, fetchedAt);
+  const events = await enrichEventsWithInvestingReleases(
+    parseForexFactoryCalendarEvents(payload, fetchedAt),
+    fetchedAt,
+  );
+  const hasInvestingEnrichment = events.some((event) =>
+    event.source.provider.includes("Investing"),
+  );
 
   return {
     events,
     fetchedAt,
-    provider: "Forex Factory",
+    provider: hasInvestingEnrichment
+      ? "Forex Factory + Investing"
+      : "Forex Factory",
     sourceUrl: macroCalendarConfig.forexFactoryCalendarUrl,
   };
 }

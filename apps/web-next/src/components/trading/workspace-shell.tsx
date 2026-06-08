@@ -197,16 +197,16 @@ function getNavBadge(
 
   if (href === "/dashboard") return "Activo";
   if (href === "/accounts") return String(getAccountsOverview(workspace).totalCount);
-  if (href === "/risk") return workspace.risk.status === "safe" ? "OK" : workspace.risk.status;
+  if (href === "/risk") {
+    if (workspace.risk.status === "blocked") return "Límite";
+    if (workspace.risk.status === "caution") return "Vigilar";
+    return "OK";
+  }
   if (href === "/analytics") return workspace.analytics.currentPeriod;
   if (href === "/trades") return String(countClosedTradeExecutions(workspace.trades));
   if (href === "/capital") {
     const fundedCount = workspace.accounts.filter((account) => account.isFunded).length;
     return `${fundedCount}F`;
-  }
-  if (href === "/journal") {
-    const reviewQueue = Math.max(0, workspace.accounts.length - 1);
-    return String(reviewQueue);
   }
   if (href === "/strategies") {
     const fundedCount = workspace.accounts.filter((account) => account.isFunded).length;
@@ -224,6 +224,38 @@ function isHrefActive(pathname: string, href: string) {
   return pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
 }
 
+function hrefWithActiveAccount(href: string, selectedAccountId: string | null) {
+  if (!selectedAccountId) return href;
+
+  const params = new URLSearchParams({ account: selectedAccountId });
+  return `${href}?${params.toString()}`;
+}
+
+function getWorkspacePrefetchHrefs(selectedAccountId: string | null) {
+  const hrefs = new Set<string>();
+
+  for (const group of navigationGroups) {
+    for (const item of group.items) {
+      if (item.enabled && item.href) {
+        hrefs.add(hrefWithActiveAccount(item.href, selectedAccountId));
+      }
+
+      for (const child of item.children ?? []) {
+        if (child.enabled) {
+          hrefs.add(hrefWithActiveAccount(child.href, selectedAccountId));
+        }
+      }
+    }
+  }
+
+  hrefs.add("/library");
+  hrefs.add("/settings");
+  hrefs.add("/subscription");
+  hrefs.add("/tools/calculator");
+
+  return Array.from(hrefs);
+}
+
 function NavigationGroupMenu({
   items,
   pathname,
@@ -239,19 +271,19 @@ function NavigationGroupMenu({
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
 
-  function hrefWithActiveAccount(href: string) {
-    if (!selectedAccountId) return href;
-
-    const params = new URLSearchParams({ account: selectedAccountId });
-    return `${href}?${params.toString()}`;
+  function prefetchTo(href: string) {
+    router.prefetch(hrefWithActiveAccount(href, selectedAccountId));
   }
 
   function navigateTo(href: string) {
+    const targetHref = hrefWithActiveAccount(href, selectedAccountId);
+
     if (isMobile) {
       setOpenMobile(false);
     }
 
-    router.push(hrefWithActiveAccount(href));
+    router.prefetch(targetHref);
+    router.push(targetHref);
   }
 
   return (
@@ -283,6 +315,16 @@ function NavigationGroupMenu({
                   navigateTo(href);
                 }
               }}
+              onFocus={() => {
+                if (href && item.enabled) {
+                  prefetchTo(href);
+                }
+              }}
+              onPointerEnter={() => {
+                if (href && item.enabled) {
+                  prefetchTo(href);
+                }
+              }}
             >
               <Icon />
               <span>{item.title}</span>
@@ -302,6 +344,16 @@ function NavigationGroupMenu({
                           event.preventDefault();
                           if (child.enabled) {
                             navigateTo(child.href);
+                          }
+                        }}
+                        onFocus={() => {
+                          if (child.enabled) {
+                            prefetchTo(child.href);
+                          }
+                        }}
+                        onPointerEnter={() => {
+                          if (child.enabled) {
+                            prefetchTo(child.href);
                           }
                         }}
                       >
@@ -389,7 +441,9 @@ function getAccountLogoUrl(
 
   if (source.includes("ftmo")) return "/brand-logos/ftmo.png";
   if (source.includes("darwin")) return "/brand-logos/darwinex-zero.webp";
-  if (source.includes("orion")) return "/brand-logos/orion-funded.jpeg";
+  if (source.includes("orion") || source.includes("ogm")) {
+    return "/brand-logos/orion-funded.jpeg";
+  }
   if (source.includes("funding pips")) return "/brand-logos/the-funding-pips.jpeg";
   if (source.includes("wsf")) return "/brand-logos/wsf.png";
   if (source.includes("5ers") || source.includes("the5ers")) {
@@ -565,7 +619,7 @@ function AccountSwitcher({
         <DropdownMenuGroup>
           <DropdownMenuItem disabled>
             <span className="flex flex-1 items-center justify-between gap-3">
-              <span>RiskGuard</span>
+              <span>Mesa de Riesgo</span>
               <span className="text-xs text-muted-foreground">Próximamente</span>
             </span>
           </DropdownMenuItem>
@@ -1003,6 +1057,7 @@ function WorkspaceSidebar({
 
 export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useLocationSearchParams();
   const previewMode = searchParams.get("demo") === "1";
   const selectedAccountId =
@@ -1021,6 +1076,51 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
   const remainingPromoCount = promoNotifications.filter(
     (promo) => !dismissedPromoIds.includes(promo.id),
   ).length;
+  const prefetchHrefs = React.useMemo(
+    () => getWorkspacePrefetchHrefs(selectedAccountId),
+    [selectedAccountId],
+  );
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const connection = (navigator as Navigator & {
+      connection?: { saveData?: boolean };
+    }).connection;
+
+    if (connection?.saveData) return;
+
+    let cancelled = false;
+    const timers: number[] = [];
+    const prefetchQueuedRoutes = () => {
+      prefetchHrefs.forEach((href, index) => {
+        timers.push(
+          window.setTimeout(() => {
+            if (!cancelled && href !== pathname) {
+              router.prefetch(href);
+            }
+          }, index * 45),
+        );
+      });
+    };
+    const scheduleIdle =
+      typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback.bind(window)
+        : null;
+    const idleCallback = scheduleIdle
+      ? scheduleIdle(prefetchQueuedRoutes, { timeout: 1800 })
+      : window.setTimeout(prefetchQueuedRoutes, 800);
+
+    return () => {
+      cancelled = true;
+      timers.forEach((timer) => window.clearTimeout(timer));
+      if (scheduleIdle && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleCallback);
+      } else {
+        window.clearTimeout(idleCallback);
+      }
+    };
+  }, [pathname, prefetchHrefs, router]);
 
   function dismissPromo(promoId: string) {
     setDismissedPromoIds((current) =>

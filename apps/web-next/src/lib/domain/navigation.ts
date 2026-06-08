@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
   BarChart3Icon,
-  BookOpenIcon,
   BriefcaseBusinessIcon,
   CalendarDaysIcon,
   CandlestickChartIcon,
@@ -122,35 +121,11 @@ export const navigationGroups: NavigationGroup[] = [
     label: "Próximamente",
     items: [
       {
-        title: "RiskGuard",
+        title: "Mesa de Riesgo",
         href: "/risk",
         icon: ShieldAlertIcon,
         enabled: false,
         badge: "Próximamente",
-      },
-      {
-        title: "Review",
-        href: "/journal",
-        icon: BookOpenIcon,
-        enabled: false,
-        badge: "Próximamente",
-        children: [
-          {
-            title: "Cola",
-            href: "/journal/review-queue",
-            enabled: false,
-          },
-          {
-            title: "Entradas",
-            href: "/journal/entries",
-            enabled: false,
-          },
-          {
-            title: "IA Review",
-            href: "/journal/ai-review",
-            enabled: false,
-          },
-        ],
       },
       {
         title: "Playbooks",
@@ -271,7 +246,7 @@ export const secondaryNavigation: NavigationItem[] = [...navigationGroups[3].ite
 export const routeTitles: Record<string, string> = {
   "/dashboard": "Panel",
   "/accounts": "Cuentas",
-  "/risk": "RiskGuard",
+  "/risk": "Mesa de Riesgo",
   "/analytics": "Insights",
   "/analytics/daily": "Insights / Día",
   "/analytics/hourly": "Insights / Horario",
@@ -279,10 +254,6 @@ export const routeTitles: Record<string, string> = {
   "/trades": "Trades",
   "/notes": "Apuntes",
   "/calendar": "Calendario",
-  "/journal": "Review",
-  "/journal/review-queue": "Review / Cola",
-  "/journal/entries": "Review / Entradas",
-  "/journal/ai-review": "Review / IA",
   "/strategies": "Playbooks",
   "/strategies/backtest-vs-real": "Playbooks / Backtest vs Real",
   "/strategies/portfolio": "Playbooks / Portfolios",
@@ -301,6 +272,7 @@ export const routeTitles: Record<string, string> = {
   "/subscription": "Suscripción",
   "/settings/subscription": "Suscripción",
   "/debug": "Diagnóstico",
+  "/strategy-lab": "Strategy Lab",
 };
 
 export const routeDecisionQuestions: Record<string, string> = {
@@ -325,7 +297,6 @@ export const mobileRoutePriorities: Record<string, MobileNavigationPriority> = {
   "/dashboard": "primary",
   "/risk": "primary",
   "/accounts": "primary",
-  "/journal": "primary",
   "/analytics": "secondary",
   "/trades": "secondary",
   "/notes": "secondary",
@@ -341,17 +312,18 @@ export const mobileRoutePriorities: Record<string, MobileNavigationPriority> = {
   "/subscription": "lower",
   "/settings/subscription": "lower",
   "/debug": "lower",
+  "/strategy-lab": "lower",
 };
 
 export const routeAccessLevels: Record<string, RouteAccessLevel> = {
   "/debug": "admin",
+  "/strategy-lab": "admin",
 };
 
 const mobileRouteOrder = [
   "/dashboard",
   "/risk",
   "/accounts",
-  "/journal",
   "/analytics",
   "/trades",
   "/notes",
@@ -366,6 +338,7 @@ const mobileRouteOrder = [
   "/subscription",
   "/settings/subscription",
   "/debug",
+  "/strategy-lab",
   "/strategies",
 ];
 

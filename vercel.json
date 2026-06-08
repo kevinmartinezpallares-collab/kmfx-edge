@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "bash -lc 'subject=\"$(git log -1 --pretty=%s 2>/dev/null || true)\"; case \"$subject\" in *\"[skip vercel]\"*|*\"[skip-vercel]\"*) echo \"[vercel] ignoring build due to commit marker\"; exit 0;; esac; ref=\"${VERCEL_GIT_COMMIT_REF:-${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}}\"; pr=\"${VERCEL_GIT_PULL_REQUEST_ID:-}\"; if [ -z \"$ref\" ]; then ref=\"$(git symbolic-ref -q --short HEAD 2>/dev/null || true)\"; fi; case \"$ref\" in automation/*) echo \"[vercel] ignoring build for $ref\"; exit 0;; codex/*) if [ -z \"$pr\" ]; then echo \"[vercel] ignoring build for $ref (no PR)\"; exit 0; fi;; esac; exit 1'",
+  "ignoreCommand": "node apps/web-next/scripts/vercel-ignore-build.mjs",
   "redirects": [
     {
       "source": "/:path*",

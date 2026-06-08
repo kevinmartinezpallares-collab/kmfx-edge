@@ -63,6 +63,12 @@ import {
   normalizeLivelinePoints,
   prepareHistoricalLivelineCurve,
 } from "@/lib/charts/liveline-points";
+import {
+  formatResponsiveLivelineCurrency,
+  formatResponsiveLivelinePercent,
+  livelinePadding,
+} from "@/lib/charts/liveline-layout";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 const PORTFOLIO_PERIOD_OPTIONS = ["7D", "30D", "90D", "YTD"] as const;
@@ -458,7 +464,7 @@ const PORTFOLIO_LOGO_GRADIENT_THEMES = [
     },
   },
   {
-    tokens: ["orion"],
+    tokens: ["orion", "ogm"],
     theme: {
       color1: "#140900",
       color2: "#5a2403",
@@ -569,7 +575,9 @@ function portfolioCompanyLogoUrl(account: TradingAccount) {
 
   if (source.includes("ftmo")) return "/brand-logos/ftmo.png";
   if (source.includes("darwin")) return "/brand-logos/darwinex-zero.webp";
-  if (source.includes("orion")) return "/brand-logos/orion-funded.jpeg";
+  if (source.includes("orion") || source.includes("ogm")) {
+    return "/brand-logos/orion-funded.jpeg";
+  }
   if (source.includes("funding pips")) return "/brand-logos/the-funding-pips.jpeg";
   if (source.includes("wsf")) return "/brand-logos/wsf.png";
   if (source.includes("5ers") || source.includes("the5ers")) {
@@ -965,7 +973,7 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
   const portfolioCommand = !workspace.risk.allowNewTrades
     ? {
         label: "No añadir riesgo",
-        title: workspace.risk.blockingRule ?? "RiskGuard recomienda revisar riesgo",
+        title: workspace.risk.blockingRule ?? "Mesa de Riesgo recomienda revisar riesgo",
         detail: workspace.risk.actionRequired,
         tone: "negative",
       }
@@ -1010,7 +1018,7 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
       ? "/risk"
       : "/accounts";
   const portfolioCommandCta =
-    portfolioCommandHref === "/risk" ? "Abrir RiskGuard" : "Ver cuentas";
+    portfolioCommandHref === "/risk" ? "Abrir Mesa de Riesgo" : "Ver cuentas";
   const decisionContextRows = [
     {
       label: "Riesgo abierto",
@@ -1304,13 +1312,15 @@ export function CapitalReferenceSection({
   workspace: WorkspaceState;
 }) {
   const model = useCapitalReferenceModel(workspace);
+  const isMobile = useIsMobile();
 
-  return renderCapitalReferenceSection(workspace, model);
+  return renderCapitalReferenceSection(workspace, model, isMobile);
 }
 
 function renderCapitalReferenceSection(
   workspace: WorkspaceState,
   model: CapitalReferenceModel,
+  isMobile: boolean,
 ) {
   const {
     accountRows,
@@ -1850,13 +1860,19 @@ function renderCapitalReferenceSection(
                     formatTime={(time) => portfolioLabelByTime.get(time) ?? shortDateLabel(time * 1000)}
                     formatValue={(value) =>
                       portfolioDisplayMode === "capital"
-                        ? formatCurrency(Number(value), baseCurrency)
-                        : `${Number(value).toFixed(2)}%`
+                        ? formatResponsiveLivelineCurrency(Number(value), baseCurrency, isMobile)
+                        : formatResponsiveLivelinePercent(Number(value), isMobile)
                     }
                     grid
+                    badgeTail={!isMobile}
                     lineWidth={2.2}
                     momentum={false}
-                    padding={{ top: 96, right: 132, bottom: 34, left: 18 }}
+                    padding={livelinePadding(isMobile, {
+                      top: 96,
+                      right: 132,
+                      bottom: 34,
+                      left: 18,
+                    })}
                     pulse
                     referenceLine={{
                       value: portfolioDisplayMode === "capital" ? capitalCurveBase : 0,
@@ -2081,11 +2097,18 @@ function renderCapitalReferenceSection(
                   emptyText="Sin histórico por cuenta"
                   fill={false}
                   formatTime={(time) => portfolioComparisonLabelByTime.get(time) ?? shortDateLabel(time * 1000)}
-                  formatValue={(value) => `${Number(value).toFixed(2)}%`}
+                  formatValue={(value) =>
+                    formatResponsiveLivelinePercent(Number(value), isMobile)
+                  }
                   grid
                   lineWidth={2}
                   momentum={false}
-                  padding={{ top: 18, right: 92, bottom: 34, left: 18 }}
+                  padding={livelinePadding(isMobile, {
+                    top: 18,
+                    right: 92,
+                    bottom: 34,
+                    left: 18,
+                  })}
                   pulse={false}
                   referenceLine={{ value: 0, label: "0%" }}
                   scrub
@@ -2694,7 +2717,7 @@ function renderLegacyCapitalReferenceSection(
     ),
     workspace.risk.allowNewTrades
       ? null
-      : workspace.risk.blockingRule ?? "RiskGuard recomienda revisar riesgo",
+      : workspace.risk.blockingRule ?? "Mesa de Riesgo recomienda revisar riesgo",
     largestAccount && largestAccount.sharePct >= 50
       ? `Concentración alta en ${largestAccount.label}`
       : null,

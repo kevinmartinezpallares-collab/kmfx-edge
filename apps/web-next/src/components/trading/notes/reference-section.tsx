@@ -127,7 +127,7 @@ const noteCategories: Array<{
   },
   {
     value: "review",
-    label: "Review",
+    label: "Sesión",
     description: "Lectura posterior y aprendizaje de sesión.",
   },
 ];

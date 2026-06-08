@@ -197,7 +197,7 @@ const LOGO_GRADIENT_THEMES = [
     },
   },
   {
-    tokens: ["orion"],
+    tokens: ["orion", "ogm"],
     theme: {
       color1: "#140900",
       color2: "#5a2403",
@@ -356,7 +356,9 @@ function companyLogoUrl(account: AccountRow) {
 
   if (source.includes("ftmo")) return "/brand-logos/ftmo.png";
   if (source.includes("darwin")) return "/brand-logos/darwinex-zero.webp";
-  if (source.includes("orion")) return "/brand-logos/orion-funded.jpeg";
+  if (source.includes("orion") || source.includes("ogm")) {
+    return "/brand-logos/orion-funded.jpeg";
+  }
   if (source.includes("funding pips")) {
     return "/brand-logos/the-funding-pips.jpeg";
   }

@@ -4,7 +4,11 @@ import * as React from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Liveline, type LivelinePoint, type LivelineSeries, type ThemeMode } from "liveline";
 
+import { PieChart } from "@/components/charts/pie-chart";
+import { usePie } from "@/components/charts/pie-context";
+import { PieSlice } from "@/components/charts/pie-slice";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -37,6 +41,10 @@ import {
   formatSignedCurrency,
 } from "@/lib/formatters/numbers";
 import { signedTextClass } from "@/lib/domain/semantic-colors";
+import {
+  livelinePadding,
+} from "@/lib/charts/liveline-layout";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 const AnalyticsCumulativeChart = dynamic(
@@ -101,6 +109,33 @@ function formatOperationCount(count: number) {
   return `${count} ${count === 1 ? "operación" : "operaciones"}`;
 }
 
+function formatSignedPercent(value: number, digits = 2) {
+  const formatted = formatPercent(Math.abs(value), digits);
+
+  if (value > 0) return `+${formatted}`;
+  if (value < 0) return `-${formatted}`;
+  return formatPercent(0, digits);
+}
+
+function classifyAssetFamily(symbol: string) {
+  const normalized = symbol.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const currencies = ["USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD"];
+  const looksLikeForex =
+    normalized.length >= 6 &&
+    currencies.includes(normalized.slice(0, 3)) &&
+    currencies.includes(normalized.slice(3, 6));
+
+  if (looksLikeForex) return "Divisas";
+  if (/^(XAU|XAG|XPT|XPD|GOLD|SILVER)/.test(normalized)) return "Metales";
+  if (/(USOIL|UKOIL|WTI|BRENT|OIL|NATGAS|NGAS)/.test(normalized)) return "Energía";
+  if (/(BTC|ETH|SOL|XRP|ADA|DOGE|CRYPTO)/.test(normalized)) return "Crypto";
+  if (/(NAS|US100|SPX|SP500|US500|US30|DJI|DOW|DAX|GER40|DE40|UK100|FTSE|JPN225|HK50|FRA40|CAC|AUS200)/.test(normalized)) {
+    return "Índices";
+  }
+
+  return "Otros";
+}
+
 function buildTradeDistributionPerformance(trades: WorkspaceState["trades"]) {
   const netPnls = trades.flatMap((trade) =>
     trade.executions.length
@@ -108,8 +143,9 @@ function buildTradeDistributionPerformance(trades: WorkspaceState["trades"]) {
       : [trade.netPnl],
   );
   const totalTrades = netPnls.length;
-  const winCount = netPnls.filter((netPnl) => netPnl >= 0).length;
+  const winCount = netPnls.filter((netPnl) => netPnl > 0).length;
   const lossCount = netPnls.filter((netPnl) => netPnl < 0).length;
+  const breakevenCount = netPnls.filter((netPnl) => netPnl === 0).length;
   const grossProfit = netPnls
     .filter((netPnl) => netPnl > 0)
     .reduce((sum, netPnl) => sum + netPnl, 0);
@@ -119,6 +155,7 @@ function buildTradeDistributionPerformance(trades: WorkspaceState["trades"]) {
   const netProfit = netPnls.reduce((sum, netPnl) => sum + netPnl, 0);
 
   return {
+    breakevenCount,
     expectancy: totalTrades > 0 ? netProfit / totalTrades : 0,
     lossCount,
     profitFactor: grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? grossProfit : 0,
@@ -139,12 +176,37 @@ const insightChartColors = {
   profitMuted: "var(--profit-muted)",
   loss: "var(--loss)",
   lossMuted: "var(--loss-muted)",
+  risk: "var(--risk)",
+  riskMuted: "var(--risk-muted)",
+  breakeven: "var(--breakeven)",
+  info: "var(--info)",
+  infoMuted: "var(--info-muted)",
 };
 
+const insightMonochromePalette = [
+  "color-mix(in srgb, var(--foreground) 88%, var(--card))",
+  "color-mix(in srgb, var(--foreground) 66%, var(--card))",
+  "color-mix(in srgb, var(--foreground) 48%, var(--card))",
+  "color-mix(in srgb, var(--foreground) 32%, var(--card))",
+  "color-mix(in srgb, var(--foreground) 22%, var(--card))",
+  "color-mix(in srgb, var(--foreground) 14%, var(--card))",
+] as const;
+
+const INSIGHT_DONUT_SIZE = 184;
+const INSIGHT_DONUT_INNER_RADIUS = 58;
+
 const SESSION_SIGNAL_PALETTE = [
-  insightChartColors.neutralStrong,
-  insightChartColors.neutral,
-  insightChartColors.neutralMuted,
+  insightMonochromePalette[0],
+  insightMonochromePalette[2],
+  insightMonochromePalette[4],
+];
+const ASSET_FAMILY_PALETTE = [
+  insightMonochromePalette[0],
+  insightMonochromePalette[1],
+  insightMonochromePalette[2],
+  insightMonochromePalette[3],
+  insightMonochromePalette[4],
+  insightMonochromePalette[5],
 ];
 const RISK_LOSS_BUDGET_PALETTE = [
   insightChartColors.neutralStrong,
@@ -162,6 +224,41 @@ const WEEK_DAY_ROWS = [
   { key: 0, label: "Dom" },
 ];
 
+function tonedChartColor(_tone: InsightTone, intensityPct: number, empty = false) {
+  if (empty) {
+    return "color-mix(in srgb, var(--foreground) 6%, var(--card))";
+  }
+
+  const clampedPct = Math.max(12, Math.min(78, intensityPct));
+
+  return `color-mix(in srgb, var(--foreground) ${clampedPct}%, var(--card))`;
+}
+
+function heatmapCellColor(_pnl: number, trades: number, intensityPct: number) {
+  if (trades === 0) return tonedChartColor("neutral", intensityPct, true);
+  return tonedChartColor("neutral", intensityPct);
+}
+
+function InsightDonutCenter({
+  children,
+}: {
+  children: (props: { centerSize: number; hoveredIndex: number | null }) => React.ReactNode;
+}) {
+  const { hoveredIndex, innerRadius } = usePie();
+  const centerSize = Math.max(48, innerRadius * 2 - 16);
+
+  return (
+    <div
+      className="flex items-center justify-center text-center"
+      style={{ width: centerSize, height: centerSize }}
+    >
+      {children({ centerSize, hoveredIndex })}
+    </div>
+  );
+}
+
+InsightDonutCenter.displayName = "PieCenter";
+
 function SessionSignalMap({
   rows,
 }: {
@@ -177,10 +274,7 @@ function SessionSignalMap({
     ...row,
     value: Math.max(Math.abs(row.pnl), 0.01),
     sharePct: (Math.abs(row.pnl) / totalAbs) * 100,
-    color:
-      row.pnl < 0
-        ? insightChartColors.loss
-        : SESSION_SIGNAL_PALETTE[index] ?? insightChartColors.neutralMuted,
+    color: SESSION_SIGNAL_PALETTE[index] ?? insightMonochromePalette[5],
   }));
   const [selectedSessionLabel, setSelectedSessionLabel] = React.useState(
     chartRows[0]?.label ?? "",
@@ -193,89 +287,133 @@ function SessionSignalMap({
       : (selectedRow?.pnl ?? 0) < 0
         ? "negative"
         : "neutral";
-  const donutStops = chartRows.reduce(
-    (acc, row) => {
-      const start = acc.cursor;
-      const end = Math.min(100, acc.cursor + row.sharePct);
-
-      return {
-        cursor: end,
-        stops: [...acc.stops, `${row.color} ${start}% ${end}%`],
-      };
-    },
-    { cursor: 0, stops: [] as string[] },
-  ).stops.join(", ");
   const selectedIndex = Math.max(
     0,
     chartRows.findIndex((row) => row.label === selectedRow?.label),
   );
+  const selectedMetrics = [
+    ["Operaciones", selectedRow ? String(selectedRow.trades) : "0"],
+    ["Peso", selectedRow ? formatPercent(selectedRow.sharePct, 0) : "0%"],
+    ["PnL neto", selectedRow ? formatSignedCurrency(selectedRow.pnl) : "0 US$"],
+  ] as const;
 
   return (
-    <div className="grid gap-5 md:grid-cols-[220px_minmax(0,1fr)]">
+    <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-center">
       <div className="relative grid min-h-[220px] place-items-center">
-        <button
-          type="button"
-          onClick={() => setSelectedSessionLabel(chartRows[(selectedIndex + 1) % chartRows.length]?.label ?? "")}
-          className="relative grid size-[184px] place-items-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          style={{
-            background: `conic-gradient(from -90deg, ${donutStops || insightChartColors.inactive})`,
-          }}
-          aria-label="Cambiar sesión seleccionada"
+        <figure
+          className="relative m-0 grid place-items-center"
+          style={{ width: INSIGHT_DONUT_SIZE, height: INSIGHT_DONUT_SIZE }}
+          aria-label={`Reparto por sesión. ${selectedRow?.label ?? "Sin sesión"} seleccionado.`}
         >
-          <span className="absolute inset-4 rounded-full border border-border/60 bg-card" />
-          <span className="absolute inset-0 rounded-full ring-1 ring-border/70" />
-        </button>
-        <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
-          <div className="max-w-[128px]">
-            <p className="truncate text-sm font-semibold text-foreground">
-              {selectedRow?.label ?? "Sin sesión"}
-            </p>
-            <p className={cn("mt-1 font-mono text-lg font-semibold", insightFindingClasses(selectedTone))}>
-              {selectedRow ? formatSignedCurrency(selectedRow.pnl) : "0 US$"}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {selectedRow ? formatPercent(selectedRow.sharePct, 0) : "0%"}
-            </p>
-          </div>
-        </div>
+          <PieChart
+            data={chartRows}
+            size={INSIGHT_DONUT_SIZE}
+            innerRadius={INSIGHT_DONUT_INNER_RADIUS}
+            hoveredIndex={selectedIndex}
+            onHoverChange={(index) => {
+              if (index !== null) {
+                setSelectedSessionLabel(chartRows[index]?.label ?? "");
+              }
+            }}
+            padAngle={0.14}
+            cornerRadius={10}
+            hoverOffset={6}
+          >
+            {chartRows.map((row, index) => (
+              <PieSlice
+                key={row.label}
+                index={index}
+                animate={false}
+                showGlow={false}
+                hoverEffect="grow"
+              />
+            ))}
+            <InsightDonutCenter>
+              {() => (
+                <div className="grid w-full min-w-0 place-items-center gap-1">
+                  <p className="max-w-full truncate text-[11px] font-semibold leading-tight text-foreground">
+                    {selectedRow?.label ?? "Sin sesión"}
+                  </p>
+                  <p className={cn("max-w-full truncate font-mono text-[13px] font-semibold leading-tight tracking-[-0.03em]", insightFindingClasses(selectedTone))}>
+                    {selectedRow ? formatSignedCurrency(selectedRow.pnl) : "0 US$"}
+                  </p>
+                  <p className="font-mono text-[10px] leading-none text-muted-foreground">
+                    {selectedRow ? formatPercent(selectedRow.sharePct, 0) : "0%"}
+                  </p>
+                </div>
+              )}
+            </InsightDonutCenter>
+          </PieChart>
+        </figure>
       </div>
-      <div className="grid gap-2">
-        {chartRows.map((row) => {
-        const tone =
-          row.pnl > 0 ? "positive" : row.pnl < 0 ? "negative" : "neutral";
-        const isSelected = selectedRow?.label === row.label;
+      <div className="grid content-center gap-5">
+        <div>
+          <p className="text-sm font-semibold text-foreground">
+            {selectedRow?.label ?? "Sin sesión"}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {selectedRow
+              ? `${formatPercent(selectedRow.sharePct, 0)} del resultado atribuido por sesión.`
+              : "Sin operaciones cerradas en sesiones."}
+          </p>
+        </div>
 
-        return (
-          <button
-            key={row.label}
-            type="button"
-            onClick={() => setSelectedSessionLabel(row.label)}
-            onMouseEnter={() => setSelectedSessionLabel(row.label)}
-            className={cn(
-              "grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-t border-border/55 py-3 text-left transition first:border-t-0 first:pt-0",
-              isSelected && "bg-muted/25 px-2",
-            )}
-	          >
-            <span
-              className="size-3 shrink-0 rounded-full"
-              style={{ background: row.color }}
-              aria-hidden="true"
-            />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">{row.label}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{formatOperationCount(row.trades)}</p>
-            </div>
-            <div className="ml-auto text-right">
-              <p className={cn("font-mono text-sm font-semibold", insightFindingClasses(tone))}>
-                {formatSignedCurrency(row.pnl)}
-              </p>
-              <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                {formatPercent(row.sharePct, 0)}
+        <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2 2xl:grid-cols-3">
+          {selectedMetrics.map(([label, value]) => (
+            <div key={label} className="min-w-0">
+              <p className="truncate text-xs text-muted-foreground">{label}</p>
+              <p
+                className={cn(
+                  "mt-2 break-words font-mono text-sm font-semibold leading-tight text-foreground",
+                  label === "PnL neto" && insightFindingClasses(selectedTone),
+                )}
+              >
+                {value}
               </p>
             </div>
-          </button>
-        );
-      })}
+          ))}
+        </div>
+
+        <div className="grid gap-2">
+          {chartRows.map((row) => {
+            const tone =
+              row.pnl > 0 ? "positive" : row.pnl < 0 ? "negative" : "neutral";
+            const isSelected = selectedRow?.label === row.label;
+
+            return (
+              <button
+                key={row.label}
+                type="button"
+                onClick={() => setSelectedSessionLabel(row.label)}
+                onMouseEnter={() => setSelectedSessionLabel(row.label)}
+                className={cn(
+                  "grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-t border-border/55 py-3 text-left transition first:border-t-0 first:pt-0",
+                  isSelected && "bg-muted/25 px-2",
+                )}
+              >
+                <span
+                  className="size-3 shrink-0 rounded-full"
+                  style={{ background: row.color }}
+                  aria-hidden="true"
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">{row.label}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {formatOperationCount(row.trades)}
+                  </p>
+                </div>
+                <div className="ml-auto text-right">
+                  <p className={cn("font-mono text-sm font-semibold", insightFindingClasses(tone))}>
+                    {formatSignedCurrency(row.pnl)}
+                  </p>
+                  <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                    {formatPercent(row.sharePct, 0)}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -402,7 +540,7 @@ function RiskLossBudgetChart({
   if (totalLoss <= 0 || chartRows.length === 0) {
     return (
       <div className="border-y border-border/60 py-5 text-sm text-muted-foreground">
-        Sin pérdida cerrada para repartir por sesión.
+        Sin drawdown cerrado para repartir por sesión.
       </div>
     );
   }
@@ -411,13 +549,13 @@ function RiskLossBudgetChart({
     <div className="border-y border-border/60 py-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm text-muted-foreground">Pérdida cerrada</p>
+          <p className="text-sm text-muted-foreground">Drawdown cerrado</p>
           <p className="mt-2 text-4xl font-semibold tracking-tight text-foreground">
             {formatCurrency(totalLoss)}
           </p>
         </div>
         <p className="max-w-[260px] text-sm leading-relaxed text-muted-foreground sm:text-right">
-          Reparto por sesión para localizar dónde se acumuló el daño antes de subir riesgo.
+          Reparto por sesión para ver dónde se acumuló la pérdida antes de subir riesgo.
         </p>
       </div>
 
@@ -580,44 +718,107 @@ function InsightsDailyTracker({ days }: { days: DailyTradeBucket[] }) {
   );
 }
 
-function WinLossDistributionGauge({
-  winRatePct,
-  wins,
+type WinLossGaugeSegment = {
+  label: string;
+  value: number;
+  actualValue: number;
+  color: string;
+  fill: string;
+};
+
+function buildWinLossGaugeSegments({
+  breakevens,
   losses,
+  wins,
 }: {
-  winRatePct: number;
-  wins: number;
+  breakevens: number;
   losses: number;
+  wins: number;
+}): WinLossGaugeSegment[] {
+  const totalResolvedTrades = wins + losses + breakevens;
+  const visualBreakevenCount =
+    totalResolvedTrades > 0
+      ? breakevens > 0
+        ? breakevens
+        : Math.max(0.45, totalResolvedTrades * 0.08)
+      : 1;
+
+  return [
+    {
+      label: "Ganadoras",
+      value: wins,
+      actualValue: wins,
+      color: insightMonochromePalette[0],
+      fill: insightMonochromePalette[0],
+    },
+    {
+      label: "Perdedoras",
+      value: losses,
+      actualValue: losses,
+      color: insightMonochromePalette[2],
+      fill: insightMonochromePalette[2],
+    },
+    {
+      label: "Break-even",
+      value: visualBreakevenCount,
+      actualValue: breakevens,
+      color: insightMonochromePalette[4],
+      fill: insightMonochromePalette[4],
+    },
+  ];
+}
+
+function WinLossDistributionGauge({
+  segments,
+  winRatePct,
+}: {
+  segments: WinLossGaugeSegment[];
+  winRatePct: number;
 }) {
+  const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
   const safeWinRate = Math.max(0, Math.min(100, winRatePct));
-  const arcValue = safeWinRate * 0.75;
+  const hoveredSegment = hoveredIndex === null ? null : segments[hoveredIndex];
+  const centerValue = hoveredSegment
+    ? String(hoveredSegment.actualValue)
+    : formatPercent(safeWinRate, 0);
+  const centerLabel = hoveredSegment ? hoveredSegment.label : "acierto";
+  const wins = segments[0]?.actualValue ?? 0;
+  const losses = segments[1]?.actualValue ?? 0;
+  const breakevens = segments[2]?.actualValue ?? 0;
 
   return (
-    <div className="relative grid place-items-center md:justify-start xl:justify-center">
-      <figure
-        className="relative m-0 grid size-[132px] place-items-center rounded-full max-[640px]:size-[120px]"
-        style={{
-          background: `conic-gradient(from 210deg, var(--chart-1) 0 ${arcValue}%, var(--chart-3) ${arcValue}% 75%, transparent 75% 100%)`,
-        }}
-        aria-label={`Win rate ${safeWinRate.toFixed(0)}%, ${wins} ganadoras y ${losses} perdedoras`}
+    <figure
+      className="relative m-0 grid place-items-center"
+      style={{ width: INSIGHT_DONUT_SIZE, height: INSIGHT_DONUT_SIZE }}
+      aria-label={`Win rate ${safeWinRate.toFixed(0)}%, ${wins} ganadoras, ${losses} perdedoras y ${breakevens} break-even`}
+    >
+      <PieChart
+        data={segments}
+        size={INSIGHT_DONUT_SIZE}
+        innerRadius={INSIGHT_DONUT_INNER_RADIUS}
+        hoveredIndex={hoveredIndex}
+        onHoverChange={setHoveredIndex}
+        padAngle={0.16}
+        cornerRadius={10}
+        hoverOffset={6}
       >
-        <div
-          className="absolute inset-3 rounded-full border"
-          style={{
-            borderColor: "var(--chart-grid)",
-            background: "color-mix(in srgb, var(--card) 92%, var(--chart-background) 8%)",
-          }}
-        />
-        <div className="relative z-10 grid place-items-center gap-0.5 text-center">
-          <p className="font-mono text-[22px] font-extrabold leading-none tracking-[-0.045em] text-foreground">
-            {safeWinRate.toFixed(0)}%
-          </p>
-          <p className="text-[9px] font-bold uppercase leading-none tracking-[0.14em] text-muted-foreground">
-            Win rate
-          </p>
-        </div>
-      </figure>
-    </div>
+        <PieSlice index={0} animate={false} showGlow={false} hoverEffect="grow" />
+        <PieSlice index={1} animate={false} showGlow={false} hoverEffect="grow" />
+        <PieSlice index={2} animate={false} showGlow={false} hoverEffect="grow" />
+        <InsightDonutCenter>
+          {() => (
+            <div className="grid w-full min-w-0 place-items-center gap-1">
+              <p className="max-w-full truncate font-mono text-xl font-semibold leading-none text-foreground">
+                {centerValue}
+              </p>
+              <p className="max-w-full truncate text-[9px] font-semibold uppercase leading-none tracking-[0.08em] text-muted-foreground">
+                {centerLabel}
+              </p>
+            </div>
+          )}
+        </InsightDonutCenter>
+      </PieChart>
+    </figure>
   );
 }
 
@@ -735,6 +936,28 @@ type InsightSymbolRow = {
   wins?: number;
   losses?: number;
 };
+type AssetFamilyRow = {
+  label: string;
+  value: number;
+  trades: number;
+  pnl: number;
+  wins: number;
+  losses: number;
+  assetCount: number;
+  sharePct: number;
+  color: string;
+};
+const FALLBACK_ASSET_FAMILY_ROW: AssetFamilyRow = {
+  assetCount: 0,
+  color: insightChartColors.inactive,
+  label: "Sin familia",
+  losses: 0,
+  pnl: 0,
+  sharePct: 0,
+  trades: 0,
+  value: 1,
+  wins: 0,
+};
 type InsightActionFinding = ReturnType<typeof buildInsightActionFindings>[number];
 
 type ConcentrationCard = {
@@ -781,10 +1004,132 @@ function ConcentrationCardsGrid({ cards }: { cards: readonly ConcentrationCard[]
   );
 }
 
+function AssetFamilyDistributionCard({ rows }: { rows: readonly AssetFamilyRow[] }) {
+  const visibleRows = rows.length > 0 ? rows : [FALLBACK_ASSET_FAMILY_ROW];
+  const pieRows = [...visibleRows];
+  const [selectedLabel, setSelectedLabel] = React.useState(visibleRows[0]?.label ?? "");
+  const selectedRow =
+    visibleRows.find((row) => row.label === selectedLabel) ?? visibleRows[0] ?? FALLBACK_ASSET_FAMILY_ROW;
+  const selectedIndex = Math.max(
+    0,
+    visibleRows.findIndex((row) => row.label === selectedRow.label),
+  );
+  const selectedTone =
+    selectedRow.pnl > 0 ? "positive" : selectedRow.pnl < 0 ? "negative" : "neutral";
+  const winRatePct =
+    selectedRow.trades > 0 ? (selectedRow.wins / selectedRow.trades) * 100 : 0;
+  const metrics = [
+    ["Operaciones", String(selectedRow.trades)],
+    ["Win rate", formatPercent(winRatePct, 0)],
+    ["PnL neto", formatSignedCurrency(selectedRow.pnl)],
+    ["Activos", String(selectedRow.assetCount)],
+  ] as const;
+
+  return (
+    <Card className="border-border/70 bg-card/70">
+      <CardHeader>
+        <CardTitle>Distribución por activos</CardTitle>
+        <CardDescription>
+          Peso por familia de instrumento, rendimiento neto y concentración operativa.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-center">
+        <figure
+          className="relative m-0 grid min-h-[220px] place-items-center"
+          aria-label={`Distribución por activos. ${selectedRow.label} seleccionado.`}
+        >
+          <PieChart
+            data={pieRows}
+            size={INSIGHT_DONUT_SIZE}
+            innerRadius={INSIGHT_DONUT_INNER_RADIUS}
+            hoveredIndex={selectedIndex}
+            onHoverChange={(index) => {
+              if (index !== null) setSelectedLabel(visibleRows[index]?.label ?? "");
+            }}
+            padAngle={0.14}
+            cornerRadius={10}
+            hoverOffset={6}
+          >
+            {visibleRows.map((row, index) => (
+              <PieSlice
+                key={row.label}
+                index={index}
+                animate={false}
+                showGlow={false}
+                hoverEffect="grow"
+              />
+            ))}
+            <InsightDonutCenter>
+              {() => (
+                <div className="grid w-full min-w-0 place-items-center gap-1">
+                  <p className="max-w-full truncate text-[11px] font-semibold leading-tight text-foreground">
+                    {selectedRow.label}
+                  </p>
+                  <p className="font-mono text-xl font-semibold leading-none text-foreground">
+                    {formatPercent(selectedRow.sharePct, 0)}
+                  </p>
+                  <p className="text-[10px] leading-none text-muted-foreground">
+                    de operaciones
+                  </p>
+                </div>
+              )}
+            </InsightDonutCenter>
+          </PieChart>
+        </figure>
+
+        <div className="grid content-center gap-5">
+          <div>
+            <p className="text-sm font-semibold text-foreground">{selectedRow.label}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {formatPercent(selectedRow.sharePct, 0)} de las operaciones cerradas.
+            </p>
+          </div>
+
+          <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2 2xl:grid-cols-4">
+            {metrics.map(([label, value]) => (
+              <div key={label} className="min-w-0">
+                <p className="truncate text-xs text-muted-foreground">{label}</p>
+                <p
+                  className={cn(
+                    "mt-2 break-words font-mono text-sm font-semibold leading-tight text-foreground",
+                    label === "PnL neto" && insightFindingClasses(selectedTone),
+                  )}
+                >
+                  {value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-2">
+            {visibleRows.slice(0, 5).map((row) => (
+              <button
+                key={row.label}
+                type="button"
+                onClick={() => setSelectedLabel(row.label)}
+                onMouseEnter={() => setSelectedLabel(row.label)}
+                className="grid min-h-11 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-t border-border/55 py-2.5 text-left first:border-t-0"
+              >
+                <span
+                  className="size-2.5 rounded-full"
+                  style={{ background: row.color }}
+                  aria-hidden="true"
+                />
+                <span className="truncate text-sm text-foreground">{row.label}</span>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {formatPercent(row.sharePct, 0)}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function SessionPerformanceCard({
-  bestSession,
   rows,
-  worstSession,
 }: {
   bestSession: InsightSessionRow | null;
   rows: InsightAttribution["sessionRows"];
@@ -798,28 +1143,8 @@ function SessionPerformanceCard({
           Comparativa de PnL, operaciones cerradas y peso operativo por sesión.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-4">
+      <CardContent>
         <SessionSignalMap rows={rows} />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">Mejor sesión</p>
-            <p className="mt-2 font-semibold text-foreground">
-              {bestSession?.label ?? "Sin sesión"}
-            </p>
-            <p className={cn("mt-1 font-mono text-sm font-semibold", signedTextTone(bestSession?.pnl ?? 0))}>
-              {bestSession ? formatSignedCurrency(bestSession.pnl) : "Sin operaciones"}
-            </p>
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">Sesión a revisar</p>
-            <p className="mt-2 font-semibold text-foreground">
-              {worstSession?.label ?? "Sin sesión negativa"}
-            </p>
-            <p className={cn("mt-1 font-mono text-sm font-semibold", signedTextTone(worstSession?.pnl ?? 0))}>
-              {worstSession ? formatSignedCurrency(worstSession.pnl) : "Sin sesión negativa"}
-            </p>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
@@ -895,12 +1220,12 @@ function InsightActionLinksCard({ findings }: { findings: InsightActionFinding[]
   return (
     <Card className="border-border/70 bg-card/70">
       <CardContent className="p-0">
-        <div className="divide-y divide-border/60">
+        <div className="divide-y divide-border/60 xl:grid xl:grid-cols-3 xl:divide-x xl:divide-y-0">
           {findings.map((finding) => (
             <Link
               key={finding.label}
               href={finding.href}
-              className="group flex items-center justify-between gap-4 p-4 transition hover:bg-background/35"
+              className="group flex min-h-full items-center justify-between gap-4 p-4 transition hover:bg-background/35 xl:p-5"
             >
               <div className="min-w-0">
                 <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
@@ -944,6 +1269,7 @@ function SymbolPerformanceCard({ rows }: { rows: InsightSymbolRow[] }) {
 }
 
 function WinLossDistributionCard({
+  breakevenCount,
   distributionTitle,
   expectancy,
   lossCount,
@@ -952,6 +1278,7 @@ function WinLossDistributionCard({
   winCount,
   winRatePct,
 }: {
+  breakevenCount: number;
   distributionTitle: string;
   expectancy: number;
   lossCount: number;
@@ -965,6 +1292,11 @@ function WinLossDistributionCard({
     ["Expectativa", formatSignedCurrency(expectancy), expectancy >= 0 ? "positive" : "negative"],
     ["Operaciones", `${totalTrades}`, "neutral"],
   ] as const;
+  const segments = buildWinLossGaugeSegments({
+    breakevens: breakevenCount,
+    losses: lossCount,
+    wins: winCount,
+  });
 
   return (
     <Card className="border-border/70 bg-card/70">
@@ -974,28 +1306,49 @@ function WinLossDistributionCard({
           Relación entre aciertos, Profit factor y expectativa media.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-5 md:grid-cols-[160px_1fr] xl:grid-cols-1">
-        <WinLossDistributionGauge
-          winRatePct={winRatePct}
-          wins={winCount}
-          losses={lossCount}
-        />
-        <div className="grid gap-3">
+      <CardContent className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-center">
+        <div className="grid min-h-[220px] place-items-center">
+          <WinLossDistributionGauge
+            segments={segments}
+            winRatePct={winRatePct}
+          />
+        </div>
+        <div className="grid content-center gap-5">
           <div>
-            <p className="text-lg font-semibold text-foreground">{distributionTitle}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="text-sm font-semibold text-foreground">{distributionTitle}</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
               {expectancy >= 0
                 ? "Distribución positiva. Revisa si el margen se repite."
                 : "La distribución no compensa el riesgo del periodo."}
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+
+          <div className="grid grid-cols-3 gap-3">
             {stats.map(([label, value, tone]) => (
               <div key={label} className="min-w-0">
                 <p className="text-xs text-muted-foreground">{label}</p>
                 <p className={cn("mt-2 font-mono text-sm font-semibold", insightFindingClasses(tone))}>
                   {value}
                 </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-2">
+            {segments.map((segment) => (
+              <div
+                key={segment.label}
+                className="grid min-h-11 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-t border-border/55 py-2.5 first:border-t-0"
+              >
+                <span
+                  className="size-2.5 rounded-full"
+                  style={{ background: segment.color }}
+                  aria-hidden="true"
+                />
+                <span className="truncate text-sm text-foreground">{segment.label}</span>
+                <span className="font-mono text-xs font-semibold text-muted-foreground">
+                  {segment.actualValue}
+                </span>
               </div>
             ))}
           </div>
@@ -1006,6 +1359,27 @@ function WinLossDistributionCard({
 }
 
 type DailySummaryMetric = readonly [string, string, string, InsightTone];
+type WeekdayPatternRow = {
+  key: number;
+  label: string;
+  activeDays: number;
+  pnl: number;
+  returnPct: number;
+  trades: number;
+  wins: number;
+  losses: number;
+};
+type WeekdayCurveSeries = {
+  id: string;
+  key: number;
+  label: string;
+  color: string;
+  activeDays: number;
+  pnl: number;
+  returnPct: number;
+  points: LivelinePoint[];
+  value: number;
+};
 type DailyCalendarCell = {
   key: string;
   day: DailyTradeBucket | null;
@@ -1044,10 +1418,223 @@ function DailySummaryCard({ metrics }: { metrics: readonly DailySummaryMetric[] 
   );
 }
 
+const WEEKDAY_LINE_COLORS = [
+  "oklch(0.78 0.15 152)",
+  "oklch(0.7 0.16 28)",
+  "oklch(0.72 0.17 302)",
+  "oklch(0.68 0.15 252)",
+  "oklch(0.76 0.13 78)",
+  "oklch(0.7 0.12 205)",
+  "oklch(0.72 0.11 340)",
+];
+
+const INSIGHTS_LIVELINE_ACCENT_BY_THEME = {
+  dark: "#f5f5f5",
+  light: "#171717",
+} satisfies Record<ThemeMode, string>;
+let insightsLivelineClockSnapshot: number | null = null;
+
+function subscribeInsightsThemeClass(onStoreChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+
+  const observer = new MutationObserver(onStoreChange);
+  observer.observe(document.documentElement, {
+    attributeFilter: ["class"],
+    attributes: true,
+  });
+  window.addEventListener("storage", onStoreChange);
+
+  return () => {
+    observer.disconnect();
+    window.removeEventListener("storage", onStoreChange);
+  };
+}
+
+function getInsightsThemeClassSnapshot() {
+  if (typeof document === "undefined") return false;
+  return !document.documentElement.classList.contains("dark");
+}
+
+function useInsightsLivelineTheme() {
+  const isLight = React.useSyncExternalStore(
+    subscribeInsightsThemeClass,
+    getInsightsThemeClassSnapshot,
+    () => false,
+  );
+  const theme = (isLight ? "light" : "dark") as ThemeMode;
+
+  return {
+    theme,
+    accent: INSIGHTS_LIVELINE_ACCENT_BY_THEME[theme],
+  };
+}
+
+function subscribeInsightsLivelineClock() {
+  return () => {};
+}
+
+function getInsightsLivelineClockSnapshot() {
+  if (typeof window === "undefined") return 0;
+  insightsLivelineClockSnapshot ??= Math.floor(Date.now() / 1000) - 3_600;
+  return insightsLivelineClockSnapshot;
+}
+
+function useInsightsLivelineClock() {
+  return React.useSyncExternalStore(
+    subscribeInsightsLivelineClock,
+    getInsightsLivelineClockSnapshot,
+    () => 0,
+  );
+}
+
+function WeekdayPatternCard({
+  rows,
+  series,
+}: {
+  rows: readonly WeekdayPatternRow[];
+  series: readonly WeekdayCurveSeries[];
+}) {
+  const isMobile = useIsMobile();
+  const chartTheme = useInsightsLivelineTheme();
+  const activeRows = rows.filter((row) => row.activeDays > 0);
+  const bestRow = [...activeRows].toSorted((a, b) => b.returnPct - a.returnPct)[0] ?? null;
+  const worstRow = [...activeRows].toSorted((a, b) => a.returnPct - b.returnPct)[0] ?? null;
+  const legendRows = [...series].toSorted((a, b) => b.returnPct - a.returnPct);
+  const chartEndTime = useInsightsLivelineClock();
+  const maxRelativeTime = Math.max(
+    86_400,
+    ...series.flatMap((item) => item.points.map((point) => point.time)),
+  );
+  const chartStartTime = chartEndTime - maxRelativeTime;
+  const livelineSeries = series.map<LivelineSeries>((item) => ({
+    color: item.color,
+    data: item.points.map((point) => ({
+      time: chartStartTime + point.time,
+      value: point.value,
+    })),
+    id: item.id,
+    label: isMobile ? undefined : item.label,
+    value: item.value,
+  }));
+  const livelineWindow = Math.max(172_800, maxRelativeTime + 86_400);
+  const chartValue = livelineSeries[0]?.value ?? 0;
+
+  return (
+    <Card className="border-border/70 bg-card/70">
+      <CardHeader>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <CardTitle>Distribución de rentabilidad por día de la semana</CardTitle>
+            <CardDescription>
+              Rentabilidad acumulada aproximada por día de la semana, separada por curva.
+            </CardDescription>
+          </div>
+          <div className="grid gap-1 text-sm lg:text-right">
+            <p className="text-muted-foreground">
+              Mejor día{" "}
+              <span className="font-semibold text-foreground">
+                {bestRow ? bestRow.label : "Sin datos"}
+              </span>
+            </p>
+            <p className="text-muted-foreground">
+              {(worstRow?.returnPct ?? 0) < 0 ? "Día débil" : "Menor aporte"}{" "}
+              <span className="font-semibold text-foreground">
+                {worstRow ? worstRow.label : "Sin datos"}
+              </span>
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        {livelineSeries.length > 0 ? (
+          <div className="grid gap-3">
+            <div
+              data-kmfx-liveline
+              className="h-[280px] min-h-0 min-w-0 overflow-hidden md:h-[340px] [&>div:first-child]:!hidden"
+            >
+              <Liveline
+                badge={false}
+                color={chartTheme.accent}
+                data={livelineSeries[0]?.data ?? []}
+                emptyText="Sin días operados"
+                fill={false}
+                formatTime={(time) => {
+                  const sampleIndex = Math.max(0, Math.round((time - chartStartTime) / 86_400));
+
+                  return sampleIndex === 0
+                    ? "Inicio"
+                    : isMobile
+                      ? `${sampleIndex}`
+                      : `Día ${sampleIndex}`;
+                }}
+                formatValue={(value) =>
+                  formatSignedPercent(Number(value), isMobile ? 1 : 2)
+                }
+                grid
+                lineWidth={isMobile ? 2 : 2.25}
+                momentum={false}
+                padding={livelinePadding(isMobile, {
+                  top: 18,
+                  right: 110,
+                  bottom: 34,
+                  left: 18,
+                }, {
+                  right: 58,
+                  bottom: 28,
+                })}
+                pulse={false}
+                referenceLine={{ value: 0, label: "0%" }}
+                scrub
+                series={livelineSeries}
+                seriesToggleCompact
+                showValue={false}
+                style={{ height: "100%" }}
+                theme={chartTheme.theme}
+                value={chartValue}
+                window={livelineWindow}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border/60 pt-3">
+              {legendRows.map((item) => {
+                const tone: InsightTone =
+                  item.returnPct > 0 ? "positive" : item.returnPct < 0 ? "negative" : "neutral";
+
+                return (
+                  <div key={item.id} className="inline-flex min-w-0 items-center gap-2">
+                    <span
+                      className="h-2 w-5 rounded-full"
+                      style={{ background: item.color }}
+                      aria-hidden="true"
+                    />
+                    <span className="text-xs font-medium text-foreground">
+                      {item.label}
+                    </span>
+                    <span className={cn("font-mono text-xs font-semibold", insightFindingClasses(tone))}>
+                      {formatSignedPercent(item.returnPct, 2)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="grid h-32 place-items-center text-sm text-muted-foreground">
+            Sin días operados para comparar.
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Cada línea empieza en cero y acumula el retorno estimado de los cierres de ese día.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DailyCalendarCard({
   calendarCells,
   canGoNext,
   canGoPrevious,
+  maxAbsPnl,
   monthActiveDayCount,
   onChangeMonth,
   onSelectDay,
@@ -1057,6 +1644,7 @@ function DailyCalendarCard({
   calendarCells: DailyCalendarCell[];
   canGoNext: boolean;
   canGoPrevious: boolean;
+  maxAbsPnl: number;
   monthActiveDayCount: number;
   onChangeMonth: (offset: number) => void;
   onSelectDay: (dayKey: string) => void;
@@ -1084,11 +1672,11 @@ function DailyCalendarCard({
             >
               <ChevronLeft className="size-4" />
             </Button>
-            <div className="min-w-40 rounded-lg border border-border/70 bg-background/35 px-3 py-2 text-center">
-              <p className="text-sm font-semibold capitalize text-foreground">
+            <div className="min-w-40 px-3 py-1 text-center">
+              <p className="text-sm font-semibold capitalize leading-tight text-foreground">
                 {selectedMonthTitle}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="mt-1 text-xs leading-tight text-muted-foreground">
                 {monthActiveDayCount} días operados
               </p>
             </div>
@@ -1106,11 +1694,11 @@ function DailyCalendarCard({
         </div>
       </CardHeader>
       <CardContent className="grid gap-3">
-        <div className="grid min-w-0 grid-cols-7 gap-1 sm:gap-2">
+        <div className="grid min-w-0 grid-cols-7 gap-1.5 overflow-x-auto pb-1">
           {["L", "M", "X", "J", "V", "S", "D"].map((label) => (
             <div
               key={label}
-              className="pb-1 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+              className="pb-1 text-center font-mono text-[10px] text-muted-foreground"
             >
               {label}
             </div>
@@ -1120,6 +1708,7 @@ function DailyCalendarCard({
               key={cell.key}
               cell={cell}
               isSelected={selectedDayKey === cell.key}
+              maxAbsPnl={maxAbsPnl}
               onSelectDay={onSelectDay}
             />
           ))}
@@ -1132,14 +1721,22 @@ function DailyCalendarCard({
 function DailyCalendarDayButton({
   cell,
   isSelected,
+  maxAbsPnl,
   onSelectDay,
 }: {
   cell: DailyCalendarCell;
   isSelected: boolean;
+  maxAbsPnl: number;
   onSelectDay: (dayKey: string) => void;
 }) {
   const day = cell.day;
-  const tone = !day || day.pnl === 0 ? "neutral" : day.pnl > 0 ? "positive" : "negative";
+  const hasTrades = Boolean(day && day.trades > 0);
+  const intensity = day
+    ? Math.max(0.08, Math.min(0.74, Math.abs(day.pnl) / maxAbsPnl))
+    : 0;
+  const background = hasTrades
+    ? `color-mix(in oklab, var(--foreground) ${Math.round(intensity * 42)}%, transparent)`
+    : "color-mix(in oklab, var(--muted) 28%, transparent)";
 
   return (
     <button
@@ -1149,17 +1746,13 @@ function DailyCalendarDayButton({
         if (day) onSelectDay(day.tradingDayKey);
       }}
       className={cn(
-        "min-h-16 rounded-lg border p-1.5 text-left transition md:min-h-[72px] md:p-2 xl:min-h-20",
+        "grid min-h-16 content-center rounded-md border border-border/60 px-1.5 text-center font-mono text-[10px] transition md:min-h-[72px] xl:min-h-20",
         !cell.inMonth && "opacity-35",
-        isSelected
-          ? "border-zinc-200/70 bg-card text-foreground ring-1 ring-white/10"
-          : tone === "positive"
-            ? "border-profit/40 bg-profit-muted hover:bg-profit-muted"
-            : tone === "negative"
-              ? "border-loss/40 bg-loss-muted hover:bg-loss-muted"
-              : "border-border/70 bg-card/60 hover:bg-card",
-        day ? "cursor-pointer" : "cursor-default hover:bg-card/60",
+        hasTrades ? "text-foreground hover:border-foreground/35" : "text-muted-foreground/40",
+        isSelected && "border-foreground/60 ring-1 ring-foreground/20",
+        day ? "cursor-pointer" : "cursor-default",
       )}
+      style={{ background }}
       title={
         day ? `${formatOperationCount(day.trades)} / ${formatSignedCurrency(day.pnl)}` : "Sin operativa"
       }
@@ -1169,20 +1762,22 @@ function DailyCalendarDayButton({
           : `${cell.dateNumber}: sin operativa`
       }
     >
-      <div className="flex h-full flex-col justify-between gap-2">
-        <div className="flex items-start justify-between gap-2">
-          <span className="text-sm font-medium text-foreground">
-            {cell.dateNumber}
-          </span>
-          <span className="hidden rounded-full bg-background/55 px-1.5 py-0.5 text-[10px] text-muted-foreground md:inline-flex">
-            {day ? `${day.trades} op` : ""}
-          </span>
-        </div>
-        <div>
-          <p className="max-w-full break-words font-mono text-[11px] font-medium leading-tight text-foreground md:text-xs">
-            {day ? formatSignedCurrency(day.pnl) : "—"}
-          </p>
-        </div>
+      <div className="grid gap-1">
+        <span className={cn("text-[11px] font-semibold", hasTrades ? "text-foreground" : "text-muted-foreground/40")}>
+          {cell.dateNumber}
+        </span>
+        {hasTrades ? (
+          <>
+            <span className="truncate text-[11px] font-semibold text-foreground md:text-xs">
+              {formatSignedCurrency(day?.pnl ?? 0)}
+            </span>
+            <span className="text-[9px] text-muted-foreground">
+              {day?.trades ?? 0} op
+            </span>
+          </>
+        ) : (
+          <span aria-label="Sin operaciones">-</span>
+        )}
       </div>
     </button>
   );
@@ -1574,7 +2169,7 @@ function HourlyMobileHeatmap({
         const pnl = representative?.pnl ?? hour.pnl;
         const trades = representative?.trades ?? hour.trades;
         const intensity = trades > 0 ? Math.max(0.14, Math.min(0.88, Math.abs(pnl) / maxCellPnl)) : 0;
-        const heatPct = Math.round(12 + intensity * 56);
+        const heatPct = Math.round(18 + intensity * 58);
         const isSelected =
           representative?.key === selectedCell?.key ||
           (!representative && selectedCell?.hour === hour.hour);
@@ -1595,9 +2190,7 @@ function HourlyMobileHeatmap({
               isSelected && "border-foreground/70 ring-2 ring-foreground/20",
             )}
             style={{
-              background: trades
-                ? `color-mix(in srgb, var(--chart-2) ${heatPct}%, var(--chart-background))`
-                : "color-mix(in srgb, var(--chart-background) 56%, transparent)",
+              background: heatmapCellColor(pnl, trades, heatPct),
             }}
             title={`${String(hour.hour).padStart(2, "0")}:00 / ${formatOperationCount(trades)} / ${formatHourValue(pnl, hourValueMode)}`}
           >
@@ -1702,7 +2295,7 @@ function HourlyDesktopHeatmapCell({
   const inBestWindow = windowHourSet.has(cell.hour);
   const isBestWindowStart = Boolean(bestWindow && cell.hour === bestWindow.start);
   const isBestWindowEnd = Boolean(bestWindow && cell.hour === bestWindow.end);
-  const heatPct = Math.round(12 + intensity * 56);
+  const heatPct = Math.round(18 + intensity * 58);
 
   return (
     <button
@@ -1718,9 +2311,7 @@ function HourlyDesktopHeatmapCell({
         inBestWindow && isBestWindowEnd && "rounded-r-xl",
       )}
       style={{
-        background: cell.trades
-          ? `color-mix(in srgb, var(--chart-2) ${heatPct}%, var(--chart-background))`
-          : "color-mix(in srgb, var(--chart-background) 56%, transparent)",
+        background: heatmapCellColor(cell.pnl, cell.trades, heatPct),
         boxShadow: isSelected
           ? "0 0 0 1px color-mix(in srgb, var(--foreground) 72%, transparent) inset"
           : inBestWindow
@@ -1761,7 +2352,7 @@ function HourlyHeatmapLegend({
             key={alpha}
             className="size-4 rounded-[4px]"
             style={{
-              background: `color-mix(in srgb, var(--chart-2) ${Math.round(alpha * 100)}%, var(--chart-background))`,
+              background: tonedChartColor("positive", Math.round(18 + alpha * 58)),
             }}
           />
         ))}
@@ -1840,50 +2431,116 @@ type RiskBudgetRow = {
   winRatePct: number;
   avgLoss: number;
 };
-type RiskReviewLink = {
+type RiskDrilldownLink = {
   title: string;
   body: string;
   href: string;
 };
+type RiskInsightKpi = {
+  label: string;
+  value: string;
+  note: string;
+  progressPct: number;
+  tone: InsightTone;
+};
 
 function RiskDecisionCard({
-  decisionRows,
+  kpis,
   riskTitle,
   riskTone,
 }: {
-  decisionRows: readonly RiskMetricRow[];
+  kpis: readonly RiskInsightKpi[];
   riskTitle: string;
   riskTone: InsightTone;
 }) {
   return (
     <Card className="overflow-hidden border-border/70 bg-card/70">
-      <CardContent className="grid gap-5 p-5">
-        <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-            Riesgo de Insights
-          </p>
-          <h2 className={cn("mt-3 text-3xl font-semibold tracking-tight", insightFindingClasses(riskTone))}>
-            {riskTitle}
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Dónde se concentró la pérdida, qué comportamiento empeoró el periodo y qué revisar antes de subir riesgo.
-          </p>
+      <CardContent className="grid gap-7 p-5 md:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+              Control de riesgo
+            </p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
+              {riskTitle}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              Revisa si el PnL permite subir tamaño o si antes hay que controlar drawdown, operaciones dominantes y costes.
+            </p>
+          </div>
+          <span className={cn("w-fit rounded-full border px-3 py-1 text-xs font-semibold", riskStatusClasses(riskTone))}>
+            {riskStatusLabel(riskTone)}
+          </span>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {decisionRows.map((row) => (
-            <div key={row.label} className="min-w-0">
-              <p className="text-xs text-muted-foreground">{row.label}</p>
-              <p className={cn("mt-2 text-lg font-semibold tracking-tight", insightFindingClasses(row.tone))}>
-                {row.value}
-              </p>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                {row.note}
+        <div className="grid gap-6 border-t border-border/60 pt-5 md:grid-cols-3">
+          {kpis.map((kpi) => (
+            <div
+              key={kpi.label}
+              className="grid min-h-[152px] min-w-0 content-between"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                  <p className="mt-2 font-mono text-2xl font-semibold tracking-tight text-foreground">
+                    {kpi.value}
+                  </p>
+                </div>
+                <RiskKpiBars progressPct={kpi.progressPct} />
+              </div>
+              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted/55">
+                <div
+                  className="h-full rounded-full bg-foreground/55"
+                  style={{ width: `${Math.max(4, Math.min(100, kpi.progressPct))}%` }}
+                />
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                {kpi.note}
               </p>
             </div>
           ))}
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function riskStatusLabel(tone: InsightTone) {
+  if (tone === "negative") return "No subir tamaño";
+  if (tone === "warning") return "Operar más pequeño";
+  if (tone === "positive") return "Riesgo controlado";
+
+  return "Sin presión";
+}
+
+function riskStatusClasses(tone: InsightTone) {
+  return cn(
+    tone === "negative" && "border-loss/25 bg-loss-muted/45 text-loss",
+    tone === "warning" && "border-risk/25 bg-risk-muted/45 text-risk",
+    tone === "positive" && "border-profit/25 bg-profit-muted/45 text-profit",
+    tone === "neutral" && "border-border bg-muted/45 text-muted-foreground",
+  );
+}
+
+function RiskKpiBars({ progressPct }: { progressPct: number }) {
+  const activeBars = Math.ceil((Math.max(0, Math.min(100, progressPct)) / 100) * 8);
+
+  return (
+    <div className="flex h-10 shrink-0 items-end gap-0.5" aria-hidden="true">
+      {Array.from({ length: 8 }, (_, index) => {
+        const isActive = index < activeBars;
+
+        return (
+          <span
+            key={index}
+            className={cn(
+              "w-1.5 rounded-full bg-muted",
+              isActive && "bg-foreground/55",
+            )}
+            style={{ height: `${10 + index * 4}px` }}
+          />
+        );
+      })}
+    </div>
   );
 }
 
@@ -1899,9 +2556,9 @@ function RiskConcentrationCard({
   return (
     <Card className="border-border/70 bg-card/70">
       <CardHeader>
-        <CardTitle>Concentración de pérdida</CardTitle>
+        <CardTitle>Dónde se concentra la pérdida</CardTitle>
         <CardDescription>
-          Sesiones, símbolos y días donde el resultado se deterioró más.
+          Sesión, símbolo y día que más pesan en el drawdown del periodo.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
@@ -1926,9 +2583,9 @@ function RiskBehaviorCard({ behaviorRows }: { behaviorRows: readonly RiskMetricR
   return (
     <Card className="border-border/70 bg-card/70">
       <CardHeader>
-        <CardTitle>Comportamiento a vigilar</CardTitle>
+        <CardTitle>Disciplina y coste</CardTitle>
         <CardDescription>
-          Señales históricas que pueden distorsionar la lectura del edge.
+          Racha, operación dominante y coste real antes de aumentar lotaje.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -1952,7 +2609,7 @@ function RiskBehaviorCard({ behaviorRows }: { behaviorRows: readonly RiskMetricR
           variant="outline"
           className="justify-between"
         >
-          Ver límites en RiskGuard
+          Ver límites en Mesa de Riesgo
           <ChevronRight className="size-4" />
         </Button>
       </CardContent>
@@ -1960,13 +2617,13 @@ function RiskBehaviorCard({ behaviorRows }: { behaviorRows: readonly RiskMetricR
   );
 }
 
-function RiskReviewLinksCard({ links }: { links: RiskReviewLink[] }) {
+function RiskDrilldownLinksCard({ links }: { links: RiskDrilldownLink[] }) {
   return (
     <Card className="border-border/70 bg-card/70">
       <CardHeader>
-        <CardTitle>Dónde revisar el daño</CardTitle>
+        <CardTitle>Abrir análisis</CardTitle>
         <CardDescription>
-          Riesgo de Insights deriva al análisis correcto sin duplicar RiskGuard.
+          Salta a la vista que explica la pérdida sin repetir métricas.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -2035,6 +2692,43 @@ export function AnalyticsOverviewSection({
   const worstSymbol =
     [...symbolRows].filter((symbol) => symbol.pnl < 0).toSorted((a, b) => a.pnl - b.pnl)[0] ??
     null;
+  const assetFamilyGroups = trades.reduce<
+    Record<
+      string,
+      { label: string; trades: number; pnl: number; wins: number; losses: number; assets: Set<string> }
+    >
+  >((acc, trade) => {
+    const label = classifyAssetFamily(trade.symbol);
+    const current = acc[label] ?? {
+      assets: new Set<string>(),
+      label,
+      losses: 0,
+      pnl: 0,
+      trades: 0,
+      wins: 0,
+    };
+    current.assets.add(trade.symbol);
+    current.trades += 1;
+    current.pnl += trade.netPnl;
+    if (trade.netPnl > 0) current.wins += 1;
+    if (trade.netPnl < 0) current.losses += 1;
+    acc[label] = current;
+    return acc;
+  }, {});
+  const assetFamilyTotalTrades = Math.max(1, trades.length);
+  const assetFamilyRows = Object.values(assetFamilyGroups)
+    .toSorted((a, b) => b.trades - a.trades || b.pnl - a.pnl)
+    .map((row, index) => ({
+      assetCount: row.assets.size,
+      color: ASSET_FAMILY_PALETTE[index] ?? insightChartColors.inactive,
+      label: row.label,
+      losses: row.losses,
+      pnl: row.pnl,
+      sharePct: (row.trades / assetFamilyTotalTrades) * 100,
+      trades: row.trades,
+      value: Math.max(row.trades, 0.01),
+      wins: row.wins,
+    })) satisfies AssetFamilyRow[];
   const hourMap = new Map(hourlyOverview.hours.map((hour) => [hour.hour, hour]));
   const timeline = Array.from({ length: 24 }, (_, hour) => {
     const source = hourMap.get(hour);
@@ -2128,25 +2822,20 @@ export function AnalyticsOverviewSection({
 
         <ConcentrationCardsGrid cards={concentrationCards} />
 
-        <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
-          <div className="grid gap-4">
-            <SessionPerformanceCard
-              bestSession={bestSession}
-              rows={insights.sessionRows}
-              worstSession={worstSession}
-            />
-            <TimingWindowCard
-              bestHour={bestHour}
-              bestWindow={bestWindow}
-              bestWindowLabel={bestWindowLabel}
-              worstHour={worstHour}
-            />
-            <InsightActionLinksCard findings={actionFindings} />
-          </div>
+        <div className="grid gap-4 xl:grid-cols-2">
+          <AssetFamilyDistributionCard rows={assetFamilyRows} />
+          <SessionPerformanceCard
+            bestSession={bestSession}
+            rows={insights.sessionRows}
+            worstSession={worstSession}
+          />
+        </div>
 
+        <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
+          <SymbolPerformanceCard rows={symbolRows} />
           <div className="grid gap-4">
-            <SymbolPerformanceCard rows={symbolRows} />
             <WinLossDistributionCard
+              breakevenCount={tradeDistributionPerformance.breakevenCount}
               distributionTitle={distributionTitle}
               expectancy={tradeDistributionPerformance.expectancy}
               lossCount={tradeDistributionPerformance.lossCount}
@@ -2155,8 +2844,16 @@ export function AnalyticsOverviewSection({
               winCount={tradeDistributionPerformance.winCount}
               winRatePct={tradeDistributionPerformance.winRatePct}
             />
+            <TimingWindowCard
+              bestHour={bestHour}
+              bestWindow={bestWindow}
+              bestWindowLabel={bestWindowLabel}
+              worstHour={worstHour}
+            />
           </div>
         </div>
+
+        <InsightActionLinksCard findings={actionFindings} />
       </div>
     </PageMotion>
   );
@@ -2328,7 +3025,7 @@ export function PerformanceReferenceSection({
 
         <Card className="border-border/70 bg-card/70">
           <CardHeader>
-            <CardTitle>Review prioritario</CardTitle>
+            <CardTitle>Prioridad operativa</CardTitle>
             <CardDescription>
               Operaciones que más pueden explicar pérdidas, falta de etiquetado o mala gestión.
             </CardDescription>
@@ -2391,8 +3088,53 @@ export function AnalyticsDailyReferenceSection({
   workspace: WorkspaceState;
 }) {
   const dailyOverview = getAnalyticsDailyOverview(workspace);
+  const performance = workspace.analytics.performance;
   const { days, bestDay } = dailyOverview;
   const activeDays = days.filter((day) => day.trades > 0);
+  const activeAccount =
+    workspace.accounts.find((account) => account.id === workspace.activeAccountId) ??
+    workspace.accounts[0] ??
+    null;
+  const currentCapital = activeAccount?.balance ?? activeAccount?.equity ?? 0;
+  const totalClosedPnl = activeDays.reduce((sum, day) => sum + day.pnl, 0);
+  const estimatedStartingCapital =
+    currentCapital > 0
+      ? Math.max(1, currentCapital - totalClosedPnl)
+      : Math.max(1, Math.abs(totalClosedPnl), Math.abs(performance.netProfit));
+  const activeDayKeys = new Set(activeDays.map((day) => day.tradingDayKey));
+  const equityHistoryByDay = new Map<string, { time: number; value: number }>();
+  for (const point of activeAccount?.equityHistory ?? []) {
+    const rawTime = point.timestamp ?? point.label;
+    const date = new Date(rawTime);
+    if (Number.isNaN(date.getTime()) || !Number.isFinite(point.value)) continue;
+
+    const key = date.toISOString().slice(0, 10);
+    const time = date.getTime();
+    const previous = equityHistoryByDay.get(key);
+    if (!previous || time >= previous.time) {
+      equityHistoryByDay.set(key, { time, value: point.value });
+    }
+  }
+  const equityDailyReturnMap = new Map<string, number>();
+  const equityDailyValues = [...equityHistoryByDay.entries()]
+    .map(([key, point]) => ({ key, ...point }))
+    .toSorted((a, b) => a.time - b.time);
+  for (let index = 1; index < equityDailyValues.length; index += 1) {
+    const previous = equityDailyValues[index - 1];
+    const current = equityDailyValues[index];
+    if (!previous || !current || !activeDayKeys.has(current.key) || previous.value <= 0) continue;
+
+    equityDailyReturnMap.set(current.key, ((current.value - previous.value) / previous.value) * 100);
+  }
+  const dailyReturnMap = new Map<string, number>();
+  let runningCapital = estimatedStartingCapital;
+  for (const day of [...activeDays].toSorted((a, b) => a.tradingDayKey.localeCompare(b.tradingDayKey))) {
+    const returnPct =
+      equityDailyReturnMap.get(day.tradingDayKey) ??
+      (runningCapital > 0 ? (day.pnl / runningCapital) * 100 : 0);
+    dailyReturnMap.set(day.tradingDayKey, returnPct);
+    runningCapital = Math.max(1, runningCapital + day.pnl);
+  }
   const negativeDays = activeDays.filter((day) => day.pnl < 0);
   const reviewDay =
     negativeDays.length > 0
@@ -2448,6 +3190,10 @@ export function AnalyticsDailyReferenceSection({
   const keyDays = [...monthActiveDays]
     .toSorted((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))
     .slice(0, 5);
+  const calendarMaxAbsPnl = Math.max(
+    1,
+    ...monthActiveDays.map((day) => Math.abs(day.pnl)),
+  );
   const [selectedDayKey, setSelectedDayKey] = React.useState(
     monthReviewDay?.tradingDayKey ??
       monthBestDay?.tradingDayKey ??
@@ -2556,6 +3302,66 @@ export function AnalyticsDailyReferenceSection({
         : positiveMonthDays.length > 0
         ? "Los días positivos sostienen la lectura."
         : "Todavía faltan días operados.";
+  const weekdayPatternRows = WEEK_DAY_ROWS.map((weekday) => {
+    const matchingDays = activeDays.filter((day) => {
+      const date = new Date(`${day.tradingDayKey}T00:00:00Z`);
+
+      return !Number.isNaN(date.getTime()) && date.getUTCDay() === weekday.key;
+    });
+    const returnFactor = matchingDays.reduce(
+      (factor, day) => factor * (1 + (dailyReturnMap.get(day.tradingDayKey) ?? 0) / 100),
+      1,
+    );
+
+    return {
+      activeDays: matchingDays.length,
+      key: weekday.key,
+      label: weekday.label,
+      losses: matchingDays.reduce((sum, day) => sum + day.losses, 0),
+      pnl: matchingDays.reduce((sum, day) => sum + day.pnl, 0),
+      returnPct: (returnFactor - 1) * 100,
+      trades: matchingDays.reduce((sum, day) => sum + day.trades, 0),
+      wins: matchingDays.reduce((sum, day) => sum + day.wins, 0),
+    };
+  }) satisfies WeekdayPatternRow[];
+  const weekdayCurveSeries = WEEK_DAY_ROWS.reduce<WeekdayCurveSeries[]>((seriesRows, weekday, index) => {
+    const matchingDays: typeof activeDays = [];
+    for (const day of activeDays) {
+      const date = new Date(`${day.tradingDayKey}T00:00:00Z`);
+      if (!Number.isNaN(date.getTime()) && date.getUTCDay() === weekday.key) {
+        matchingDays.push(day);
+      }
+    }
+    matchingDays.sort((a, b) => a.tradingDayKey.localeCompare(b.tradingDayKey));
+    if (matchingDays.length === 0) return seriesRows;
+
+    let cumulativePnl = 0;
+    let cumulativeReturnFactor = 1;
+    const points: LivelinePoint[] = [{ time: 0, value: 0 }];
+    for (const [pointIndex, day] of matchingDays.entries()) {
+      cumulativePnl += day.pnl;
+      cumulativeReturnFactor *= 1 + (dailyReturnMap.get(day.tradingDayKey) ?? 0) / 100;
+      points.push({
+        time: (pointIndex + 1) * 86_400,
+        value: (cumulativeReturnFactor - 1) * 100,
+      });
+    }
+    const cumulativeReturnPct = (cumulativeReturnFactor - 1) * 100;
+
+    seriesRows.push({
+      activeDays: matchingDays.length,
+      color: WEEKDAY_LINE_COLORS[index] ?? "var(--chart-line-secondary)",
+      id: `weekday_${weekday.key}`,
+      key: weekday.key,
+      label: weekday.label,
+      pnl: cumulativePnl,
+      returnPct: cumulativeReturnPct,
+      points,
+      value: cumulativeReturnPct,
+    });
+
+    return seriesRows;
+  }, []) satisfies WeekdayCurveSeries[];
   const summaryMetrics = [
     [
       "Días activos",
@@ -2587,8 +3393,9 @@ export function AnalyticsDailyReferenceSection({
 
   return (
     <PageMotion>
-      <div className="grid gap-4">
-        <DailySummaryCard metrics={summaryMetrics} />
+        <div className="grid gap-4">
+          <DailySummaryCard metrics={summaryMetrics} />
+        <WeekdayPatternCard rows={weekdayPatternRows} series={weekdayCurveSeries} />
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
           <div className="grid gap-4">
@@ -2596,6 +3403,7 @@ export function AnalyticsDailyReferenceSection({
               calendarCells={calendarCells}
               canGoNext={safeSelectedMonthIndex < monthKeys.length - 1}
               canGoPrevious={safeSelectedMonthIndex > 0}
+              maxAbsPnl={calendarMaxAbsPnl}
               monthActiveDayCount={monthActiveDays.length}
               onChangeMonth={changeDailyMonth}
               onSelectDay={setSelectedDayKey}
@@ -2933,37 +3741,27 @@ export function AnalyticsRiskReferenceSection({
         : "positive";
   const riskTitle =
     riskTone === "negative"
-      ? "Comportamiento dañando el resultado"
+      ? "Drawdown concentrado"
       : riskTone === "warning"
-        ? "Riesgo histórico en vigilancia"
-        : "Riesgo histórico estable";
-  const dominantRiskSignal =
-    (worstSession?.lossSharePct ?? 0) >= 35
-      ? `${worstSession?.label} concentra ${formatPercent(worstSession?.lossSharePct ?? 0, 0)} de la pérdida`
-      : outlierDependency > 35
-        ? "Resultado dependiente de pocas operaciones"
-        : lossStreak >= 2
-          ? `Racha negativa de ${lossStreak}`
-          : costDragPct > 18
-            ? "Costes pesando sobre el resultado"
-            : "Sin problema dominante";
+        ? "Riesgo pendiente de filtrar"
+        : "Riesgo operativo controlado";
   const behaviorRows = [
     {
-      label: "Racha de pérdidas",
+      label: "Racha perdedora",
       value: `${lossStreak}`,
-      note: lossStreak >= 2 ? "Revisar impulso antes de volver a aumentar tamaño." : "Sin presión conductual fuerte.",
+      note: lossStreak >= 2 ? "No subas tamaño hasta cortar la racha." : "Sin racha que obligue a bajar tamaño.",
       tone: lossStreak >= 3 ? "negative" : lossStreak >= 2 ? "warning" : "positive",
     },
     {
       label: "Operación dominante",
       value: insights.outlierDependency === null ? "Sin cálculo" : `${outlierDependency.toFixed(0)}%`,
-      note: outlierDependency > 35 ? "No escalar hasta confirmar repetición." : "Resultado menos dependiente.",
+      note: outlierDependency > 35 ? "Una operación pesa demasiado en el PnL." : "PnL repartido entre varias operaciones.",
       tone: outlierDependency > 35 ? "warning" : "positive",
     },
     {
-      label: "Coste operativo",
+      label: "Costes de trading",
       value: formatCurrency(totalCost),
-      note: "Comisiones y swap visibles en operaciones cerradas.",
+      note: "Comisiones y swap descontados de cierres MT5.",
       tone: costDragPct > 18 ? "warning" : "neutral",
     },
   ] as const;
@@ -2972,90 +3770,77 @@ export function AnalyticsRiskReferenceSection({
       label: "Sesión",
       value: worstSession?.label ?? "Sin sesión",
       note: worstSession
-        ? `${formatPercent(worstSession.lossSharePct, 0)} de pérdidas / ${worstSession.losses} pérdidas`
-        : "Sin pérdidas por sesión",
+        ? `${formatPercent(worstSession.lossSharePct, 0)} del drawdown / ${worstSession.losses} pérdidas`
+        : "Sin drawdown por sesión",
       tone: worstSession && worstSession.pnl < 0 ? "negative" : "neutral",
     },
     {
       label: "Símbolo",
       value: worstSymbol?.label ?? "Sin símbolo",
       note: worstSymbol
-        ? `${formatPercent(worstSymbol.lossSharePct, 0)} de pérdidas / ${worstSymbol.losses} pérdidas`
-        : "Sin pérdidas por símbolo",
+        ? `${formatPercent(worstSymbol.lossSharePct, 0)} del drawdown / ${worstSymbol.losses} pérdidas`
+        : "Sin drawdown por símbolo",
       tone: worstSymbol && worstSymbol.pnl < 0 ? "negative" : "neutral",
     },
     {
       label: "Día",
       value: worstDay?.label ?? "Sin día",
       note: worstDay
-        ? `${formatPercent(worstDay.lossSharePct, 0)} de pérdidas / ${formatOperationCount(worstDay.trades)}`
+        ? `${formatPercent(worstDay.lossSharePct, 0)} del drawdown / ${formatOperationCount(worstDay.trades)}`
         : "Sin día negativo",
       tone: worstDay && worstDay.pnl < 0 ? "negative" : "neutral",
     },
   ] as const;
-  const decisionRows = [
+  const lossConcentrationPct = worstSession?.lossSharePct ?? 0;
+  const riskKpis = [
     {
-      label: "Lectura actual",
-      value:
-        riskTone === "negative"
-          ? "No escalar"
-          : riskTone === "warning"
-            ? "Operar con cautela"
-            : "Lectura usable",
+      label: "Drawdown por sesión",
+      value: formatPercent(lossConcentrationPct, 0),
       note:
-        riskTone === "negative"
-          ? "El historial marca concentración de daño o dependencia excesiva."
-          : riskTone === "warning"
-            ? "Usa Insights para revisar, no para aumentar tamaño."
-            : "Puedes usar Insights como apoyo, manteniendo el tamaño.",
-      tone: riskTone,
+        worstSession && lossConcentrationPct > 0
+          ? `${worstSession.label} concentra el drawdown del periodo.`
+          : "Sin sesión dominante en drawdown.",
+      progressPct: lossConcentrationPct,
+      tone: lossConcentrationPct >= 55 ? "negative" : lossConcentrationPct >= 35 ? "warning" : "positive",
     },
     {
-      label: "Señal dominante",
-      value: dominantRiskSignal,
+      label: "Operación dominante",
+      value: insights.outlierDependency === null ? "0%" : formatPercent(outlierDependency, 0),
       note:
-        dominantRiskSignal === "Sin problema dominante"
-          ? "No hay una señal que distorsione claramente la lectura."
-          : "Resuelve esto antes de sacar conclusiones fuertes.",
-      tone: riskTone,
+        outlierDependency > 35
+          ? "Una o pocas operaciones pesan demasiado en el PnL."
+          : "PnL repartido; sin operación dominante.",
+      progressPct: outlierDependency,
+      tone: outlierDependency >= 55 ? "negative" : outlierDependency >= 35 ? "warning" : "positive",
     },
     {
-      label: "Siguiente paso",
-      value:
-        riskTone === "negative"
-          ? "Reducir y revisar"
-          : worstSession
-            ? "Revisar horario"
-            : "Revisar diario",
-      note:
-        riskTone === "negative"
-          ? "Primero corrige la fuente del daño; RiskGuard solo si hay límite activo."
-          : worstSession
-            ? "El patrón más claro está en sesión/hora."
-            : "Busca días que expliquen el resultado.",
-      tone: riskTone === "positive" ? "neutral" : riskTone,
+      label: "Coste sobre ganancia",
+      value: formatPercent(costDragPct, 0),
+      note: `${formatCurrency(totalCost)} en comisiones y swap sobre ganancia bruta.`,
+      progressPct: costDragPct,
+      tone: costDragPct > 18 ? "warning" : "neutral",
     },
-  ] as const;
+  ] as const satisfies readonly RiskInsightKpi[];
   const reviewLinks = [
     {
-      title: "Pérdida por símbolo",
+      title: "Símbolo con pérdida",
       body: worstSymbol
-        ? `${worstSymbol.label} concentra ${formatPercent(worstSymbol.lossSharePct, 0)} de pérdidas. Revisar ejecución y contexto.`
-        : "No hay símbolo con daño dominante en el periodo.",
+        ? `${worstSymbol.label} concentra ${formatPercent(worstSymbol.lossSharePct, 0)} del drawdown. Revisa ejecución y contexto.`
+        : "No hay símbolo que domine el drawdown.",
       href: "/risk",
     },
     {
-      title: "Día que explica el bache",
+      title: "Día de drawdown",
       body: worstDay
         ? `${worstDay.label} tiene ${formatOperationCount(worstDay.trades)} y ${formatSignedCurrency(worstDay.pnl)} neto.`
-        : "No hay día negativo dominante.",
+        : "No hay día que explique la pérdida.",
       href: "/analytics/daily",
     },
     {
-      title: "Ventana o sesión débil",
+      title: "Sesión débil",
       body: worstSession
-        ? `${worstSession.label} pesa más en las pérdidas. Filtra horarios antes de añadir riesgo.`
-        : "No hay sesión negativa dominante.",
+        ? `${worstSession.label} pesa más en el drawdown. Filtra horario antes de añadir riesgo.`
+        : "No hay sesión que concentre pérdida.",
       href: "/analytics/hourly",
     },
   ];
@@ -3064,7 +3849,7 @@ export function AnalyticsRiskReferenceSection({
     <PageMotion>
       <div className="grid gap-4">
         <RiskDecisionCard
-          decisionRows={decisionRows}
+          kpis={riskKpis}
           riskTitle={riskTitle}
           riskTone={riskTone}
         />
@@ -3078,7 +3863,7 @@ export function AnalyticsRiskReferenceSection({
           <RiskBehaviorCard behaviorRows={behaviorRows} />
         </div>
 
-        <RiskReviewLinksCard links={reviewLinks} />
+        <RiskDrilldownLinksCard links={reviewLinks} />
       </div>
     </PageMotion>
   );

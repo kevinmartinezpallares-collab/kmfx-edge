@@ -47,6 +47,25 @@ It must not claim pre-server blocking of manual trades unless that exact behavio
 
 `KMFXRiskGuard` must be labeled as advanced/beta until enforcement telemetry, acknowledgements, and user consent flows are production-ready. It is not part of the default public `KMFXConnector` package.
 
+## RiskGuard Beta Monitor Boundary
+
+The Next.js `/risk` surface is a read-only Beta Monitor until EA enforcement readiness is explicitly proven and shipped.
+
+In this beta monitor state:
+
+- It may read account, history, open-risk, daily drawdown, limit, and policy telemetry when available.
+- It may show warnings, critical states, and a theoretical limit breach.
+- It must say when data is insufficient or pending configuration.
+- It must not execute orders.
+- It must not modify orders.
+- It must not close trades.
+- It must not claim MT5 blocking is active.
+- It must not present fallback limits as confirmed account policy.
+
+Future active protection requires a separate EA-controlled kill switch boundary. The safe default should keep local EA enforcement disabled, for example `RiskGuardEnabled = false`, with any order, close, modify, or reactive restriction mode also disabled until explicit user consent, backend policy acknowledgement, EA acknowledgement telemetry, and degraded/read-only state reporting are all verified.
+
+The dashboard or backend must not silently enable active protection. Local terminal state, EA permissions, account trade permissions, policy hash acknowledgement, and user consent must be visible before any active mode is described as enabled. Automatic close-all paths remain out of normal user copy unless the user has explicitly entered an advanced RiskGuard flow.
+
 ## Enforcement Truth Matrix
 
 | Feature | Monitor | Enforce | Requires EA | Requires backend policy | Requires user consent | Current status |

@@ -18,3 +18,10 @@ export const chartCssVars = {
   segmentBackground: "var(--chart-segment-background)",
   segmentLine: "var(--chart-segment-line)",
 };
+
+export const defaultScatterColors = [
+  chartCssVars.linePrimary,
+  chartCssVars.lineSecondary,
+  chartCssVars.indicatorColor,
+  chartCssVars.indicatorSecondaryColor,
+];

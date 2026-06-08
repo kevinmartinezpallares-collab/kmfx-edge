@@ -99,7 +99,7 @@ export function CommandEntry() {
               </CommandItem>
               <CommandItem disabled>
                 <ArrowUpRightIcon />
-                <span>Acceso directo a Playbooks y Review</span>
+                <span>Acceso directo a Playbooks e Insights</span>
                 <CommandShortcut>Pronto</CommandShortcut>
               </CommandItem>
             </CommandGroup>

@@ -1,4 +1,5 @@
 import type { WorkspaceState } from "@/lib/contracts/workspace-state";
+import { evaluateFundingRuleForAccount } from "@/lib/domain/funding-rule-catalog";
 import { getRiskGuardPosture } from "@/lib/domain/risk-selectors";
 
 export type RiskGuardAlert = {
@@ -74,6 +75,32 @@ export function getRiskGuardAlerts(
       label: `${account.accountLabel} con poco room`,
       reason: "La cuenta tiene margen diario reducido antes de la siguiente entrada.",
     });
+  });
+
+  workspace.accounts.forEach((account) => {
+    if (!account.funding) return;
+
+    const evaluation = evaluateFundingRuleForAccount(account);
+    if (evaluation.status === "not_funded" || evaluation.status === "clear") return;
+
+    if (evaluation.status === "requires_review") {
+      pushUniqueAlert(alerts, {
+        tone: "warning",
+        label: `${account.label} requiere reglas`,
+        reason: evaluation.alerts[0]?.reason ?? "La firma o fase de fondeo requiere revisión.",
+      });
+      return;
+    }
+
+    evaluation.alerts
+      .filter((alert) => alert.tone !== "info")
+      .forEach((alert) => {
+        pushUniqueAlert(alerts, {
+          tone: alert.tone,
+          label: `${account.label}: ${alert.label}`,
+          reason: alert.reason,
+        });
+      });
   });
 
   return alerts.slice(0, Math.max(1, Math.min(6, maxAlerts)));

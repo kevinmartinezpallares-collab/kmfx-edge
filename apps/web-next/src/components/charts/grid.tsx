@@ -16,6 +16,16 @@ export interface GridProps {
   numTicksColumns?: number;
   /** Explicit tick values for horizontal grid lines. Overrides numTicksRows. */
   rowTickValues?: number[];
+  /** Compatibility alias for explicit highlighted row values. */
+  highlightRowValues?: number[];
+  highlightRowStroke?: string;
+  highlightRowStrokeDasharray?: string;
+  highlightRowStrokeWidth?: number;
+  shimmer?: boolean;
+  shimmerLength?: number;
+  shimmerSpeed?: number;
+  shimmerStroke?: string;
+  shimmerSync?: boolean;
   /** Grid line stroke color. Default: var(--chart-grid) */
   stroke?: string;
   /** Grid line stroke opacity. Default: 1 */
@@ -36,6 +46,10 @@ export function Grid({
   numTicksRows = 5,
   numTicksColumns = 10,
   rowTickValues,
+  highlightRowValues,
+  highlightRowStroke,
+  highlightRowStrokeDasharray,
+  highlightRowStrokeWidth,
   stroke = chartCssVars.grid,
   strokeOpacity = 1,
   strokeWidth = 1,
@@ -126,6 +140,17 @@ export function Grid({
             tickValues={rowTickValues}
             width={innerWidth}
           />
+          {highlightRowValues?.length ? (
+            <GridRows
+              scale={yScale}
+              stroke={highlightRowStroke ?? stroke}
+              strokeDasharray={highlightRowStrokeDasharray ?? strokeDasharray}
+              strokeOpacity={strokeOpacity}
+              strokeWidth={highlightRowStrokeWidth ?? strokeWidth}
+              tickValues={highlightRowValues}
+              width={innerWidth}
+            />
+          ) : null}
         </g>
       )}
       {vertical && columnScale && typeof columnScale === "function" && (

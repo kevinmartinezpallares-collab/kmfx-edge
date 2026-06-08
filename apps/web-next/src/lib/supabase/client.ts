@@ -7,9 +7,15 @@ import {
   resolveSupabaseUrl,
 } from "@/lib/supabase/config";
 
-export function createBrowserSupabaseClient() {
-  const url = resolveSupabaseUrl();
-  const key = resolveSupabasePublishableKey();
+export type BrowserSupabasePublicConfig = {
+  supabasePublishableKey: string;
+  supabaseUrl: string;
+};
+
+export function createBrowserSupabaseClient(config?: BrowserSupabasePublicConfig) {
+  const url = config?.supabaseUrl?.trim() || resolveSupabaseUrl();
+  const key =
+    config?.supabasePublishableKey?.trim() || resolveSupabasePublishableKey();
 
   if (!url || !key) {
     throw new Error("Supabase public config is missing");

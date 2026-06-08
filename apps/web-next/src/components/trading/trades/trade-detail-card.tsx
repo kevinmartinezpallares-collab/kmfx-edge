@@ -170,12 +170,12 @@ export function TradeDetailCard({
         </div>
 
         <Button
-          render={<Link href="/journal/review-queue" />}
+          render={<Link href="/trades" />}
           nativeButton={false}
           variant="outline"
           className="justify-between"
         >
-          Revisar operación
+          Volver al ledger
           <ChevronRight className="size-4" />
         </Button>
       </CardContent>

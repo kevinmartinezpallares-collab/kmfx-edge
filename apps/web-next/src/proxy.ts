@@ -1,7 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { buildKmfxApiUrl } from "@/lib/api/kmfx-api-config";
-import { resolveConnectionAccess } from "@/lib/billing/connection-access";
+import {
+  isAdminEmailAllowed,
+  isGeneticLabEnabled,
+  isGeneticLabPath,
+} from "@/lib/auth/admin-access";
+import {
+  resolveConnectionAccess,
+  type ConnectionAccess,
+} from "@/lib/billing/connection-access";
 import { isSupabaseAuthEnabled } from "@/lib/supabase/config";
 import { updateSupabaseSession } from "@/lib/supabase/proxy";
 
@@ -14,7 +22,6 @@ const BILLING_GUARDED_PREFIXES = [
   "/debug",
   "/execution",
   "/funding",
-  "/journal",
   "/market",
   "/risk",
   "/settings",
@@ -64,6 +71,10 @@ function isAuthRoute(pathname: string) {
   return pathname === "/login" || pathname.startsWith("/auth/");
 }
 
+function isPublicAuthConfigRoute(pathname: string) {
+  return pathname === "/api/kmfx/public-auth-config";
+}
+
 function isBillingGuardedWorkspaceRoute(pathname: string) {
   if (pathname === "/subscription" || pathname === "/settings/subscription") {
     return false;
@@ -74,8 +85,17 @@ function isBillingGuardedWorkspaceRoute(pathname: string) {
   );
 }
 
-async function hasBlockedBillingAccess(accessToken: string | undefined) {
-  if (!accessToken) return false;
+function subscriptionAccessReasonSearchValue(access: ConnectionAccess) {
+  if (access.reason === "billing_past_due") return "billing-attention";
+  if (access.reason === "billing_required") return "trial-expired";
+  if (access.reason === "entitlement_required") return "plan-required";
+  if (access.reason === "plan_limit_reached") return "plan-limit";
+
+  return "plan-required";
+}
+
+async function resolveBlockedBillingAccess(accessToken: string | undefined) {
+  if (!accessToken) return null;
 
   try {
     const response = await fetch(buildKmfxApiUrl("/api/billing/status"), {
@@ -88,21 +108,32 @@ async function hasBlockedBillingAccess(accessToken: string | undefined) {
     const payload = await response.json().catch(() => ({}));
     const access = resolveConnectionAccess(response.ok ? payload : { ok: false });
 
-    return (
+    const blocked =
       !access.allowed &&
       access.reason !== "auth_required" &&
-      access.reason !== "billing_status_unavailable"
-    );
+      access.reason !== "billing_status_unavailable";
+
+    return blocked ? access : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
 export async function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  if (isPublicAuthConfigRoute(pathname)) {
+    return NextResponse.next();
+  }
+
   if (
-    request.nextUrl.pathname.startsWith("/debug") &&
+    pathname.startsWith("/debug") &&
     process.env.KMFX_ENABLE_DEBUG_ROUTE !== "1"
   ) {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  if (isGeneticLabPath(pathname) && !isGeneticLabEnabled()) {
     return new NextResponse(null, { status: 404 });
   }
 
@@ -111,11 +142,24 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!isSupabaseAuthEnabled()) {
+    if (isGeneticLabPath(pathname)) {
+      return new NextResponse(null, { status: 404 });
+    }
+
     return NextResponse.next();
   }
 
   const session = await updateSupabaseSession(request);
-  const pathname = request.nextUrl.pathname;
+
+  if (isGeneticLabPath(pathname)) {
+    if (
+      !session.configured ||
+      !session.authenticated ||
+      !isAdminEmailAllowed(session.userEmail)
+    ) {
+      return new NextResponse(null, { status: 404 });
+    }
+  }
 
   if (!session.configured) {
     return session.response;
@@ -135,17 +179,23 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(dashboardUrl);
   }
 
-  if (
+  const blockedBillingAccess =
     session.authenticated &&
     request.nextUrl.searchParams.get("demo") !== "1" &&
-    isBillingGuardedWorkspaceRoute(pathname) &&
-    await hasBlockedBillingAccess(session.accessToken)
-  ) {
+    isBillingGuardedWorkspaceRoute(pathname)
+      ? await resolveBlockedBillingAccess(session.accessToken)
+      : null;
+
+  if (blockedBillingAccess) {
     const subscriptionUrl = request.nextUrl.clone();
     subscriptionUrl.pathname = "/subscription";
     subscriptionUrl.search = "";
     subscriptionUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
     subscriptionUrl.searchParams.set("welcome", "1");
+    subscriptionUrl.searchParams.set(
+      "access",
+      subscriptionAccessReasonSearchValue(blockedBillingAccess),
+    );
     return NextResponse.redirect(subscriptionUrl);
   }
 

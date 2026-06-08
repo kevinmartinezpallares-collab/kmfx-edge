@@ -3,9 +3,19 @@
 import * as React from "react";
 import Link from "next/link";
 import { Liveline, type LivelinePoint, type ThemeMode } from "liveline";
-import { ChevronRight } from "lucide-react";
+import { curveBasis } from "@visx/curve";
+import { ChevronRight, X } from "lucide-react";
+import {
+  Bar as RechartsBar,
+  BarChart as RechartsBarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  XAxis as RechartsXAxis,
+  YAxis as RechartsYAxis,
+} from "recharts";
+import { toast } from "sonner";
 
-import { Gauge } from "@/components/charts/gauge";
 import { PieChart } from "@/components/charts/pie-chart";
 import { PieSlice } from "@/components/charts/pie-slice";
 import {
@@ -17,6 +27,26 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
+  ChartContainer,
+  ChartTooltip as ShadcnChartTooltip,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import {
+  Bar,
+  BarChart,
+  BarYAxis,
+  ChartTooltip,
+  Grid,
+  Line,
+  LineChart,
+  ProfitLossLegend,
+  ProfitLossLegendHoverProvider,
+  ProfitLossLine,
+  profitLossColor,
+  XAxis,
+  resolveProfitLossTooltipLabel,
+} from "@/components/ui/charts";
+import {
   Table,
   TableBody,
   TableCell,
@@ -27,22 +57,17 @@ import {
 import type { TradingAccount } from "@/lib/contracts/account";
 import type {
   EconomicCalendarEvent,
-  EconomicImpact,
 } from "@/lib/contracts/economic-calendar";
 import type { WorkspaceState } from "@/lib/contracts/workspace-state";
 import { macroCalendarConfig } from "@/lib/config/macro-calendar";
 import {
-  economicImpactLabel,
-  getEconomicCalendarOverview,
-} from "@/lib/domain/economic-calendar-selectors";
-import {
-  buildDashboardAttentionItems,
   buildDashboardPerformance,
   buildDashboardSessionRows,
   buildDashboardSymbolRows,
   resolveAccountMode,
   sessionLabel,
 } from "@/lib/domain/dashboard-selectors";
+import { buildStrategyRows } from "@/lib/domain/strategies-selectors";
 import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
 import {
   formatCurrency,
@@ -56,6 +81,11 @@ import {
   livelineWindowForData,
   prepareHistoricalLivelineCurve,
 } from "@/lib/charts/liveline-points";
+import {
+  formatResponsiveLivelineCurrency,
+  livelinePadding,
+} from "@/lib/charts/liveline-layout";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 const CHART_ACCENT_BY_THEME = {
@@ -63,19 +93,48 @@ const CHART_ACCENT_BY_THEME = {
   dark: "#f5f5f5",
 } satisfies Record<ThemeMode, string>;
 const CHART_ACCENT_SOFT = "var(--chart-line-secondary)";
+const PANEL_CARD_CLASS = "h-full border-border/70 bg-card/70 shadow-none";
+const PANEL_MICRO_CHART_CARD_CLASS = "min-h-[332px] gap-2 py-3";
+const PANEL_MICRO_CHART_CONTENT_CLASS = "flex flex-1 flex-col gap-1.5";
+const PANEL_MICRO_CHART_SURFACE_CLASS = "min-h-[188px] flex-1";
+const PANEL_LOWER_CHART_CONTENT_CLASS = "flex flex-1 flex-col gap-4";
+const PANEL_DIAGNOSTIC_CARD_CLASS = "min-h-[360px] gap-2 py-3";
+const PANEL_DIAGNOSTIC_CONTENT_CLASS = "flex flex-1 flex-col gap-3";
+const LIVELINE_BADGE_WINDOW_BUFFER = 0.05;
 const PANEL_EQUITY_WINDOWS = [
-  { label: "7D", secs: 604_800 },
-  { label: "30D", secs: 2_592_000 },
-  { label: "90D", secs: 7_776_000 },
+  { key: "7D", label: "7D", secs: 604_800 },
+  { key: "30D", label: "30D", secs: 2_592_000 },
+  { key: "90D", label: "90D", secs: 7_776_000 },
+  { key: "YTD", label: "YTD", secs: null },
 ] as const;
-const CALENDAR_REFRESH_MS = 60_000;
-const RECENT_RELEASE_WINDOW_MS = 2 * 60 * 60_000;
+const MINI_PROFIT_LOSS_CHART_MARGIN = { bottom: 34, left: 12, right: 14, top: 10 };
+const PNL_DISTRIBUTION_SIDE_BUCKETS = 6;
+const PNL_DISTRIBUTION_CHART_CONFIG = {
+  result: {
+    label: "Operaciones",
+    color: "var(--foreground)",
+  },
+} satisfies ChartConfig;
+const OUTLIER_DEPENDENCY_BANDS = [
+  { label: "Baja", range: "0-10%", width: 10 },
+  { label: "Controlada", range: "10-25%", width: 15 },
+  { label: "Alta", range: "25-40%", width: 15 },
+  { label: "Muy alta", range: "40%+", width: 60 },
+] as const;
+type PanelEquityWindowKey = (typeof PANEL_EQUITY_WINDOWS)[number]["key"];
+const CALENDAR_REFRESH_MS = 30_000;
+const RELEASE_ALERT_LOOKBACK_MS = 3 * 60 * 60_000;
+const UPCOMING_RELEASE_ALERT_WINDOW_MS = 5 * 60_000;
 const EVENT_DATE_FORMATTER = new Intl.DateTimeFormat("es-ES", {
   day: "numeric",
   month: "short",
   timeZone: "Europe/Madrid",
   weekday: "short",
 });
+const LOWER_IS_BETTER_RELEASE_PATTERNS = [
+  /unemployment|desempleo|paro|jobless|claims|subsidio/i,
+  /inventories|stockpiles|inventarios/i,
+];
 type EquityChartPoint = {
   label: string;
   equity: number;
@@ -230,12 +289,12 @@ function usePanelChartTheme() {
   const donutNeutrals = isLight
     ? {
         win: "oklch(0.92 0 0)",
-        loss: "var(--loss)",
+        loss: "oklch(0.5 0 0)",
         breakeven: "oklch(0.56 0 0)",
       }
     : {
         win: "oklch(0.92 0 0)",
-        loss: "var(--loss)",
+        loss: "oklch(0.42 0 0)",
         breakeven: "oklch(0.52 0 0)",
       };
 
@@ -256,6 +315,318 @@ function useEconomicCalendarSource(): CalendarSourceState {
     getEconomicCalendarSourceSnapshot,
     getEconomicCalendarServerSnapshot,
   );
+}
+
+function calendarValueFingerprint(value: EconomicCalendarEvent["actual"]) {
+  if (value === null || value === undefined) return null;
+
+  const text = String(value).trim();
+
+  return text.length > 0 ? text : null;
+}
+
+function formatCalendarReleaseValue(value: EconomicCalendarEvent["actual"]) {
+  return calendarValueFingerprint(value) ?? "Sin dato";
+}
+
+function normalizeCalendarNumberText(value: string) {
+  const trimmed = value.trim().replace(/\s/g, "");
+  const withoutSymbols = trimmed
+    .replace(/[<>]/g, "")
+    .replace(/[%$€£¥]/g, "")
+    .replace(/[KMBT]$/i, "");
+
+  if (withoutSymbols.includes(".") && withoutSymbols.includes(",")) {
+    return withoutSymbols.replace(/,/g, "");
+  }
+
+  const commaIndex = withoutSymbols.lastIndexOf(",");
+
+  if (
+    commaIndex >= 0 &&
+    !withoutSymbols.includes(".") &&
+    withoutSymbols.length - commaIndex - 1 === 3
+  ) {
+    return withoutSymbols.replace(/,/g, "");
+  }
+
+  return withoutSymbols.replace(",", ".");
+}
+
+function parseCalendarReleaseNumber(value: EconomicCalendarEvent["actual"]) {
+  const fingerprint = calendarValueFingerprint(value);
+  if (!fingerprint) return null;
+
+  const suffix = fingerprint.match(/[KMBT]$/i)?.[0]?.toUpperCase();
+  const multiplier =
+    suffix === "K"
+      ? 1_000
+      : suffix === "M"
+        ? 1_000_000
+        : suffix === "B"
+          ? 1_000_000_000
+          : suffix === "T"
+            ? 1_000_000_000_000
+            : 1;
+  const numericText = normalizeCalendarNumberText(fingerprint).replace(/[^\d.-]/g, "");
+  const parsed = Number(numericText);
+
+  return Number.isFinite(parsed) ? parsed * multiplier : null;
+}
+
+function isLowerBetterRelease(event: EconomicCalendarEvent) {
+  return LOWER_IS_BETTER_RELEASE_PATTERNS.some((pattern) =>
+    pattern.test(event.title),
+  );
+}
+
+function assessCalendarRelease(event: EconomicCalendarEvent) {
+  const actual = parseCalendarReleaseNumber(event.actual);
+  const forecast = parseCalendarReleaseNumber(event.forecast);
+
+  if (actual === null || forecast === null) {
+    return {
+      detail: "No hay comparación numérica suficiente.",
+      label: "Sin lectura automática",
+      tone: "neutral" as const,
+    };
+  }
+
+  if (actual === forecast) {
+    return {
+      detail: "Actual en línea con la previsión.",
+      label: "En línea",
+      tone: "neutral" as const,
+    };
+  }
+
+  const lowerBetter = isLowerBetterRelease(event);
+  const isPositive = lowerBetter ? actual < forecast : actual > forecast;
+
+  return {
+    detail: `${actual > forecast ? "Actual por encima" : "Actual por debajo"} de la previsión.`,
+    label: isPositive ? "Positivo" : "Negativo",
+    tone: isPositive ? ("positive" as const) : ("negative" as const),
+  };
+}
+
+function shouldAlertCalendarRelease(event: EconomicCalendarEvent) {
+  const scheduledTime = Date.parse(event.scheduledAt);
+  const now = Date.now();
+  const isTrustedSource =
+    (event.source.provider === "Forex Factory" ||
+      event.source.provider === "Forex Factory + Investing") &&
+    event.source.status === "connected";
+
+  if (Number.isNaN(scheduledTime)) return false;
+  if (!isTrustedSource) return false;
+  if (scheduledTime > now + 5 * 60_000) return false;
+
+  return now - scheduledTime <= RELEASE_ALERT_LOOKBACK_MS;
+}
+
+function shouldAlertUpcomingCalendarEvent(event: EconomicCalendarEvent) {
+  const scheduledTime = Date.parse(event.scheduledAt);
+  const now = Date.now();
+  const isTrustedSource =
+    (event.source.provider === "Forex Factory" ||
+      event.source.provider === "Forex Factory + Investing") &&
+    event.source.status === "connected";
+
+  if (event.impact !== "alto") return false;
+  if (Number.isNaN(scheduledTime)) return false;
+  if (!isTrustedSource) return false;
+  if (scheduledTime < now) return false;
+
+  return scheduledTime - now <= UPCOMING_RELEASE_ALERT_WINDOW_MS;
+}
+
+function minutesUntilCalendarEvent(event: EconomicCalendarEvent) {
+  const scheduledTime = Date.parse(event.scheduledAt);
+
+  if (Number.isNaN(scheduledTime)) return null;
+
+  return Math.max(1, Math.ceil((scheduledTime - Date.now()) / 60_000));
+}
+
+function CalendarUpcomingToast({
+  event,
+}: {
+  event: EconomicCalendarEvent;
+}) {
+  const minutesUntil = minutesUntilCalendarEvent(event);
+  const exposedSymbols =
+    event.affectedSymbols.length > 0
+      ? event.affectedSymbols.slice(0, 4).join(" / ")
+      : "Símbolos vinculados";
+  const releaseValues = [
+    { label: "Previsión", value: formatCalendarReleaseValue(event.forecast) },
+    { label: "Anterior", value: formatCalendarReleaseValue(event.previous) },
+    { label: "Ventana", value: event.protectionWindowLabel },
+  ];
+
+  return (
+    <div className="w-[min(92vw,24rem)] rounded-xl border border-loss/30 bg-card p-4 text-card-foreground shadow-2xl">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-loss">Noticia fuerte cercana</p>
+          <p className="mt-1 truncate text-sm font-semibold text-foreground">{event.title}</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {eventCountryLabel(event)} / {event.currency} / {formatEventDate(event)} / {event.timeLabel}
+          </p>
+        </div>
+        <span className="shrink-0 rounded-full border border-loss/30 bg-loss/10 px-2 py-1 text-xs font-semibold text-loss">
+          {minutesUntil ? `${minutesUntil} min` : "Ahora"}
+        </span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border/60 pt-3">
+        {releaseValues.map((item) => (
+          <div key={item.label}>
+            <p className="text-[11px] text-muted-foreground">{item.label}</p>
+            <p className="mt-1 font-mono text-xs font-semibold text-foreground">{item.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-3 text-xs text-muted-foreground">
+        Revisar exposición antes del dato. Afecta: {exposedSymbols}.
+      </p>
+    </div>
+  );
+}
+
+function CalendarReleaseToast({
+  event,
+}: {
+  event: EconomicCalendarEvent;
+}) {
+  const assessment = assessCalendarRelease(event);
+  const toneClass =
+    assessment.tone === "positive"
+      ? "border-profit/30 bg-profit/10 text-profit"
+      : assessment.tone === "negative"
+        ? "border-loss/30 bg-loss/10 text-loss"
+        : "border-border bg-muted text-muted-foreground";
+  const releaseValues = [
+    { label: "Actual", value: formatCalendarReleaseValue(event.actual) },
+    { label: "Previsión", value: formatCalendarReleaseValue(event.forecast) },
+    { label: "Anterior", value: formatCalendarReleaseValue(event.previous) },
+  ];
+
+  return (
+    <div className="w-[min(92vw,24rem)] rounded-xl border border-border bg-card p-4 text-card-foreground shadow-2xl">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-muted-foreground">Dato publicado</p>
+          <p className="mt-1 truncate text-sm font-semibold text-foreground">{event.title}</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {eventCountryLabel(event)} / {event.currency} / {formatEventDate(event)} / {event.timeLabel}
+          </p>
+        </div>
+        <span className={cn("shrink-0 rounded-full border px-2 py-1 text-xs font-semibold", toneClass)}>
+          {assessment.label}
+        </span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border/60 pt-3">
+        {releaseValues.map((item) => (
+          <div key={item.label}>
+            <p className="text-[11px] text-muted-foreground">{item.label}</p>
+            <p className="mt-1 font-mono text-sm font-semibold text-foreground">{item.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-3 text-xs text-muted-foreground">{assessment.detail}</p>
+    </div>
+  );
+}
+
+function useCalendarReleaseAlerts(calendarSource: CalendarSourceState) {
+  const initializedRef = React.useRef(false);
+  const upcomingAlertedRef = React.useRef<Set<string> | null>(null);
+  const releasedValuesRef = React.useRef<Map<string, string> | null>(null);
+
+  React.useEffect(() => {
+    if (calendarSource.status !== "ready") return;
+
+    if (upcomingAlertedRef.current === null) upcomingAlertedRef.current = new Set<string>();
+    if (releasedValuesRef.current === null) releasedValuesRef.current = new Map<string, string>();
+    const upcomingAlerted = upcomingAlertedRef.current;
+    const releasedValues = releasedValuesRef.current;
+
+    for (const event of calendarSource.events) {
+      if (
+        shouldAlertUpcomingCalendarEvent(event) &&
+        !upcomingAlerted.has(event.id)
+      ) {
+        upcomingAlerted.add(event.id);
+
+        toast.custom((toastId) => (
+          <div className="relative">
+            <CalendarUpcomingToast event={event} />
+            <button
+              aria-label="Cerrar aviso de noticia"
+              className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={() => toast.dismiss(toastId)}
+              type="button"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        ), {
+          duration: 20_000,
+          id: `calendar-upcoming-${event.id}`,
+        });
+      }
+    }
+
+    if (!initializedRef.current) {
+      releasedValues.clear();
+      for (const event of calendarSource.events) {
+        const actual = calendarValueFingerprint(event.actual);
+        if (actual) releasedValues.set(event.id, actual);
+      }
+      initializedRef.current = true;
+      return;
+    }
+
+    for (const event of calendarSource.events) {
+      const actual = calendarValueFingerprint(event.actual);
+      const previousActual = releasedValues.get(event.id);
+
+      if (!actual) {
+        releasedValues.delete(event.id);
+        continue;
+      }
+
+      releasedValues.set(event.id, actual);
+
+      if (
+        actual !== previousActual &&
+        shouldAlertCalendarRelease(event) &&
+        event.impact !== "bajo"
+      ) {
+        toast.custom((toastId) => (
+          <div className="relative">
+            <CalendarReleaseToast event={event} />
+            <button
+              aria-label="Cerrar alerta de noticia"
+              className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={() => toast.dismiss(toastId)}
+              type="button"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        ), {
+          duration: 15_000,
+          id: `calendar-release-${event.id}-${actual}`,
+        });
+      }
+    }
+  }, [calendarSource.events, calendarSource.status]);
 }
 
 function makeInitialSeries(base: number, seed: number, count = 120) {
@@ -329,50 +700,6 @@ function formatMetricValue({
   })}${suffix}`;
 }
 
-const EFFERD_SEGMENT_TONE_CLASSES = {
-  used: "bg-foreground/75",
-  free: "bg-chart-background",
-  reserve: "bg-muted-foreground/25",
-} as const;
-
-function EfferdSegmentedMeter({
-  label,
-  value,
-  limit,
-  segments,
-}: {
-  label: string;
-  value: string;
-  limit: string;
-  segments: Array<{ label: string; pct: number; tone: "used" | "free" | "reserve" }>;
-}) {
-  return (
-    <div className="border-t border-border/60 pt-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p className="mt-1 font-mono text-xl font-semibold text-foreground">{value}</p>
-        </div>
-        <p className="font-mono text-xs text-muted-foreground">{limit}</p>
-      </div>
-      <div className="mt-4 flex h-3 gap-1.5">
-        {segments.map((segment) => (
-          <div
-            key={segment.label}
-            className={cn("rounded-full", EFFERD_SEGMENT_TONE_CLASSES[segment.tone])}
-            style={{ width: `${Math.max(3, segment.pct)}%` }}
-          />
-        ))}
-      </div>
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-muted-foreground">
-        {segments.map((segment) => (
-          <span key={segment.label}>{segment.label}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function MetricCard({
   title,
   value,
@@ -416,7 +743,7 @@ export function MetricCard({
           <div className="grid gap-2">
             <p
               className={cn(
-                "whitespace-nowrap font-mono text-2xl font-bold tabular-nums text-foreground",
+                "whitespace-nowrap text-2xl font-bold tabular-nums text-foreground",
                 tone === "positive" && "text-profit",
                 tone === "negative" && "text-loss",
               )}
@@ -598,16 +925,17 @@ function PanelChartWindowControls({
   onChange,
 }: {
   availableWindowSecs: number;
-  value: number;
-  onChange: (value: number) => void;
+  value: PanelEquityWindowKey;
+  onChange: (value: PanelEquityWindowKey) => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex flex-wrap items-center gap-1.5">
         {PANEL_EQUITY_WINDOWS.map((option) => {
-          const isActive = option.secs === value;
+          const isActive = option.key === value;
           const isAvailable =
-            option.secs === PANEL_EQUITY_WINDOWS[0].secs ||
+            option.secs === null ||
+            option.key === "7D" ||
             option.secs <= availableWindowSecs;
 
           return (
@@ -623,7 +951,7 @@ function PanelChartWindowControls({
               )}
               key={option.label}
               onClick={() => {
-                if (isAvailable) onChange(option.secs);
+                if (isAvailable) onChange(option.key);
               }}
               type="button"
             >
@@ -641,6 +969,125 @@ function PanelChartWindowControls({
   );
 }
 
+function buildDrawdownRows(points: EquityChartPoint[]) {
+  let peak = 0;
+
+  return points.map((point) => {
+    peak = Math.max(peak, point.equity);
+    const drawdownPct = peak > 0 ? Math.max(0, ((peak - point.equity) / peak) * 100) : 0;
+
+    return {
+      drawdownPct,
+      displayLabel: point.label,
+      label: point.label,
+      time: point.time,
+    };
+  });
+}
+
+function buildLiveAwareEquityChartData(
+  workspace: WorkspaceState,
+  activeAccount: TradingAccount | undefined,
+) {
+  const rows = buildEquityChartData(workspace, activeAccount);
+  const liveEquity = activeAccount?.equity;
+
+  if (!Number.isFinite(liveEquity) || rows.length < 1) return rows;
+
+  const latest = rows.at(-1);
+  if (!latest) return rows;
+
+  const now = Math.floor(Date.now() / 1000);
+  const shouldReflectLiveEquity =
+    workspace.meta.sourceMode === "live" || (activeAccount?.openPositionsCount ?? 0) > 0;
+
+  if (!shouldReflectLiveEquity) return rows;
+
+  return [
+    ...rows.slice(0, -1),
+    {
+      ...latest,
+      equity: liveEquity ?? latest.equity,
+      label: "Actual",
+      time: Math.max(latest.time, now),
+    },
+  ];
+}
+
+function interpolatePanelLivelineValue(points: LivelinePoint[], time: number) {
+  const first = points[0];
+  const last = points.at(-1);
+  if (!first || !last) return 0;
+  if (time <= first.time) return first.value;
+  if (time >= last.time) return last.value;
+
+  let low = 0;
+  let high = points.length - 1;
+
+  while (high - low > 1) {
+    const middle = Math.floor((low + high) / 2);
+
+    if ((points[middle]?.time ?? 0) <= time) {
+      low = middle;
+    } else {
+      high = middle;
+    }
+  }
+
+  const left = points[low];
+  const right = points[high];
+  if (!left || !right || right.time <= left.time) return last.value;
+
+  const ratio = (time - left.time) / (right.time - left.time);
+
+  return left.value + (right.value - left.value) * ratio;
+}
+
+function fitLivelineToRequestedWindow(
+  points: LivelinePoint[],
+  windowSecs: number,
+  now: number,
+): LivelinePoint[] {
+  const first = points[0];
+  const last = points.at(-1);
+  if (!first || !last || points.length < 2 || windowSecs <= 0) return points;
+
+  const windowStart = now - windowSecs;
+  if (windowStart <= first.time) return points;
+
+  const visible = points.filter((point) => point.time > windowStart);
+  const edgePoint = {
+    time: windowStart,
+    value: interpolatePanelLivelineValue(points, windowStart),
+  };
+
+  return [edgePoint, ...visible];
+}
+
+function resamplePanelLivelinePoints(
+  points: LivelinePoint[],
+  targetCount: number,
+): LivelinePoint[] {
+  const first = points[0];
+  const last = points.at(-1);
+  if (!first || !last || points.length < 2 || last.time <= first.time) return points;
+  if (points.length >= targetCount) return points;
+
+  const step = (last.time - first.time) / (targetCount - 1);
+
+  return Array.from({ length: targetCount }, (_, index) => {
+    if (index === 0) return first;
+    if (index === targetCount - 1) return last;
+
+    const time = Math.round(first.time + step * index);
+
+    return {
+      time,
+      value: interpolatePanelLivelineValue(points, time),
+    };
+  });
+}
+
 function EquityCurveCard({
   workspace,
   activeAccount,
@@ -648,9 +1095,11 @@ function EquityCurveCard({
   workspace: WorkspaceState;
   activeAccount: TradingAccount | undefined;
 }) {
-  const [windowSecs, setWindowSecs] = React.useState(604_800);
+  const [windowKey, setWindowKey] = React.useState<PanelEquityWindowKey>("7D");
   const chartTheme = usePanelChartTheme();
+  const isMobile = useIsMobile();
   const chartData = buildEquityChartData(workspace, activeAccount);
+  const livelineNow = chartData.at(-1)?.time ?? 0;
   const latestValue = chartData.at(-1)?.equity ?? activeAccount?.equity ?? 0;
   const balance = activeAccount?.balance ?? latestValue;
   const hasHistory = chartData.length >= 2;
@@ -659,14 +1108,26 @@ function EquityCurveCard({
       ? Math.max(0, (chartData.at(-1)?.time ?? 0) - (chartData[0]?.time ?? 0))
       : 0;
   const availableWindowSecs =
-    dataSpanSecs >= PANEL_EQUITY_WINDOWS[1].secs
-      ? PANEL_EQUITY_WINDOWS[2].secs
-      : dataSpanSecs >= PANEL_EQUITY_WINDOWS[0].secs
-        ? PANEL_EQUITY_WINDOWS[1].secs
-        : PANEL_EQUITY_WINDOWS[0].secs;
+    dataSpanSecs >= (PANEL_EQUITY_WINDOWS[1].secs ?? 0)
+      ? PANEL_EQUITY_WINDOWS[2].secs ?? dataSpanSecs
+      : dataSpanSecs >= (PANEL_EQUITY_WINDOWS[0].secs ?? 0)
+        ? PANEL_EQUITY_WINDOWS[1].secs ?? dataSpanSecs
+        : PANEL_EQUITY_WINDOWS[0].secs ?? dataSpanSecs;
+  const requestedWindow = PANEL_EQUITY_WINDOWS.find(
+    (option) => option.key === windowKey,
+  );
+  const selectedWindowKey =
+    requestedWindow?.secs !== null &&
+    requestedWindow?.secs !== undefined &&
+    requestedWindow.secs > availableWindowSecs
+      ? "7D"
+      : windowKey;
   const selectedWindowSecs =
-    windowSecs > availableWindowSecs ? PANEL_EQUITY_WINDOWS[0].secs : windowSecs;
-  const livelineData = prepareHistoricalLivelineCurve(
+    selectedWindowKey === "YTD"
+      ? Math.max(dataSpanSecs, 86_400)
+      : PANEL_EQUITY_WINDOWS.find((option) => option.key === selectedWindowKey)
+          ?.secs ?? PANEL_EQUITY_WINDOWS[0].secs;
+  const historicalLivelineData = prepareHistoricalLivelineCurve(
     chartData.map((point) => ({
       time: point.time,
       value: point.equity,
@@ -677,15 +1138,22 @@ function EquityCurveCard({
       minStepSecs: 300,
     },
   );
-  const effectiveWindowSecs = livelineWindowForData(livelineData, selectedWindowSecs, {
-    minSecs: Math.min(selectedWindowSecs, 86_400),
-    padRatio: 0.18,
-    maxPadSecs: 86_400,
-  });
+  const isSevenDayWindow = selectedWindowKey === "7D";
+  const sevenDayVisibleSecs =
+    selectedWindowSecs * (1 - LIVELINE_BADGE_WINDOW_BUFFER);
+  const sevenDayLivelineData = fitLivelineToRequestedWindow(
+    historicalLivelineData,
+    sevenDayVisibleSecs,
+    livelineNow,
+  );
+  const livelineData = isSevenDayWindow
+    ? resamplePanelLivelinePoints(sevenDayLivelineData, 96)
+    : historicalLivelineData;
+  const effectiveWindowSecs = selectedWindowSecs;
   const labelByTime = new Map(chartData.map((point) => [point.time, point.label]));
 
   return (
-    <Card className="overflow-hidden border-border/70 bg-card/70">
+    <Card className={cn("overflow-hidden", PANEL_CARD_CLASS)}>
       <CardHeader>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -699,17 +1167,17 @@ function EquityCurveCard({
           </span>
         </div>
       </CardHeader>
-      <CardContent className="px-6 pb-5">
+      <CardContent className="px-3 pb-5 sm:px-6">
         {hasHistory ? (
           <div className="grid gap-3">
             <PanelChartWindowControls
               availableWindowSecs={availableWindowSecs}
-              value={selectedWindowSecs}
-              onChange={setWindowSecs}
+              value={selectedWindowKey}
+              onChange={setWindowKey}
             />
             <div
               data-kmfx-liveline
-              className="h-[320px] w-full xl:h-[340px]"
+              className="h-[300px] w-full sm:h-[320px] xl:h-[340px]"
               style={chartTheme.isLight ? { filter: "contrast(1.18)" } : undefined}
             >
               <Liveline
@@ -721,18 +1189,26 @@ function EquityCurveCard({
                 grid
                 badge
                 badgeVariant="minimal"
-                badgeTail
+                badgeTail={!isMobile}
                 fill
                 pulse
                 scrub
                 momentum={false}
                 referenceLine={{ value: balance, label: "Balance" }}
                 formatValue={(value) =>
-                  formatCurrency(Number(value), activeAccount?.baseCurrency ?? "USD")
+                  formatResponsiveLivelineCurrency(
+                    Number(value),
+                    activeAccount?.baseCurrency ?? "USD",
+                    isMobile,
+                  )
                 }
                 formatTime={(time) => labelByTime.get(time) ?? shortPanelTimeLabel(time)}
-                lineWidth={2.35}
-                padding={{ top: 18, right: 132, bottom: 34, left: 24 }}
+                padding={livelinePadding(isMobile, {
+                  top: 18,
+                  right: 132,
+                  bottom: 34,
+                  left: 24,
+                })}
               />
             </div>
           </div>
@@ -749,6 +1225,104 @@ function EquityCurveCard({
   );
 }
 
+export function DrawdownRecentCard({
+  activeAccount,
+  workspace,
+  className,
+}: {
+  activeAccount: TradingAccount | undefined;
+  workspace: WorkspaceState;
+  className?: string;
+}) {
+  const chartTheme = usePanelChartTheme();
+  const isMobile = useIsMobile();
+  const chartData = buildLiveAwareEquityChartData(workspace, activeAccount);
+  const rows = buildDrawdownRows(chartData).slice(-77);
+  const maxDrawdown = rows.reduce((max, row) => Math.max(max, row.drawdownPct), 0);
+  const currentDrawdown = rows.at(-1)?.drawdownPct ?? 0;
+  const labelByTime = new Map(rows.map((row) => [row.time, row.displayLabel || shortPanelTimeLabel(row.time)]));
+  const livelineRows = prepareHistoricalLivelineCurve(
+    rows.map((row) => ({
+      time: row.time,
+      value: -row.drawdownPct,
+    })),
+    {
+      maxPoints: 54,
+      minPoints: 18,
+      minStepSecs: 300,
+    },
+  );
+  const dataSpanSecs =
+    livelineRows.length >= 2
+      ? Math.max(86_400, (livelineRows.at(-1)?.time ?? 0) - (livelineRows[0]?.time ?? 0))
+      : 604_800;
+  const effectiveWindowSecs = livelineWindowForData(livelineRows, dataSpanSecs, {
+    minSecs: Math.min(dataSpanSecs, 86_400),
+    padRatio: 0.04,
+    maxPadSecs: 43_200,
+  });
+
+  return (
+    <Card className={cn(PANEL_CARD_CLASS, PANEL_MICRO_CHART_CARD_CLASS, className)}>
+      <CardHeader className="pb-0">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <CardTitle>Drawdown reciente</CardTitle>
+            <CardDescription>Curva acumulada del retroceso de equity.</CardDescription>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="font-mono text-sm font-semibold text-foreground">
+              Máx. {formatPercent(maxDrawdown, 2)}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {activeAccount?.openPositionsCount ? "Incluye equity live" : "Curva acumulada"}
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className={PANEL_MICRO_CHART_CONTENT_CLASS}>
+        <p className="font-mono text-2xl font-semibold text-foreground">
+          {formatPercent(currentDrawdown, 2)}
+        </p>
+        {rows.length > 1 ? (
+          <div
+            data-kmfx-liveline
+            className={cn(PANEL_MICRO_CHART_SURFACE_CLASS, "w-full")}
+            style={chartTheme.isLight ? { filter: "contrast(1.12)" } : undefined}
+          >
+            <Liveline
+              badge
+              badgeTail={!isMobile}
+              badgeVariant="minimal"
+              color={chartTheme.accent}
+              data={livelineRows}
+              fill
+              formatTime={(time) => labelByTime.get(time) ?? shortPanelTimeLabel(time)}
+              formatValue={(value) => formatPercent(Math.abs(Number(value)), 2)}
+              grid
+              lineWidth={1.55}
+              momentum={false}
+              padding={livelinePadding(isMobile, {
+                bottom: 32,
+                left: 16,
+                right: 60,
+                top: 12,
+              })}
+              pulse
+              scrub
+              theme={chartTheme.theme}
+              value={-currentDrawdown}
+              window={effectiveWindowSecs}
+            />
+          </div>
+        ) : (
+          <EmptyChartState label="Sin historial suficiente para drawdown." />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function SummaryHeroCard({
   workspace,
   activeAccount,
@@ -759,362 +1333,60 @@ function SummaryHeroCard({
   const mode = resolveAccountMode(activeAccount);
 
   return (
-    <Card className="overflow-hidden border-border/70 bg-card/75">
-      <CardHeader>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <CardTitle className="mt-3 text-2xl tracking-tight">
-              {activeAccount?.label ?? "Sin cuenta conectada"}
-            </CardTitle>
-            <CardDescription>
-              {activeAccount
-                ? `${activeAccount.broker} / ${activeAccount.server} / MT5 ${activeAccount.login}`
-                : "Conecta una cuenta para activar el Panel."}
-            </CardDescription>
+    <Card className="overflow-hidden border-border/55 bg-card/35 shadow-none">
+      <CardHeader className="px-4 py-2.5">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="flex min-w-0 flex-col gap-1.5 xl:flex-row xl:items-center xl:gap-5">
+            <div className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3 xl:max-w-[32rem]">
+              <CardTitle className="truncate text-sm tracking-tight">
+                {activeAccount?.label ?? "Sin cuenta conectada"}
+              </CardTitle>
+              <CardDescription className="truncate text-xs">
+                {activeAccount
+                  ? `${activeAccount.broker} / ${activeAccount.server} / MT5 ${activeAccount.login}`
+                  : "Conecta una cuenta para activar el Panel."}
+              </CardDescription>
+            </div>
+            {activeAccount ? (
+              <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span className="whitespace-nowrap">
+                  Modo{" "}
+                  <strong className="font-medium text-foreground">{mode}</strong>
+                </span>
+                <span className="whitespace-nowrap">
+                  Moneda{" "}
+                  <strong className="font-mono font-medium text-foreground">
+                    {activeAccount.baseCurrency}
+                  </strong>
+                </span>
+                <span className="whitespace-nowrap">
+                  Abiertas{" "}
+                  <strong className="font-mono font-medium text-foreground">
+                    {activeAccount.openPositionsCount}
+                  </strong>
+                </span>
+                <span className="whitespace-nowrap">
+                  Fuente{" "}
+                  <strong className="font-medium text-foreground">
+                    {panelSourceLabel(workspace)}
+                  </strong>
+                </span>
+              </div>
+            ) : null}
           </div>
           <Button
             render={<Link href="/accounts" />}
             nativeButton={false}
             variant="outline"
-            className="justify-between lg:min-w-52"
+            size="sm"
+            className="h-8 justify-between lg:min-w-36"
           >
             Ver cuentas
             <ChevronRight data-icon="inline-end" />
           </Button>
         </div>
       </CardHeader>
-      {activeAccount ? (
-        <CardContent className="grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Modo</p>
-            <p className="mt-1 text-sm font-medium text-foreground">{mode}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Moneda base</p>
-            <p className="mt-1 font-mono text-sm font-medium text-foreground">
-              {activeAccount.baseCurrency}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Posiciones abiertas</p>
-            <p className="mt-1 font-mono text-sm font-medium text-foreground">
-              {activeAccount.openPositionsCount}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Estado de datos</p>
-            <p className="mt-1 text-sm font-medium text-foreground">
-              {panelSourceLabel(workspace)}
-            </p>
-          </div>
-        </CardContent>
-      ) : null}
     </Card>
-  );
-}
-
-function clampPct(value: number) {
-  return Math.max(0, Math.min(100, value));
-}
-
-function buildOperationalRoom(
-  workspace: WorkspaceState,
-  activeAccount: TradingAccount | undefined,
-) {
-  const equity = Math.max(activeAccount?.equity ?? activeAccount?.balance ?? 0, 1);
-  const openPositionsCount = activeAccount?.openPositionsCount ?? 0;
-  const hasStaleData =
-    activeAccount != null &&
-    activeAccount.connectionState !== "connected" &&
-    activeAccount.connectionState !== "syncing";
-  const hasOpenPositionsWithoutRisk =
-    openPositionsCount > 0 && workspace.risk.totalOpenRiskPct <= 0;
-  const dailyRoomPct =
-    workspace.risk.dailyLimitPct > 0
-      ? Math.min(
-          workspace.risk.dailyLimitPct,
-          Math.max(
-            0,
-            Number.isFinite(workspace.risk.dailyRoomLeftPct)
-              ? workspace.risk.dailyRoomLeftPct
-              : workspace.risk.dailyLimitPct - workspace.risk.dailyDrawdownPct,
-          ),
-        )
-      : null;
-  const maxRoomPct =
-    workspace.risk.maxLimitPct > 0
-      ? Math.max(0, workspace.risk.maxLimitPct - workspace.risk.maxDrawdownPct)
-      : null;
-  const heatRoomPct =
-    workspace.risk.heatLimitPct > 0
-      ? Math.max(0, workspace.risk.heatLimitPct - workspace.risk.totalOpenRiskPct)
-      : null;
-  const roomCandidates = [
-    dailyRoomPct === null
-      ? null
-      : { label: "Límite diario", pct: dailyRoomPct, referencePct: workspace.risk.dailyLimitPct },
-    maxRoomPct === null
-      ? null
-      : { label: "DD máximo", pct: maxRoomPct, referencePct: workspace.risk.maxLimitPct },
-    heatRoomPct === null
-      ? null
-      : { label: "Capacidad de riesgo", pct: heatRoomPct, referencePct: workspace.risk.heatLimitPct },
-  ].filter((candidate): candidate is { label: string; pct: number; referencePct: number } =>
-    Boolean(candidate),
-  );
-  const limitingRoom =
-    roomCandidates.toSorted((a, b) => a.pct - b.pct)[0] ?? null;
-  const roomPct = limitingRoom?.pct ?? null;
-  const roomAmount = roomPct === null ? null : equity * (roomPct / 100);
-  const gaugeValue =
-    limitingRoom && limitingRoom.referencePct > 0
-      ? Math.round(clampPct((limitingRoom.pct / limitingRoom.referencePct) * 100))
-      : 0;
-  const label =
-    !activeAccount
-      ? "Sin cuenta"
-      : !workspace.risk.allowNewTrades || workspace.risk.status === "blocked"
-        ? "Revisar"
-        : hasOpenPositionsWithoutRisk
-          ? "Vigilar"
-          : hasStaleData
-            ? "Vigilar"
-          : roomPct === null
-            ? "Vigilar"
-            : roomPct <= 0
-              ? "Revisar"
-              : gaugeValue >= 55 && workspace.risk.status === "safe"
-                ? "Operable"
-                : "Vigilar";
-  const reason =
-    !activeAccount
-      ? "Sin cuenta conectada"
-      : !workspace.risk.allowNewTrades || workspace.risk.status === "blocked"
-        ? workspace.risk.blockingRule ?? workspace.risk.actionRequired
-        : hasOpenPositionsWithoutRisk
-          ? "Riesgo abierto sin calcular"
-          : hasStaleData
-            ? "Datos MT5 desactualizados"
-          : limitingRoom
-            ? `Límite más cercano: ${limitingRoom.label}`
-            : "Faltan reglas o límites";
-  const helper =
-    roomPct === null
-      ? "Configura límites para medir margen real antes de operar."
-      : hasOpenPositionsWithoutRisk
-        ? "Margen parcial: hay posiciones abiertas sin riesgo calculado."
-        : hasStaleData
-          ? "Actualiza la sincronización antes de tomar decisiones nuevas."
-        : roomPct <= 0
-          ? "No queda margen frente al límite más cercano."
-          : "Margen disponible antes de tocar el límite operativo más cercano.";
-  const toneClass =
-    label === "Operable"
-      ? "text-muted-foreground"
-      : label === "Vigilar"
-        ? "text-risk"
-        : "text-loss";
-
-  return {
-    gaugeValue,
-    helper,
-    label,
-    reason,
-    roomAmount,
-    roomPct,
-    toneClass,
-  };
-}
-
-function formatOpenPositionsLabel(count: number) {
-  return count === 1 ? "1 posición abierta" : `${count} posiciones abiertas`;
-}
-
-function DecisionControlCard({ workspace }: { workspace: WorkspaceState }) {
-  const items = buildDashboardAttentionItems(workspace);
-  const chartTheme = usePanelChartTheme();
-  const primaryItem = items[0];
-  const activeAccount =
-    workspace.accounts.find((account) => account.id === workspace.activeAccountId) ??
-    workspace.accounts[0];
-  const operationalRoom = buildOperationalRoom(workspace, activeAccount);
-  const openPositionsCount = activeAccount?.openPositionsCount ?? 0;
-  const hasOpenPositions = openPositionsCount > 0;
-  const hasMeasuredOpenRisk = workspace.risk.totalOpenRiskPct > 0;
-  const hasOpenPositionsWithoutRisk = hasOpenPositions && !hasMeasuredOpenRisk;
-  const dailyUsage =
-    workspace.risk.dailyLimitPct > 0
-      ? Math.min(100, (workspace.risk.dailyDrawdownPct / workspace.risk.dailyLimitPct) * 100)
-      : 0;
-  const heatUsage =
-    workspace.risk.heatLimitPct > 0
-      ? Math.min(100, (workspace.risk.totalOpenRiskPct / workspace.risk.heatLimitPct) * 100)
-      : 0;
-  const dominantExposure = [...workspace.risk.exposureBySymbol].toSorted(
-    (a, b) => b.openRiskPct - a.openRiskPct,
-  )[0];
-
-  return (
-    <Card className="h-full border-border/70 bg-card/70 shadow-none">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <CardTitle>Estado operativo</CardTitle>
-            <CardDescription>Datos, presión de riesgo y contexto antes de operar.</CardDescription>
-          </div>
-          <span className={cn("text-xs font-medium", operationalRoom.toneClass)}>
-            {operationalRoom.label}
-          </span>
-        </div>
-      </CardHeader>
-      <CardContent className="grid gap-5">
-        <div className="grid justify-items-center gap-3">
-          <Gauge
-            className="mx-auto w-full max-w-[380px]"
-            value={operationalRoom.gaugeValue}
-            centerValue={operationalRoom.gaugeValue}
-            totalNotches={25}
-            spacing={20}
-            notchCornerRadius={12}
-            notchLengthPercent={100}
-            startAngle={174}
-            endAngle={367}
-            useGradient={false}
-            uniformWidth={false}
-            activeFill={chartTheme.isLight ? "#171717" : "#f5f5f5"}
-            inactiveFill="var(--chart-background)"
-            inactiveFillOpacity={1}
-            activeFillOpacity={1}
-            defaultLabel="Margen operativo"
-            formatOptions={{
-              maximumFractionDigits: 0,
-            }}
-            suffix="%"
-            valueClassName="whitespace-nowrap text-2xl font-semibold leading-none tracking-tight"
-            labelClassName="text-xs"
-            minWidth={0}
-            enterTransition={{ type: "spring", duration: 1, bounce: 0.6 }}
-            enterStaggerScale={1}
-          />
-          <div className="grid justify-items-center gap-1 text-center">
-            <p className="text-xs text-muted-foreground">Margen operativo restante</p>
-            <p className="font-mono text-lg font-semibold text-foreground">
-              {operationalRoom.roomPct === null || operationalRoom.roomAmount === null
-                ? "Sin estimación"
-                : `${formatPercent(operationalRoom.roomPct, 2)} / ${formatCurrency(
-                    operationalRoom.roomAmount,
-                    activeAccount?.baseCurrency ?? "USD",
-                  )}`}
-            </p>
-            <p className="max-w-72 text-xs leading-relaxed text-muted-foreground">
-              {operationalRoom.helper}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-[1fr_auto] gap-3 border-t border-border/60 pt-5 text-sm">
-          <div>
-            <p className="text-xs text-muted-foreground">Motivo principal</p>
-            <p className="mt-1 font-medium text-foreground">{operationalRoom.reason}</p>
-          </div>
-          <p className={cn("font-medium", operationalRoom.toneClass)}>{operationalRoom.label}</p>
-        </div>
-
-        <EfferdSegmentedMeter
-          label="Uso diario"
-          value={formatPercent(workspace.risk.dailyDrawdownPct, 2)}
-          limit={`Referencia ${formatPercent(workspace.risk.dailyLimitPct, 2)}`}
-          segments={[
-            { label: "Usado", pct: dailyUsage, tone: "used" },
-            { label: "Disponible", pct: Math.max(0, 100 - dailyUsage), tone: "free" },
-          ]}
-        />
-
-        <EfferdSegmentedMeter
-          label="Riesgo abierto"
-          value={
-            hasOpenPositionsWithoutRisk
-              ? "Sin estimación"
-              : formatPercent(workspace.risk.totalOpenRiskPct, 2)
-          }
-          limit={`Referencia ${formatPercent(workspace.risk.heatLimitPct, 2)}`}
-          segments={
-            hasOpenPositionsWithoutRisk
-              ? [
-                  { label: formatOpenPositionsLabel(openPositionsCount), pct: 8, tone: "used" },
-                  { label: "Riesgo sin calcular", pct: 92, tone: "reserve" },
-                ]
-              : [
-                  { label: "Abierto", pct: heatUsage, tone: "used" },
-                  { label: "Libre", pct: Math.max(0, 100 - heatUsage), tone: "reserve" },
-                ]
-          }
-        />
-
-        <div className="border-t border-border/60 pt-5">
-          <div className="grid grid-cols-[1fr_auto] gap-3 text-sm">
-            <div>
-              <p className="text-xs text-muted-foreground">Exposición dominante</p>
-              <p className="mt-1 font-medium text-foreground">
-                {dominantExposure
-                  ? dominantExposure.symbol
-                  : hasOpenPositions
-                    ? "Posición abierta sin riesgo calculado"
-                    : "Sin exposición abierta"}
-              </p>
-            </div>
-            <p className="font-mono font-semibold text-foreground">
-              {dominantExposure
-                ? formatPercent(dominantExposure.openRiskPct, 2)
-                : hasOpenPositions
-                  ? `${openPositionsCount} pos.`
-                  : "0%"}
-            </p>
-          </div>
-        </div>
-
-        {primaryItem ? (
-          <Link
-            href={primaryItem.href}
-            className="group flex items-start justify-between gap-3 border-t border-border/60 pt-5 transition"
-          >
-            <div>
-              <p className="text-xs text-muted-foreground">Prioridad</p>
-              <p className="mt-1 font-medium text-foreground">{primaryItem.title}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{primaryItem.body}</p>
-            </div>
-            <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5" />
-          </Link>
-        ) : null}
-
-        <Button
-          render={<Link href="/risk" />}
-          nativeButton={false}
-          variant="outline"
-          className="justify-between"
-        >
-          Ver riesgo
-          <ChevronRight data-icon="inline-end" />
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-function impactToneClass(impact: EconomicImpact) {
-  return cn(
-    impact === "alto" && "text-risk",
-    impact === "medio" && "text-muted-foreground",
-    impact === "bajo" && "text-muted-foreground",
-  );
-}
-
-function impactDotClass(impact: EconomicImpact) {
-  return cn(
-    "inline-block size-2 rounded-full",
-    impact === "alto" && "bg-loss shadow-[0_0_0_3px_color-mix(in_oklab,var(--loss)_18%,transparent)]",
-    impact === "medio" && "bg-risk/80",
-    impact === "bajo" && "bg-muted-foreground/40",
   );
 }
 
@@ -1130,219 +1402,7 @@ function eventCountryLabel(event: EconomicCalendarEvent) {
   return event.country ?? event.currency;
 }
 
-function eventSymbolsForWorkspace(
-  event: EconomicCalendarEvent,
-  activeSymbols: string[],
-) {
-  const visibleSymbols = event.affectedSymbols.filter((symbol) =>
-    activeSymbols.includes(symbol),
-  );
-
-  return visibleSymbols.length > 0
-    ? visibleSymbols.join(" / ")
-    : event.affectedSymbols.slice(0, 4).join(" / ");
-}
-
-function isUpcomingEvent(event: EconomicCalendarEvent) {
-  const time = Date.parse(event.scheduledAt);
-
-  return !Number.isNaN(time) && time >= Date.now() - RECENT_RELEASE_WINDOW_MS;
-}
-
-function sortEventsByTime(a: EconomicCalendarEvent, b: EconomicCalendarEvent) {
-  return Date.parse(a.scheduledAt) - Date.parse(b.scheduledAt);
-}
-
-function NewsRiskCard({
-  workspace,
-  calendarSource,
-  className,
-}: {
-  calendarSource: CalendarSourceState;
-  workspace: WorkspaceState;
-  className?: string;
-}) {
-  const overview = getEconomicCalendarOverview(workspace, calendarSource.events);
-  const watchedSymbols = overview.activeSymbols.join(" / ");
-  const relevantEvents = calendarSource.events
-    .filter((event) => event.impact !== "bajo" && isUpcomingEvent(event))
-    .toSorted(sortEventsByTime);
-  const nextEvent = relevantEvents[0];
-  const nextWindows = relevantEvents.slice(1, 3);
-  const hasLiveEvents = calendarSource.status === "ready" && Boolean(nextEvent);
-  const releaseValues = nextEvent
-    ? [
-        { label: "Real", value: nextEvent.actual ?? "Pendiente" },
-        { label: "Forecast", value: nextEvent.forecast ?? "Sin dato" },
-        { label: "Anterior", value: nextEvent.previous ?? "Sin dato" },
-      ]
-    : [];
-  const statusLabel =
-    calendarSource.status === "loading"
-      ? "Validando fuente"
-      : hasLiveEvents
-        ? calendarSource.provider ?? "Forex Factory"
-        : "Sin eventos activos";
-
-  return (
-    <Card className={cn("h-full border-border/70 bg-card/70 shadow-none", className)}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <CardTitle>Noticias</CardTitle>
-            <CardDescription>Eventos macro verificados antes de subir riesgo.</CardDescription>
-          </div>
-          <p className="shrink-0 text-xs font-medium text-muted-foreground">{statusLabel}</p>
-        </div>
-      </CardHeader>
-      <CardContent className="flex h-full flex-col gap-5">
-        {hasLiveEvents ? (
-          <div className="grid gap-5">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
-              <div className="min-w-0">
-                <p
-                  className={cn(
-                    "inline-flex items-center gap-2 text-xs font-medium",
-                    impactToneClass(nextEvent.impact),
-                  )}
-                >
-                  <span className={impactDotClass(nextEvent.impact)} aria-hidden="true" />
-                  {economicImpactLabel(nextEvent.impact)}
-                </p>
-                <p className="mt-2 truncate text-lg font-semibold leading-none text-foreground">
-                  {nextEvent.title}
-                </p>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  {eventCountryLabel(nextEvent)} / {nextEvent.currency} / {formatEventDate(nextEvent)}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Ventana: {nextEvent.protectionWindowLabel}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="font-mono text-2xl font-semibold leading-none text-foreground">
-                  {nextEvent.timeLabel}
-                </p>
-                <p className="mt-2 text-xs text-muted-foreground">Hora local</p>
-              </div>
-            </div>
-
-            <div className="grid gap-4 border-t border-border/60 pt-4 sm:grid-cols-2">
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">Símbolos expuestos</p>
-                <p className="mt-1 truncate text-sm font-medium text-foreground">
-                  {eventSymbolsForWorkspace(nextEvent, overview.activeSymbols)}
-                </p>
-              </div>
-              <div className="min-w-0 sm:text-right">
-                <p className="text-xs text-muted-foreground">Lectura</p>
-                <p className="mt-1 text-sm font-medium text-foreground">
-                  {nextEvent.suggestedAction}
-                </p>
-              </div>
-            </div>
-
-            {releaseValues.some((item) => item.value !== "Sin dato") ? (
-              <div className="grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-3">
-                {releaseValues.map((item, index) => (
-                  <div
-                    className={cn(index > 0 && "sm:text-right")}
-                    key={item.label}
-                  >
-                    <p className="text-xs text-muted-foreground">{item.label}</p>
-                    <p className="mt-1 font-mono text-sm font-semibold text-foreground">
-                      {item.value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <div className="grid gap-5">
-            <div className="grid gap-2">
-              <p className="text-sm font-medium text-foreground">
-                {calendarSource.status === "loading"
-                  ? "Consultando calendario económico."
-                  : "No hay eventos macro verificados para mostrar."}
-              </p>
-              <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                El Panel solo enseña noticias cuando la exportación semanal de Forex
-                Factory responde con datos válidos. Si no hay fuente, no inventa eventos.
-              </p>
-            </div>
-
-            <div className="grid gap-4 border-t border-border/60 pt-4 sm:grid-cols-2">
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">Símbolos a revisar</p>
-                <p className="mt-1 truncate text-sm font-medium text-foreground">
-                  {watchedSymbols}
-                </p>
-              </div>
-              <div className="min-w-0 sm:text-right">
-                <p className="text-xs text-muted-foreground">Lectura</p>
-                <p className="mt-1 text-sm font-medium text-foreground">
-                  Consultar fuente externa antes de subir riesgo
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {nextWindows.length > 0 ? (
-          <div className="grid gap-0 border-t border-border/60">
-            {nextWindows.map((event) => (
-              <div
-                className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-border/60 py-3 last:border-b-0"
-                key={event.id}
-              >
-                <div className="min-w-0">
-                  <p
-                    className={cn(
-                      "inline-flex items-center gap-2 text-xs font-medium",
-                      impactToneClass(event.impact),
-                    )}
-                  >
-                    <span className={impactDotClass(event.impact)} aria-hidden="true" />
-                    {economicImpactLabel(event.impact)}
-                  </p>
-                  <p className="mt-1 truncate text-sm font-medium text-foreground">
-                    {event.title}
-                  </p>
-                  <p className="mt-1 truncate text-xs text-muted-foreground">
-                    {eventCountryLabel(event)} / {formatEventDate(event)}
-                  </p>
-                </div>
-                <p className="font-mono text-xs text-muted-foreground">
-                  {event.currency} / {event.timeLabel}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        <Button
-          render={
-            <a
-              aria-label="Consultar calendario de Forex Factory"
-              href={calendarSource.sourceUrl ?? macroCalendarConfig.forexFactoryCalendarUrl}
-              rel="noreferrer"
-              target="_blank"
-            />
-          }
-          nativeButton={false}
-          variant="outline"
-          className="mt-auto justify-between"
-        >
-          Consultar Forex Factory
-          <ChevronRight data-icon="inline-end" />
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-function RecentTradesCard({
+export function RecentTradesCard({
   workspace,
   className,
 }: {
@@ -1352,7 +1412,7 @@ function RecentTradesCard({
   const trades = workspace.trades.slice(0, 5);
 
   return (
-    <Card className={cn("border-border/70 bg-card/70 shadow-none", className)}>
+    <Card className={cn(PANEL_CARD_CLASS, className)}>
       <CardHeader>
         <CardTitle>Operaciones recientes</CardTitle>
         <CardDescription>Operaciones que explican el último movimiento de la cuenta.</CardDescription>
@@ -1493,7 +1553,7 @@ function WinLossDonut({
   );
 }
 
-function PanelInsightsCompact({
+export function PanelInsightsCompact({
   workspace,
   className,
 }: {
@@ -1531,12 +1591,12 @@ function PanelInsightsCompact({
     donutTotal > 0 ? (donutWinCount / donutTotal) * 100 : performance.winRatePct;
 
   return (
-    <Card className={cn("h-full border-border/70 bg-card/70 shadow-none", className)}>
+    <Card className={cn(PANEL_CARD_CLASS, className)}>
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <CardTitle>Insights rápidos</CardTitle>
-            <CardDescription>Lectura mínima antes de subir riesgo.</CardDescription>
+            <CardTitle>Win / loss</CardTitle>
+            <CardDescription>Distribución de operaciones ganadoras, perdedoras y break-even.</CardDescription>
           </div>
           <Button
             render={<Link href="/analytics" />}
@@ -1578,12 +1638,959 @@ function PanelInsightsCompact({
             </p>
           </div>
           <div className="col-span-2 border-t border-border/60 pt-4">
-            <p className="text-xs text-muted-foreground">Sesión a vigilar</p>
+            <p className="text-xs text-muted-foreground">Menor sesión</p>
             <p className="mt-1 font-medium text-foreground">
-              {reviewSession ? sessionLabel(reviewSession.session) : "Sin sesión a vigilar"}
+              {reviewSession ? sessionLabel(reviewSession.session) : "Sin sesión"}
             </p>
             <p className={cn("mt-1 font-mono text-sm font-semibold", signedTextClass(reviewSession?.pnl ?? 0))}>
               {reviewSession ? formatSignedCurrency(reviewSession.pnl) : "-"}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmptyChartState({ label }: { label: string }) {
+  return (
+    <div className="grid min-h-48 place-items-center rounded-lg border border-dashed border-border/70 bg-background/35 px-6 text-center">
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function MiniProfitLossLineChart({
+  currency,
+  rows,
+}: {
+  currency: string;
+  rows: Array<{ date: Date; label: string; pnl: number; trades: number }>;
+}) {
+  const [legendHoveredIndex, setLegendHoveredIndex] = React.useState<number | null>(null);
+  const showProfitLossLegend = false;
+
+  return (
+    <div className={cn(PANEL_MICRO_CHART_SURFACE_CLASS, "flex flex-col gap-2")}>
+      <LineChart
+        animationDuration={1100}
+        animationEasing="cubic-bezier(0.85, 0, 0.15, 1)"
+        className="h-full"
+        data={rows}
+        margin={MINI_PROFIT_LOSS_CHART_MARGIN}
+      >
+        <Grid
+          highlightRowStroke="var(--chart-grid)"
+          highlightRowStrokeDasharray="4,4"
+          highlightRowStrokeWidth={1}
+          highlightRowValues={[0]}
+          horizontal
+          numTicksRows={5}
+        />
+        <Line
+          curve={curveBasis}
+          dataKey="pnl"
+          fadeEdges
+          showHighlight={false}
+          stroke="transparent"
+          strokeWidth={0}
+        />
+        <ProfitLossLegendHoverProvider hoveredIndex={legendHoveredIndex}>
+          <ProfitLossLine
+            curve={curveBasis}
+            dataKey="pnl"
+            fadeEdges
+            strokeWidth={2.15}
+          />
+        </ProfitLossLegendHoverProvider>
+        <XAxis numTicks={4} />
+        <ChartTooltip
+          indicatorColor={(point) =>
+            profitLossColor((point.pnl as number) ?? 0)}
+          rows={(point) => {
+            const value = Number(point.pnl) || 0;
+            return [
+              {
+                color: profitLossColor(value),
+                label: resolveProfitLossTooltipLabel("Profit/Loss"),
+                value: formatSignedCurrency(value, currency),
+              },
+              {
+                color: "var(--chart-label)",
+                label: "Operaciones",
+                value: Number(point.trades) || 0,
+              },
+            ];
+          }}
+          showCrosshair
+          showDatePill
+          showDots
+        />
+      </LineChart>
+      {showProfitLossLegend ? (
+        <ProfitLossLegend
+          align="center"
+          hoveredIndex={legendHoveredIndex}
+          onHoverChange={setLegendHoveredIndex}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function buildExpectancyChartRows(
+  rows: Array<{ date: Date; label: string; pnl: number; trades: number }>,
+) {
+  const operatedRows = rows.filter((row) => row.trades > 0);
+  const sourceRows = operatedRows.length > 0 ? operatedRows : rows;
+  const maxPoints = 10;
+  const bucketSize = Math.max(1, Math.ceil(sourceRows.length / maxPoints));
+
+  return Array.from(
+    { length: Math.ceil(sourceRows.length / bucketSize) },
+    (_, bucketIndex) => {
+      const bucket = sourceRows.slice(bucketIndex * bucketSize, (bucketIndex + 1) * bucketSize);
+      const representative = bucket.at(-1) ?? sourceRows.at(-1);
+      const trades = bucket.reduce((sum, row) => sum + Math.max(1, row.trades), 0);
+      const pnl = trades > 0
+        ? bucket.reduce((sum, row) => sum + row.pnl * Math.max(1, row.trades), 0) / trades
+        : representative?.pnl ?? 0;
+
+      return {
+        date: representative?.date ?? new Date(),
+        label: representative?.label ?? "",
+        pnl,
+        trades,
+      };
+    },
+  ).toSorted((a, b) => a.date.getTime() - b.date.getTime());
+}
+
+function smoothExpectancyChartRows(
+  rows: Array<{ date: Date; label: string; pnl: number; trades: number }>,
+) {
+  if (rows.length < 3) return rows;
+
+  return rows.map((row, index) => {
+    const windowRows = rows.slice(
+      Math.max(0, index - 1),
+      Math.min(rows.length, index + 2),
+    );
+    const weightedTrades = windowRows.reduce(
+      (sum, item) => sum + Math.max(1, item.trades),
+      0,
+    );
+    const smoothedPnl =
+      weightedTrades > 0
+        ? windowRows.reduce(
+            (sum, item) => sum + item.pnl * Math.max(1, item.trades),
+            0,
+          ) / weightedTrades
+        : row.pnl;
+
+    return {
+      ...row,
+      pnl: smoothedPnl,
+    };
+  });
+}
+
+export function AverageWinLossCard({
+  avgLoss,
+  avgWin,
+  currency,
+  className,
+}: {
+  avgLoss: number;
+  avgWin: number;
+  currency: string;
+  className?: string;
+}) {
+  const avgWinAbs = Math.abs(avgWin);
+  const avgLossAbs = Math.abs(avgLoss);
+  const maxValue = Math.max(1, avgWinAbs, avgLossAbs);
+  const ratio = avgLossAbs > 0 ? avgWinAbs / avgLossAbs : 0;
+  const maxSegments = 22;
+  const trackerRows = [
+    { label: "Pérdida media", value: avgLossAbs, displayValue: formatCurrency(-avgLossAbs, currency) },
+    { label: "Ganancia media", value: avgWinAbs, displayValue: formatCurrency(avgWinAbs, currency) },
+  ];
+
+  return (
+    <Card className={cn(PANEL_CARD_CLASS, PANEL_MICRO_CHART_CARD_CLASS, className)}>
+      <CardHeader className="pb-0">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <CardTitle>Avg win / loss</CardTitle>
+            <CardDescription>Relación media entre ganadora y perdedora.</CardDescription>
+          </div>
+          <p className="shrink-0 font-mono text-xs text-muted-foreground">ratio</p>
+        </div>
+      </CardHeader>
+      <CardContent className={PANEL_MICRO_CHART_CONTENT_CLASS}>
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground">Ratio medio</p>
+            <p className="mt-1 font-mono text-2xl font-semibold text-foreground">
+              {ratio.toLocaleString("es-ES", { maximumFractionDigits: 2 })}
+            </p>
+          </div>
+        </div>
+
+        <div className={cn(PANEL_MICRO_CHART_SURFACE_CLASS, "relative overflow-hidden px-1 pb-4 pt-1")}>
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-12 top-4 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:50%_100%,100%_33.33%] opacity-20"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute bottom-12 left-1/2 top-4 w-px -translate-x-1/2 bg-border/80"
+          />
+          <span className="absolute left-1/2 top-1 z-10 -translate-x-1/2 rounded-full bg-card px-2 font-mono text-[10px] font-medium text-muted-foreground">
+            {ratio.toLocaleString("es-ES", { maximumFractionDigits: 2 })}x
+          </span>
+          <div className="relative z-0 grid h-full grid-rows-[1fr_auto]">
+            <div className="grid grid-cols-2 items-center">
+              {trackerRows.map((row, rowIndex) => {
+                const activeSegments = Math.max(
+                  row.value > 0 ? 1 : 0,
+                  Math.round((row.value / maxValue) * maxSegments),
+                );
+                const isLoss = rowIndex === 0;
+
+                return (
+                  <div
+                    className={cn(
+                      "group flex items-center gap-1",
+                      isLoss ? "justify-end pr-4" : "justify-start pl-4",
+                    )}
+                    key={row.label}
+                    title={`${row.label} / ${row.displayValue}`}
+                  >
+                    {isLoss
+                      ? Array.from({ length: maxSegments }, (_, segmentIndex) => {
+                          const isFilled = segmentIndex >= maxSegments - activeSegments;
+
+                          return (
+                            <span
+                              aria-hidden="true"
+                              className={cn(
+                                "h-9 w-1.5 rounded-[2px] transition-all duration-200 group-hover:h-12",
+                                isFilled
+                                  ? "bg-muted-foreground/55 group-hover:bg-muted-foreground/70"
+                                  : "bg-transparent",
+                              )}
+                              key={segmentIndex}
+                            />
+                          );
+                        })
+                      : Array.from({ length: maxSegments }, (_, segmentIndex) => {
+                          const isFilled = segmentIndex < activeSegments;
+
+                          return (
+                            <span
+                              aria-hidden="true"
+                              className={cn(
+                                "h-9 w-1.5 rounded-[2px] transition-all duration-200 group-hover:h-12",
+                                isFilled
+                                  ? "bg-foreground/80 group-hover:bg-foreground"
+                                  : "bg-transparent",
+                              )}
+                              key={segmentIndex}
+                            />
+                          );
+                        })}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div className="text-right">
+                <p className="text-muted-foreground">Pérdida media</p>
+                <p className="mt-1 font-mono font-semibold text-foreground">
+                  {formatCurrency(-avgLossAbs, currency)}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Ganancia media</p>
+                <p className="mt-1 font-mono font-semibold text-foreground">
+                  {formatCurrency(avgWinAbs, currency)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function ExpectancyTrendCard({
+  currency,
+  workspace,
+  className,
+}: {
+  currency: string;
+  workspace: WorkspaceState;
+  className?: string;
+}) {
+  const rows = workspace.analytics.daily
+    .slice(-77)
+    .map((day) => {
+      const expectancy = day.trades > 0 ? day.pnl / day.trades : 0;
+      const parsedTime = Date.parse(`${day.tradingDayKey}T00:00:00Z`);
+      return {
+        date: Number.isNaN(parsedTime) ? new Date() : new Date(parsedTime),
+        label: day.label,
+        pnl: expectancy,
+        trades: day.trades,
+      };
+    });
+  const operatedRows = rows.filter((row) => row.trades > 0);
+  const values = (operatedRows.length > 0 ? operatedRows : rows).map((row) => row.pnl);
+  const latest = values.at(-1) ?? 0;
+  const chartRows = smoothExpectancyChartRows(buildExpectancyChartRows(rows));
+
+  return (
+    <Card className={cn(PANEL_CARD_CLASS, PANEL_MICRO_CHART_CARD_CLASS, className)}>
+      <CardHeader className="pb-0">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <CardTitle>Expectancy por día</CardTitle>
+            <CardDescription>Resultado medio por operación en los últimos días.</CardDescription>
+          </div>
+          <p className="shrink-0 font-mono text-xs text-muted-foreground">
+            {operatedRows.length > 0 ? `${operatedRows.length} días` : `Últimos ${rows.length}`}
+          </p>
+        </div>
+      </CardHeader>
+      <CardContent className={PANEL_MICRO_CHART_CONTENT_CLASS}>
+        <p className="font-mono text-2xl font-semibold text-foreground">
+          {formatSignedCurrency(latest, currency)}
+        </p>
+
+        {chartRows.length > 0 ? (
+          <MiniProfitLossLineChart currency={currency} rows={chartRows} />
+        ) : (
+          <EmptyChartState label="Sin días operados para graficar." />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+const CALENDAR_WEEKDAYS = ["L", "M", "X", "J", "V", "S", "D"];
+
+export function TopSetupsCard({
+  currency,
+  workspace,
+  className,
+}: {
+  currency: string;
+  workspace: WorkspaceState;
+  className?: string;
+}) {
+  const isMobile = useIsMobile();
+  const rows = buildStrategyRows(workspace)
+    .toSorted((a, b) => Math.abs(b.netPnl) - Math.abs(a.netPnl))
+    .slice(0, 6)
+    .map((setup) => ({
+      expectancy: setup.expectancy,
+      label: setup.name.length > 18 ? `${setup.name.slice(0, 17)}...` : setup.name,
+      netPnl: setup.netPnl,
+      pnlAbs: Math.abs(setup.netPnl),
+      trades: setup.trades,
+      winRatePct: setup.winRatePct,
+    }));
+
+  return (
+    <Card className={cn(PANEL_CARD_CLASS, className)}>
+      <CardHeader className="pb-3">
+        <CardTitle>Setups por impacto</CardTitle>
+        <CardDescription>PnL absoluto, expectativa y operaciones por setup.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {rows.length > 0 ? (
+          <div className="h-[300px] [--chart-1:oklch(0.82_0_0)]">
+            <BarChart
+              animationDuration={1000}
+              aspectRatio={isMobile ? "1 / 1.1" : "4 / 2.2"}
+              barGap={0.18}
+              className="h-full"
+              data={rows}
+              margin={{ bottom: 12, left: 88, right: 18, top: 14 }}
+              orientation="horizontal"
+              xDataKey="label"
+            >
+              <Grid vertical />
+              <Bar dataKey="pnlAbs" fill="var(--chart-1)" lineCap={5} />
+              <BarYAxis maxLabels={6} />
+              <ChartTooltip
+                rows={(point) => [
+                  {
+                    color: Number(point.netPnl) >= 0 ? "var(--foreground)" : "var(--muted-foreground)",
+                    label: "PnL",
+                    value: formatSignedCurrency(Number(point.netPnl), currency),
+                  },
+                  {
+                    color: "var(--chart-label)",
+                    label: "Expectancy",
+                    value: formatSignedCurrency(Number(point.expectancy), currency),
+                  },
+                  {
+                    color: "var(--chart-label)",
+                    label: "WR / Trades",
+                    value: `${formatPercent(Number(point.winRatePct), 1)} / ${Number(point.trades)}`,
+                  },
+                ]}
+                showCrosshair={false}
+              />
+            </BarChart>
+          </div>
+        ) : (
+          <EmptyChartState label="Sin setups etiquetados." />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+type PnlDistributionChartRow = {
+  axisLabel: string;
+  fill: string;
+  label: string;
+  netPnl: number;
+  plotValue: number;
+  side: "loss" | "win";
+  start: number;
+  end: number;
+  trades: number;
+};
+
+function buildPnlDistributionRows(
+  tradePnls: number[],
+  currency: string,
+): PnlDistributionChartRow[] {
+  const losses = tradePnls.filter((pnl) => pnl < 0);
+  const wins = tradePnls.filter((pnl) => pnl >= 0);
+  const rows: PnlDistributionChartRow[] = [];
+
+  if (losses.length > 0) {
+    const minLoss = Math.min(...losses);
+    const bucketSize = Math.max(Math.abs(minLoss) / PNL_DISTRIBUTION_SIDE_BUCKETS, 1);
+
+    for (let index = 0; index < PNL_DISTRIBUTION_SIDE_BUCKETS; index += 1) {
+      const start = minLoss + bucketSize * index;
+      const end = index === PNL_DISTRIBUTION_SIDE_BUCKETS - 1 ? 0 : start + bucketSize;
+      const bucketTrades = losses.filter((pnl) =>
+        index === PNL_DISTRIBUTION_SIDE_BUCKETS - 1
+          ? pnl >= start && pnl < 0
+          : pnl >= start && pnl < end,
+      );
+
+      rows.push({
+        axisLabel: formatPnlRangeAxis(start, end),
+        end,
+        fill: "var(--muted-foreground)",
+        label: formatPnlRange(start, end, currency),
+        netPnl: bucketTrades.reduce((sum, pnl) => sum + pnl, 0),
+        plotValue: bucketTrades.length,
+        side: "loss",
+        start,
+        trades: bucketTrades.length,
+      });
+    }
+  }
+
+  if (wins.length > 0) {
+    const maxWin = Math.max(...wins, 0);
+    const bucketSize = Math.max(maxWin / PNL_DISTRIBUTION_SIDE_BUCKETS, 1);
+
+    for (let index = 0; index < PNL_DISTRIBUTION_SIDE_BUCKETS; index += 1) {
+      const start = bucketSize * index;
+      const end = index === PNL_DISTRIBUTION_SIDE_BUCKETS - 1 ? maxWin : start + bucketSize;
+      const bucketTrades = wins.filter((pnl) =>
+        index === PNL_DISTRIBUTION_SIDE_BUCKETS - 1
+          ? pnl >= start && pnl <= end
+          : pnl >= start && pnl < end,
+      );
+
+      rows.push({
+        axisLabel: formatPnlRangeAxis(start, end),
+        end,
+        fill: "var(--foreground)",
+        label: formatPnlRange(start, end, currency),
+        netPnl: bucketTrades.reduce((sum, pnl) => sum + pnl, 0),
+        plotValue: bucketTrades.length,
+        side: "win",
+        start,
+        trades: bucketTrades.length,
+      });
+    }
+  }
+
+  return rows;
+}
+
+function PnlDistributionTooltip({
+  active,
+  payload,
+  currency,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload?: PnlDistributionChartRow }>;
+  currency: string;
+}) {
+  const row = payload?.[0]?.payload;
+
+  if (!active || !row) return null;
+
+  return (
+    <div className="min-w-40 rounded-lg border border-border/70 bg-popover px-3 py-2 text-xs text-popover-foreground shadow-xl">
+      <p className="font-mono font-semibold text-foreground">{row.label}</p>
+      <div className="mt-2 grid gap-1 text-muted-foreground">
+        <div className="flex items-center justify-between gap-4">
+          <span>{row.side === "loss" ? "Pérdidas" : "Ganancias"}</span>
+          <span className="font-mono text-foreground">{row.trades} ops</span>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <span>PnL neto</span>
+          <span className="font-mono text-foreground">
+            {formatSignedCurrency(row.netPnl, currency)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function PnlDistributionCard({
+  currency,
+  workspace,
+  className,
+}: {
+  currency: string;
+  workspace: WorkspaceState;
+  className?: string;
+}) {
+  const tradePnls = workspace.trades.reduce<number[]>((values, trade) => {
+    if (Number.isFinite(trade.netPnl)) values.push(trade.netPnl);
+    return values;
+  }, []);
+  const rows = buildPnlDistributionRows(tradePnls, currency);
+  const dominantRow = rows.toSorted((left, right) => right.trades - left.trades)[0];
+  const winningTrades = tradePnls.filter((pnl) => pnl >= 0).length;
+  const losingTrades = tradePnls.length - winningTrades;
+  const maxTrades = Math.max(1, ...rows.map((row) => row.trades));
+  const maxLoss = Math.min(...tradePnls, 0);
+  const maxWin = Math.max(...tradePnls, 0);
+
+  return (
+    <Card className={cn(PANEL_CARD_CLASS, PANEL_DIAGNOSTIC_CARD_CLASS, className)}>
+      <CardHeader className="pb-0">
+        <CardTitle>Distribución por resultado</CardTitle>
+        <CardDescription>
+          Trades por rango: pérdidas a la izquierda, ganancias a la derecha.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className={PANEL_DIAGNOSTIC_CONTENT_CLASS}>
+        {tradePnls.length > 0 ? (
+          <div className="grid flex-1 gap-4">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3 border-y border-border/60 py-3">
+              <div className="min-w-0">
+                <p className="text-[11px] text-muted-foreground">Rango con más trades</p>
+                <p className="mt-1 truncate font-mono text-xs font-semibold text-foreground">
+                  {dominantRow ? formatPnlRangeCompact(dominantRow.start, dominantRow.end, currency) : "-"}
+                </p>
+              </div>
+              <div className="min-w-fit text-right">
+                <p className="text-[11px] text-muted-foreground">Ganadas / perdidas</p>
+                <p className="mt-1 font-mono text-xs font-semibold text-foreground">
+                  {winningTrades} / {losingTrades}
+                </p>
+              </div>
+              <div className="min-w-fit text-right">
+                <p className="text-[11px] text-muted-foreground">Extremos</p>
+                <p className="mt-1 whitespace-nowrap font-mono text-[11px] font-semibold text-foreground">
+                  {formatPnlRangeCompact(maxLoss, maxWin, currency)}
+                </p>
+              </div>
+            </div>
+
+            <div className="relative">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-8 left-1/2 top-3 z-10 w-px bg-border/75"
+              />
+              <ChartContainer
+                className="h-[264px] w-full [--chart-loss:var(--muted-foreground)] [--chart-win:var(--foreground)]"
+                config={PNL_DISTRIBUTION_CHART_CONFIG}
+              >
+                <RechartsBarChart
+                  accessibilityLayer
+                  barCategoryGap="18%"
+                  data={rows}
+                  margin={{ bottom: 8, left: 4, right: 4, top: 22 }}
+                >
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <RechartsXAxis
+                    axisLine={false}
+                    dataKey="axisLabel"
+                    interval={0}
+                    tick={false}
+                    tickLine={false}
+                    type="category"
+                  />
+                  <RechartsYAxis
+                    axisLine={false}
+                    domain={[0, Math.ceil(maxTrades * 1.18)]}
+                    tick={false}
+                    tickLine={false}
+                    width={0}
+                  />
+                  <ShadcnChartTooltip
+                    content={<PnlDistributionTooltip currency={currency} />}
+                    cursor={{ fill: "var(--muted)" }}
+                  />
+                  <RechartsBar
+                    dataKey="plotValue"
+                    maxBarSize={44}
+                    radius={[6, 6, 2, 2]}
+                  >
+                    {rows.map((row) => (
+                      <Cell fill={row.fill} key={row.label} />
+                    ))}
+                    <LabelList
+                      className="fill-foreground font-mono text-[10px] font-semibold"
+                      dataKey="trades"
+                      formatter={(value: unknown) => {
+                        const count = Number(value);
+                        return count > 0 ? count : "";
+                      }}
+                      position="top"
+                    />
+                  </RechartsBar>
+                </RechartsBarChart>
+              </ChartContainer>
+              <div className="pointer-events-none -mt-3 grid grid-cols-3 font-mono text-[11px] text-muted-foreground">
+                <span>{formatPnlAxisValue(maxLoss)}</span>
+                <span className="text-center text-foreground">0</span>
+                <span className="text-right">{formatPnlAxisValue(maxWin)}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-4 rounded-full bg-muted-foreground/70" />
+                  Pérdidas
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-4 rounded-full bg-foreground/88" />
+                  Ganancias
+                </span>
+              </div>
+              <span className="font-mono">Altura = trades por rango</span>
+            </div>
+          </div>
+        ) : (
+          <EmptyChartState label="Sin operaciones cerradas." />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+const HEATMAP_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+const PNL_RANGE_FORMATTER = new Intl.NumberFormat("es-ES", {
+  maximumFractionDigits: 0,
+});
+
+function formatHeatmapCellPnl(value: number, currency: string) {
+  const rounded = Math.round(value);
+  const sign = rounded > 0 ? "+" : "";
+
+  return `${sign}${rounded.toLocaleString("es-ES")} ${currency}`;
+}
+
+function formatPnlRange(start: number, end: number, currency: string) {
+  return `${PNL_RANGE_FORMATTER.format(Math.round(start))} a ${PNL_RANGE_FORMATTER.format(Math.round(end))} ${currency}`;
+}
+
+function formatPnlAxisValue(value: number) {
+  const rounded = Math.round(value);
+  const absValue = Math.abs(rounded);
+  const sign = rounded < 0 ? "-" : "";
+
+  if (absValue >= 1000) {
+    const compact = (absValue / 1000).toLocaleString("es-ES", {
+      maximumFractionDigits: 1,
+    });
+
+    return `${sign}${compact.replace(",0", "")}k`;
+  }
+
+  return `${sign}${absValue.toLocaleString("es-ES")}`;
+}
+
+function formatPnlRangeCompact(start: number, end: number, currency: string) {
+  return `${formatPnlAxisValue(start)} a ${formatPnlAxisValue(end)} ${currency}`;
+}
+
+function formatPnlRangeAxis(start: number, end: number) {
+  return `${formatPnlAxisValue(start)}/${formatPnlAxisValue(end)}`;
+}
+
+function buildTimeHeatmap(workspace: WorkspaceState) {
+  const rows = CALENDAR_WEEKDAYS.map((day) =>
+    HEATMAP_HOURS.map((hour) => ({ day, hour, pnl: 0, trades: 0 })),
+  );
+
+  workspace.trades.forEach((trade) => {
+    const closedAt = new Date(trade.closedAt);
+    if (Number.isNaN(closedAt.getTime())) return;
+
+    const dayIndex = (closedAt.getDay() + 6) % 7;
+    const hour = closedAt.getHours();
+    const hourIndex = HEATMAP_HOURS.indexOf(hour);
+    if (dayIndex < 0 || hourIndex < 0) return;
+
+    rows[dayIndex][hourIndex].pnl += trade.netPnl;
+    rows[dayIndex][hourIndex].trades += Math.max(1, trade.executions.length);
+  });
+
+  const flat = rows.flat();
+  const maxAbsPnl = Math.max(1, ...flat.map((cell) => Math.abs(cell.pnl)));
+
+  return { maxAbsPnl, rows };
+}
+
+export function TimeHeatmapCard({
+  currency,
+  workspace,
+  className,
+}: {
+  currency: string;
+  workspace: WorkspaceState;
+  className?: string;
+}) {
+  const { maxAbsPnl, rows } = buildTimeHeatmap(workspace);
+
+  return (
+    <Card className={cn(PANEL_CARD_CLASS, PANEL_DIAGNOSTIC_CARD_CLASS, className)}>
+      <CardHeader className="pb-0">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <CardTitle>Heatmap día / hora</CardTitle>
+            <CardDescription>Color por PnL agregado y operaciones por franja.</CardDescription>
+          </div>
+          <p className="shrink-0 font-mono text-xs text-muted-foreground">
+            PnL / ops
+          </p>
+        </div>
+      </CardHeader>
+      <CardContent className={PANEL_LOWER_CHART_CONTENT_CLASS}>
+        <div
+          className="grid gap-1.5 overflow-x-auto pb-1"
+          style={{ gridTemplateColumns: `1.75rem repeat(${HEATMAP_HOURS.length}, minmax(3.8rem, 1fr))` }}
+        >
+          <div />
+          {HEATMAP_HOURS.map((hour) => (
+            <div key={hour} className="text-center font-mono text-[10px] text-muted-foreground">
+              {hour}
+            </div>
+          ))}
+          {rows.map((row, rowIndex) => (
+            <React.Fragment key={CALENDAR_WEEKDAYS[rowIndex]}>
+              <div className="grid h-9 place-items-center text-xs text-muted-foreground">
+                {CALENDAR_WEEKDAYS[rowIndex]}
+              </div>
+              {row.map((cell) => {
+                const intensity = Math.max(0.08, Math.min(0.74, Math.abs(cell.pnl) / maxAbsPnl));
+                const hasTrades = cell.trades > 0;
+                const background = hasTrades
+                  ? `color-mix(in oklab, var(--foreground) ${Math.round(intensity * 42)}%, transparent)`
+                  : "color-mix(in oklab, var(--muted) 28%, transparent)";
+
+                return (
+                  <div
+                    className={cn(
+                      "grid h-11 content-center rounded-md border border-border/60 px-1.5 text-center font-mono text-[10px]",
+                      hasTrades ? "text-foreground" : "text-muted-foreground/40",
+                    )}
+                    key={`${cell.day}-${cell.hour}`}
+                    style={{ background }}
+                    title={`${cell.day} ${cell.hour}:00 / ${formatSignedCurrency(cell.pnl, currency)} / ${cell.trades} trades`}
+                  >
+                    {hasTrades ? (
+                      <>
+                        <span className="truncate font-semibold text-foreground">
+                          {formatHeatmapCellPnl(cell.pnl, currency)}
+                        </span>
+                        <span className="mt-0.5 text-[9px] text-muted-foreground">
+                          {cell.trades} op
+                        </span>
+                      </>
+                    ) : (
+                      <span aria-label="Sin operaciones">-</span>
+                    )}
+                  </div>
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function OutlierDependencyCard({
+  currency,
+  workspace,
+  className,
+}: {
+  currency: string;
+  workspace: WorkspaceState;
+  className?: string;
+}) {
+  const netProfit = workspace.analytics.performance.netProfit;
+  const bestTrade = workspace.analytics.performance.bestTrade ?? 0;
+  const dependencyPct =
+    netProfit > 0 && bestTrade > 0 ? Math.abs(bestTrade / netProfit) * 100 : 0;
+  const dependencyScalePct = Math.max(0, Math.min(100, dependencyPct));
+  const resiliencePnl = netProfit - Math.max(0, bestTrade);
+  const restPct = Math.max(0, 100 - dependencyScalePct);
+  const markerPct = dependencyScalePct;
+  const isOverConcentrated = dependencyPct > 100;
+  const dependencyLevel =
+    dependencyPct >= 40
+      ? "Muy alta"
+      : dependencyPct >= 25
+        ? "Alta"
+        : dependencyPct >= 10
+          ? "Controlada"
+          : "Baja";
+  const markerTransform =
+    markerPct >= 96
+      ? "translateX(-100%)"
+      : markerPct <= 4
+        ? "translateX(0)"
+        : "translateX(-50%)";
+  const markerAlignClass =
+    markerPct >= 96 ? "items-end" : markerPct <= 4 ? "items-start" : "items-center";
+
+  return (
+    <Card className={cn(PANEL_CARD_CLASS, PANEL_DIAGNOSTIC_CARD_CLASS, className)}>
+      <CardHeader className="pb-0">
+        <CardTitle>Dependencia del mejor trade</CardTitle>
+        <CardDescription>Cuánto depende el PnL de una sola operación.</CardDescription>
+      </CardHeader>
+      <CardContent className={cn(PANEL_DIAGNOSTIC_CONTENT_CLASS, "gap-4")}>
+        <div className="grid gap-3">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="font-mono text-4xl font-semibold text-foreground">
+                {formatPercent(dependencyPct, 1)}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {isOverConcentrated
+                  ? "Sin ese trade, el PnL neto quedaría negativo."
+                  : "Del PnL neto explicado por el mejor trade."}
+              </p>
+            </div>
+            <span className="rounded-full border border-border/70 px-2 py-1 font-mono text-xs text-muted-foreground">
+              {dependencyLevel}
+            </span>
+          </div>
+
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Escala de concentración</span>
+              <span>{dependencyPct >= 40 ? "revisar concentración" : "resultado distribuido"}</span>
+            </div>
+            <div className="relative pb-6 pt-3">
+              <div className="flex h-4 overflow-hidden rounded-full border border-border/70 bg-muted/35">
+                {OUTLIER_DEPENDENCY_BANDS.map((band) => (
+                  <div
+                    aria-hidden="true"
+                    className={cn(
+                      "h-full border-r border-background/70 last:border-r-0",
+                      dependencyLevel === band.label
+                        ? "bg-foreground/80"
+                        : "bg-muted-foreground/18",
+                    )}
+                    key={band.label}
+                    style={{ width: `${band.width}%` }}
+                  />
+                ))}
+              </div>
+              <div
+                className={cn("absolute top-0 flex flex-col gap-1", markerAlignClass)}
+                style={{ left: `${markerPct}%`, transform: markerTransform }}
+              >
+                <span className="size-2 rounded-full bg-foreground shadow-[0_0_0_4px_var(--background)]" />
+                <span className="rounded-md bg-foreground px-1.5 py-0.5 font-mono text-[10px] font-semibold text-background">
+                  {isOverConcentrated ? "100%+" : formatPercent(dependencyScalePct, 1)}
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-4 gap-1.5 text-[10px] text-muted-foreground">
+                {OUTLIER_DEPENDENCY_BANDS.map((band) => (
+                  <div
+                    className={cn(
+                      dependencyLevel === band.label && "text-foreground",
+                    )}
+                    key={band.label}
+                  >
+                    <p className="font-medium">{band.label}</p>
+                    <p className="font-mono">{band.range}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Composición del PnL neto</span>
+              <span>{formatCurrency(netProfit, currency)}</span>
+            </div>
+            <div className="flex h-3 overflow-hidden rounded-full bg-muted/50">
+              {dependencyScalePct > 0 ? (
+                <div
+                  className="h-full bg-foreground/85"
+                  style={{ width: `${Math.max(2, dependencyScalePct)}%` }}
+                />
+              ) : null}
+              <div
+                className="h-full bg-muted-foreground/25"
+                style={{ width: `${restPct}%` }}
+              />
+            </div>
+            <div className="flex justify-between font-mono text-[10px] text-muted-foreground">
+              <span>Mejor trade</span>
+              <span>Resto del PnL</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 border-y border-border/60 py-3 text-xs">
+          <div>
+            <p className="text-muted-foreground">PnL neto</p>
+            <p className="mt-1 font-mono font-semibold text-foreground">
+              {formatCurrency(netProfit, currency)}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Mejor trade</p>
+            <p className="mt-1 font-mono font-semibold text-foreground">
+              {formatCurrency(bestTrade, currency)}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-muted-foreground">Sin mejor trade</p>
+            <p className="mt-1 font-mono font-semibold text-foreground">
+              {formatCurrency(resiliencePnl, currency)}
             </p>
           </div>
         </div>
@@ -1726,18 +2733,16 @@ function buildPanelMetricDeltas(
   };
 }
 
-function OverviewSection({
-  calendarSource,
-  workspace,
-}: {
-  calendarSource: CalendarSourceState;
-  workspace: WorkspaceState;
-}) {
+function OverviewSection({ workspace }: { workspace: WorkspaceState }) {
   const activeAccount =
     workspace.accounts.find((account) => account.id === workspace.activeAccountId) ??
     workspace.accounts[0];
   const performance = buildDashboardPerformance(workspace, { preferActiveTrades: true });
+  const analyticsPerformance = workspace.analytics.performance;
+  const currency = activeAccount?.baseCurrency ?? "USD";
   const metricDeltas = buildPanelMetricDeltas(workspace, activeAccount);
+  const avgLossAbs = Math.abs(analyticsPerformance.avgLoss);
+  const avgWinLossRatio = avgLossAbs > 0 ? Math.abs(analyticsPerformance.avgWin) / avgLossAbs : 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -1746,11 +2751,11 @@ function OverviewSection({
         activeAccount={activeAccount}
       />
 
-      <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Capital activo"
           value={activeAccount?.equity ?? 0}
-          suffix={` ${activeAccount?.baseCurrency ?? "USD"}`}
+          suffix={` ${currency}`}
           caption="Equity de la cuenta activa"
           tone="neutral"
           delta={metricDeltas.equity}
@@ -1758,10 +2763,16 @@ function OverviewSection({
         <MetricCard
           title="PnL"
           value={performance.netProfit}
-          suffix={` ${activeAccount?.baseCurrency ?? "USD"}`}
-          caption={`${performance.totalTrades} operaciones cerradas`}
+          suffix={` ${currency}`}
+          caption="Resultado neto cerrado"
           tone={performance.netProfit > 0 ? "positive" : performance.netProfit < 0 ? "negative" : "neutral"}
           delta={metricDeltas.pnl}
+        />
+        <MetricCard
+          title="Operaciones"
+          value={performance.totalTrades}
+          caption="Cerradas en la cuenta activa"
+          tone="neutral"
         />
         <MetricCard
           title="PF"
@@ -1800,17 +2811,52 @@ function OverviewSection({
           }
           delta={metricDeltas.drawdown}
         />
+        <MetricCard
+          title="Expectancy / operación"
+          value={analyticsPerformance.expectancy}
+          suffix={` ${currency}`}
+          caption="Resultado medio por trade"
+          tone={analyticsPerformance.expectancy > 0 ? "positive" : analyticsPerformance.expectancy < 0 ? "negative" : "neutral"}
+        />
+        <MetricCard
+          title="Avg W/L"
+          value={avgWinLossRatio}
+          decimals={2}
+          caption={`${formatCurrency(analyticsPerformance.avgWin, currency)} / ${formatCurrency(analyticsPerformance.avgLoss, currency)}`}
+          tone={avgWinLossRatio >= 1 ? "neutral" : "negative"}
+        />
       </div>
 
-      <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_430px]">
-        <div className="grid min-w-0 gap-4 xl:h-full xl:grid-rows-[auto_auto_minmax(0,1fr)]">
-          <EquityCurveCard workspace={workspace} activeAccount={activeAccount} />
-          <RecentTradesCard workspace={workspace} className="h-full" />
-          <NewsRiskCard calendarSource={calendarSource} workspace={workspace} />
+      <div className="grid gap-4">
+        <EquityCurveCard workspace={workspace} activeAccount={activeAccount} />
+        <div className="grid gap-4 lg:grid-cols-3">
+          <DrawdownRecentCard
+            activeAccount={activeAccount}
+            workspace={workspace}
+          />
+          <ExpectancyTrendCard
+            currency={currency}
+            workspace={workspace}
+          />
+          <AverageWinLossCard
+            avgLoss={analyticsPerformance.avgLoss}
+            avgWin={analyticsPerformance.avgWin}
+            currency={currency}
+          />
         </div>
-        <div className="grid min-w-0 content-start gap-4">
-          <DecisionControlCard workspace={workspace} />
-          <PanelInsightsCompact workspace={workspace} />
+        <TimeHeatmapCard
+          currency={currency}
+          workspace={workspace}
+        />
+        <div className="grid gap-4 xl:grid-cols-2">
+          <PnlDistributionCard
+            currency={currency}
+            workspace={workspace}
+          />
+          <OutlierDependencyCard
+            currency={currency}
+            workspace={workspace}
+          />
         </div>
       </div>
     </div>
@@ -1819,6 +2865,9 @@ function OverviewSection({
 
 export function MesaDashboard({ workspace }: { workspace: WorkspaceState }) {
   const calendarSource = useEconomicCalendarSource();
+  useCalendarReleaseAlerts(calendarSource);
 
-  return <OverviewSection calendarSource={calendarSource} workspace={workspace} />;
+  return (
+    <OverviewSection workspace={workspace} />
+  );
 }

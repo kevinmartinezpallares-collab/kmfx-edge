@@ -171,7 +171,7 @@ export function getStudyOverview(workspace: WorkspaceState): StudyOverview {
       definition: "Caída desde un pico de equity hasta el nivel actual o peor punto observado.",
       formula: "DD = (pico de equity - equity) / pico de equity x 100.",
       usedIn: [
-        { label: "RiskGuard", href: "/risk" },
+        { label: "Mesa de Riesgo", href: "/risk" },
         { label: "Prop Firms", href: "/funding" },
       ],
       dataNeeds: "Equity, pico de equity y límite aplicable por cuenta o programa.",
@@ -203,7 +203,7 @@ export function getStudyOverview(workspace: WorkspaceState): StudyOverview {
       definition: "Distancia restante antes de tocar el límite diario configurado o informado.",
       formula: "Room diario = límite diario - DD diario usado.",
       usedIn: [
-        { label: "RiskGuard", href: "/risk" },
+        { label: "Mesa de Riesgo", href: "/risk" },
         { label: "Prop Firms", href: "/funding" },
       ],
       dataNeeds: "Límite diario, equity intradía y motor de riesgo actualizado.",
@@ -219,7 +219,7 @@ export function getStudyOverview(workspace: WorkspaceState): StudyOverview {
       definition: "Riesgo agregado de las posiciones activas frente al presupuesto visible.",
       formula: "Riesgo abierto = suma del riesgo monetario abierto / equity o límite definido.",
       usedIn: [
-        { label: "RiskGuard", href: "/risk" },
+        { label: "Mesa de Riesgo", href: "/risk" },
         { label: "Portfolio", href: "/capital" },
       ],
       dataNeeds: "Posiciones abiertas, stop loss, equity y presupuesto de riesgo.",
@@ -251,7 +251,7 @@ export function getStudyOverview(workspace: WorkspaceState): StudyOverview {
       definition: "Pérdida relativa frente a una referencia de equity diaria o histórica.",
       formula: "DD usado = pérdida desde referencia / referencia x 100.",
       usedIn: [
-        { label: "RiskGuard", href: "/risk" },
+        { label: "Mesa de Riesgo", href: "/risk" },
         { label: "Calendario", href: "/calendar" },
       ],
       dataNeeds: "Referencia de equity, equity actual y periodo correcto.",
@@ -300,7 +300,7 @@ export function getStudyOverview(workspace: WorkspaceState): StudyOverview {
       formula: null,
       usedIn: [
         { label: "Playbooks", href: "/strategies" },
-        { label: "Review", href: "/journal" },
+        { label: "Trades", href: "/trades" },
       ],
       dataNeeds: "Etiqueta de setup en operaciones cerradas o comentario de estrategia.",
       interpretation:
@@ -316,7 +316,7 @@ export function getStudyOverview(workspace: WorkspaceState): StudyOverview {
       formula: null,
       usedIn: [
         { label: "Trades", href: "/trades" },
-        { label: "Review", href: "/journal" },
+        { label: "Insights", href: "/analytics" },
       ],
       dataNeeds: "Ejecuciones agrupadas por posición o parent id.",
       interpretation:
@@ -434,7 +434,7 @@ export function getStudyOverview(workspace: WorkspaceState): StudyOverview {
       formula: "Lotes = riesgo monetario / (stop pips x valor pip por lote).",
       usedIn: [
         { label: "Calculadora", href: "/tools/calculator" },
-        { label: "RiskGuard", href: "/risk" },
+        { label: "Mesa de Riesgo", href: "/risk" },
       ],
       dataNeeds: "Equity, riesgo %, stop, símbolo y conversiones FX.",
       interpretation:
@@ -486,7 +486,7 @@ export function getStudyOverview(workspace: WorkspaceState): StudyOverview {
       },
       {
         title: "Derivación clara",
-        body: "Biblioteca explica; RiskGuard protege, Insights analiza y Review cierra aprendizaje.",
+        body: "Biblioteca explica; Mesa de Riesgo protege, Insights analiza y Trades conserva el detalle operativo.",
       },
     ],
   };

@@ -12,6 +12,7 @@ type SupabaseSessionResult = {
   authenticated: boolean;
   configured: boolean;
   response: NextResponse;
+  userEmail?: string;
 };
 
 export async function updateSupabaseSession(
@@ -47,11 +48,14 @@ export async function updateSupabaseSession(
   const { data, error } = await supabase.auth.getClaims();
   const authenticated = Boolean(data?.claims && !error);
   const session = authenticated ? await supabase.auth.getSession() : null;
+  const claims = data?.claims as { email?: unknown } | undefined;
+  const claimsEmail = typeof claims?.email === "string" ? claims.email : undefined;
 
   return {
     accessToken: session?.data.session?.access_token,
     authenticated,
     configured: true,
     response,
+    userEmail: claimsEmail || session?.data.session?.user.email || undefined,
   };
 }

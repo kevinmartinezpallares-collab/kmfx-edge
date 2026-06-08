@@ -20,10 +20,11 @@
     "validate:cascade": "npm run test -- migration-scope package-contract workspace-source-contract kmfx-api-config shell-contract action-safety v1-readiness-contract live-snapshot-adapter live-snapshot-readiness navigation visible-copy theme-contract dashboard-selectors calendar-selectors analytics-selectors accounts-selectors portfolio-selectors trades-selectors settings-selectors && npm run typecheck && npm run lint"
   },
   "dependencies": {
-    "@base-ui/react": "^1.4.1",
+    "@base-ui/react": "^1.5.0",
     "@number-flow/react": "^0.6.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
+    "@visx/curve": "^4.0.1-alpha.0",
     "@visx/event": "^4.0.1-alpha.0",
     "@visx/grid": "^4.0.1-alpha.0",
     "@visx/group": "^4.0.1-alpha.0",
@@ -33,6 +34,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "d3-array": "^3.2.4",
     "d3-shape": "^3.2.0",
     "liveline": "^0.0.7",
     "lucide-react": "^1.16.0",

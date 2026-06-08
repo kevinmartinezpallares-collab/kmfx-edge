@@ -70,6 +70,7 @@ describe("workspace source contract", () => {
 
     expect(source).toContain('resolvedSearchParams?.demo');
     expect(source).toContain("previewMode");
+    expect(source).toContain('previewMode === "mock"');
     expect(source).toContain("return readFixtureWorkspaceState(activeAccountId)");
   });
 });

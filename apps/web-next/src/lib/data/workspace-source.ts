@@ -112,9 +112,13 @@ export async function getWorkspaceStateForSearchParams(
 ) {
   const resolvedSearchParams = await searchParams;
   const activeAccountId = firstSearchParamValue(resolvedSearchParams?.account);
-  const previewMode = firstSearchParamValue(resolvedSearchParams?.demo) === "1";
+  const previewMode = firstSearchParamValue(resolvedSearchParams?.demo);
 
-  if (previewMode) {
+  if (previewMode === "mock") {
+    return withActiveWorkspaceAccount(wave1Workspace, activeAccountId);
+  }
+
+  if (previewMode === "1") {
     return readFixtureWorkspaceState(activeAccountId);
   }
 

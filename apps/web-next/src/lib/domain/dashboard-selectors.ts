@@ -139,7 +139,7 @@ export function buildDashboardAttentionItems(
 
   if (workspace.risk.status === "blocked") {
     items.push({
-      label: "RiskGuard",
+      label: "Mesa de Riesgo",
       title: "Nuevas entradas bloqueadas",
       body: workspace.risk.actionRequired,
       href: "/risk",
@@ -147,7 +147,7 @@ export function buildDashboardAttentionItems(
     });
   } else if (workspace.risk.status === "caution") {
     items.push({
-      label: "RiskGuard",
+      label: "Mesa de Riesgo",
       title: "Riesgo en vigilancia",
       body: workspace.risk.actionRequired,
       href: "/risk",
@@ -167,10 +167,10 @@ export function buildDashboardAttentionItems(
 
   if (worstTrade) {
     items.push({
-      label: "Revisión",
-      title: `Revisar ${worstTrade.symbol} ${formatSignedCurrency(worstTrade.netPnl)}`,
+      label: "Trades",
+      title: `${worstTrade.symbol} ${formatSignedCurrency(worstTrade.netPnl)}`,
       body: `${worstTrade.setup ?? "Sin estrategia"} / ${worstTrade.session} / ${worstTrade.tradingDayKey}`,
-      href: "/journal/review-queue",
+      href: "/trades",
       tone: "neutral",
     });
   }

@@ -2,6 +2,10 @@
 
 import * as React from "react";
 
+import {
+  formatResponsiveLivelineSignedCurrency,
+} from "@/lib/charts/liveline-layout";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { formatSignedCurrency } from "@/lib/formatters/numbers";
 
 type AnalyticsCumulativeChartProps = {
@@ -9,6 +13,7 @@ type AnalyticsCumulativeChartProps = {
     label: string;
     pnl: number;
   }>;
+  isMobile?: boolean;
 };
 
 const RechartsCumulativeAreaChart = React.lazy(async () => {
@@ -26,10 +31,19 @@ const RechartsCumulativeAreaChart = React.lazy(async () => {
   return {
     default: function RechartsCumulativeAreaChart({
       data,
+      isMobile = false,
     }: AnalyticsCumulativeChartProps) {
       return (
         <ResponsiveContainer height="100%" minHeight={0} minWidth={0} width="100%">
-          <AreaChart data={data} margin={{ left: 8, right: 18, top: 12, bottom: 0 }}>
+          <AreaChart
+            data={data}
+            margin={{
+              left: isMobile ? 0 : 8,
+              right: isMobile ? 6 : 18,
+              top: 12,
+              bottom: 0,
+            }}
+          >
             <defs>
               <linearGradient id="insightsPnlFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.26} />
@@ -52,8 +66,12 @@ const RechartsCumulativeAreaChart = React.lazy(async () => {
               axisLine={false}
               tickLine={false}
               tick={{ fill: "var(--chart-label)", fontSize: 12 }}
-              tickFormatter={(value) => formatSignedCurrency(Number(value))}
-              width={86}
+              tickFormatter={(value) =>
+                isMobile
+                  ? formatResponsiveLivelineSignedCurrency(Number(value), "USD", true)
+                  : formatSignedCurrency(Number(value))
+              }
+              width={isMobile ? 42 : 86}
             />
             <Tooltip
               cursor={{ stroke: "var(--chart-crosshair)", strokeDasharray: "4 4" }}
@@ -101,9 +119,11 @@ function AnalyticsCumulativeChartFallback() {
 export function AnalyticsCumulativeChart({
   data,
 }: AnalyticsCumulativeChartProps) {
+  const isMobile = useIsMobile();
+
   return (
     <React.Suspense fallback={<AnalyticsCumulativeChartFallback />}>
-      <RechartsCumulativeAreaChart data={data} />
+      <RechartsCumulativeAreaChart data={data} isMobile={isMobile} />
     </React.Suspense>
   );
 }

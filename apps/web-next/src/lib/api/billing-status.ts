@@ -7,11 +7,70 @@ import {
 } from "@/lib/billing/billing-plan-key";
 
 export type BillingAccessNotice =
-  | "billing_attention"
   | "billing_paused"
+  | "billing_attention"
   | "plan_limit"
   | "plan_required"
   | "trial_expired";
+
+export type BillingStatusSummary = {
+  accessNotice: BillingAccessNotice | null;
+  currentPeriodEndsAt: string;
+  planKey: BillingPlanKey | null;
+  status: string;
+  trialEndsAt: string;
+};
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function asString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function hasDatePassed(value: string) {
+  if (!value) return false;
+
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) && timestamp <= Date.now();
+}
+
+function accessNoticeFromPayload(payload: unknown): BillingAccessNotice | null {
+  const data = asRecord(payload);
+  const billing = asRecord(data.billing);
+  const entitlements = asRecord(data.entitlements);
+  const limits = asRecord(data.limits);
+  const access = asString(billing.access);
+  const status = asString(billing.status).toLowerCase();
+  const currentPeriodEndsAt = asString(billing.currentPeriodEndsAt);
+  const trialEndsAt = asString(billing.trialEndsAt);
+
+  if (data.is_admin === true) return null;
+
+  if (access === "billing_attention") return "billing_attention";
+
+  if (access === "restricted") {
+    if (
+      status === "trialing_paused" ||
+      hasDatePassed(trialEndsAt) ||
+      hasDatePassed(currentPeriodEndsAt)
+    ) {
+      return "trial_expired";
+    }
+
+    if (status === "paused") return "billing_paused";
+
+    return "plan_required";
+  }
+
+  if (entitlements.launcherConnection !== true) return "plan_required";
+
+  const rawConnectionLimit = limits.connectionKeyLimit ?? limits.liveMt5Accounts;
+  if (rawConnectionLimit === 0) return "plan_limit";
+
+  return null;
+}
 
 export async function requestBillingPlanKey(): Promise<BillingPlanKey | null> {
   try {
@@ -20,5 +79,29 @@ export async function requestBillingPlanKey(): Promise<BillingPlanKey | null> {
     return result.ok ? billingPlanKeyFromPayload(result.payload) : null;
   } catch {
     return null;
+  }
+}
+
+export async function requestBillingStatusSummary(): Promise<BillingStatusSummary> {
+  try {
+    const result = await requestAuthenticatedBackendJson("/api/billing/status");
+    const payload = result.payload;
+    const billing = asRecord(asRecord(payload).billing);
+
+    return {
+      accessNotice: result.ok ? accessNoticeFromPayload(payload) : null,
+      currentPeriodEndsAt: asString(billing.currentPeriodEndsAt),
+      planKey: result.ok ? billingPlanKeyFromPayload(payload) : null,
+      status: asString(billing.status),
+      trialEndsAt: asString(billing.trialEndsAt),
+    };
+  } catch {
+    return {
+      accessNotice: null,
+      currentPeriodEndsAt: "",
+      planKey: null,
+      status: "",
+      trialEndsAt: "",
+    };
   }
 }

@@ -8,43 +8,11 @@ export type UpcomingRoute = {
 export const upcomingRoutes = {
   risk: {
     href: "/risk",
-    title: "RiskGuard",
+    title: "Mesa de Riesgo",
     description:
-      "El motor de riesgo se trabajará como una pieza propia para no mezclar reglas, bloqueadores y política MT5 antes de tiempo.",
+      "Mesa de Riesgo queda reservada para beta cerrada hasta completar reglas, límites, política MT5 y frontera técnica.",
     nextStep:
-      "Cerrar el contrato visual y funcional de reglas, horarios, pares permitidos, riesgo variable y futura protección por EA.",
-  },
-  journal: {
-    href: "/journal",
-    title: "Review",
-    description:
-      "La revisión operativa necesita una pasada dedicada para separar diario, cola de revisión y análisis sin duplicar Insights.",
-    nextStep:
-      "Definir qué entra en V1 de review y qué queda para automatizaciones o análisis avanzado.",
-  },
-  journalReviewQueue: {
-    href: "/journal/review-queue",
-    title: "Review / Cola",
-    description:
-      "La cola de revisión quedará bloqueada hasta cerrar criterios claros de prioridad y edición.",
-    nextStep:
-      "Conectar solo operaciones que requieran revisión real y evitar listas largas sin acción.",
-  },
-  journalEntries: {
-    href: "/journal/entries",
-    title: "Review / Entradas",
-    description:
-      "Las entradas del diario requieren un flujo simple para que el trader no pierda velocidad operativa.",
-    nextStep:
-      "Diseñar captura rápida, edición y relación con trades cerrados.",
-  },
-  journalAiReview: {
-    href: "/journal/ai-review",
-    title: "Review / IA",
-    description:
-      "La revisión asistida se activará cuando tengamos datos suficientes y reglas claras de confianza.",
-    nextStep:
-      "Definir límites, fuentes y qué recomendaciones puede mostrar sin inventar conclusiones.",
+      "Cerrar el monitor de límites, estados de datos insuficientes y confirmación EA antes de activarlo como ruta pública.",
   },
   strategies: {
     href: "/strategies",
@@ -82,7 +50,7 @@ export const upcomingRoutes = {
     href: "/funding/journeys",
     title: "Prop Firms / Procesos",
     description:
-      "Los procesos de fondeo necesitan una vista propia para no convertir Cuentas o RiskGuard en listas confusas.",
+      "Los procesos de fondeo necesitan una vista propia para no convertir Cuentas o Mesa de Riesgo en listas confusas.",
     nextStep:
       "Agrupar challenge, verificación y funded bajo una lectura única de progreso.",
   },

@@ -220,6 +220,33 @@ export function prepareHistoricalLivelineCurve(
   });
 }
 
+export function fitLivelineToWindowStart(
+  points: LivelinePoint[],
+  windowSecs: number,
+): LivelinePoint[] {
+  const normalized = normalizeLivelinePoints(points, 1);
+  const first = normalized[0];
+  const last = normalized.at(-1);
+
+  if (normalized.length < 2 || !first || !last || last.time <= first.time || windowSecs <= 0) {
+    return normalized;
+  }
+
+  const windowStart = last.time - windowSecs;
+  if (windowStart <= first.time) return normalized;
+
+  const startValue = interpolateLivelineValue(normalized, windowStart);
+  const visible = normalized.filter((point) => point.time > windowStart);
+
+  return normalizeLivelinePoints(
+    [
+      { time: windowStart, value: startValue },
+      ...visible,
+    ],
+    1,
+  );
+}
+
 export function smoothLivelinePoints(
   points: LivelinePoint[],
   { radius = 3, minPoints = 16 }: SmoothOptions = {},

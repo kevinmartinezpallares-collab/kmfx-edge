@@ -214,6 +214,151 @@ function inferTradeSession(value: string): TradeSession {
   return "Asia";
 }
 
+function directionMove(side: TradeSide, fromPrice: number, toPrice: number) {
+  return side === "sell" ? fromPrice - toPrice : toPrice - fromPrice;
+}
+
+function finiteOrNull(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, value));
+}
+
+function mapTradeExecutionMetrics({
+  entryPrice,
+  exitPrice,
+  netPnl,
+  row,
+  side,
+}: {
+  entryPrice: number;
+  exitPrice: number;
+  netPnl: number;
+  row: RawLiveTrade;
+  side: TradeSide;
+}) {
+  const initialStopPrice = toNullableFiniteNumber(
+    row.initial_stop_price ?? row.stop_loss ?? row.sl,
+  );
+  const targetPrice = toNullableFiniteNumber(
+    row.target_price ?? row.take_profit ?? row.tp,
+  );
+  const plannedRiskAmount = toNullableFiniteNumber(
+    row.planned_risk_amount ?? row.initial_risk_amount ?? row.risk_amount,
+  );
+  const sourcePlannedRewardAmount = toNullableFiniteNumber(
+    row.planned_reward_amount ?? row.reward_amount,
+  );
+  const sourcePlannedRewardRiskRatio = toNullableFiniteNumber(
+    row.planned_reward_risk_ratio ?? row.planned_rr ?? row.rr,
+  );
+  const riskPriceDistance =
+    initialStopPrice !== null ? Math.abs(entryPrice - initialStopPrice) : null;
+  const rewardPriceDistance =
+    targetPrice !== null ? Math.abs(targetPrice - entryPrice) : null;
+  const pricePlannedRewardRiskRatio =
+    riskPriceDistance && rewardPriceDistance
+      ? rewardPriceDistance / riskPriceDistance
+      : null;
+  const plannedRewardRiskRatio =
+    sourcePlannedRewardRiskRatio ?? pricePlannedRewardRiskRatio;
+  const plannedRewardAmount =
+    sourcePlannedRewardAmount ??
+    (plannedRiskAmount !== null && plannedRewardRiskRatio !== null
+      ? plannedRiskAmount * plannedRewardRiskRatio
+      : null);
+  const sourceCapturedR = toNullableFiniteNumber(row.captured_r ?? row.r_multiple);
+  const capturedR =
+    sourceCapturedR ??
+    (plannedRiskAmount !== null && plannedRiskAmount > 0
+      ? netPnl / plannedRiskAmount
+      : riskPriceDistance && riskPriceDistance > 0
+        ? directionMove(side, entryPrice, exitPrice) / riskPriceDistance
+        : null);
+  const maxFavorableExcursionAmount = toNullableFiniteNumber(
+    row.max_favorable_excursion_amount ??
+      row.max_favorable_excursion ??
+      row.mfe,
+  );
+  const maxAdverseExcursionAmount = toNullableFiniteNumber(
+    row.max_adverse_excursion_amount ??
+      row.max_adverse_excursion ??
+      row.mae,
+  );
+  const mfeR =
+    toNullableFiniteNumber(row.mfe_r) ??
+    (plannedRiskAmount !== null &&
+    plannedRiskAmount > 0 &&
+    maxFavorableExcursionAmount !== null
+      ? maxFavorableExcursionAmount / plannedRiskAmount
+      : null);
+  const maeR =
+    toNullableFiniteNumber(row.mae_r) ??
+    (plannedRiskAmount !== null &&
+    plannedRiskAmount > 0 &&
+    maxAdverseExcursionAmount !== null
+      ? Math.abs(maxAdverseExcursionAmount) / plannedRiskAmount
+      : null);
+  const sourceExitEfficiency = toNullableFiniteNumber(
+    row.exit_efficiency_pct ?? row.exit_efficiency,
+  );
+  const exitEfficiencyPct =
+    sourceExitEfficiency ??
+    (capturedR !== null && mfeR !== null && mfeR > 0
+      ? clampPercent((capturedR / mfeR) * 100)
+      : null);
+
+  return {
+    initialStopPrice,
+    targetPrice,
+    plannedRiskAmount,
+    plannedRewardAmount,
+    plannedRewardRiskRatio,
+    capturedR,
+    maxFavorableExcursionAmount,
+    maxAdverseExcursionAmount,
+    mfeR,
+    maeR,
+    exitEfficiencyPct,
+  };
+}
+
+function mergeTradeExecutionMetrics(trade: ClosedTrade) {
+  const plannedRiskAmount = finiteOrNull(trade.plannedRiskAmount);
+  const sourceCapturedR = finiteOrNull(trade.capturedR);
+  const sourceMfeR = finiteOrNull(trade.mfeR);
+  const sourceMaeR = finiteOrNull(trade.maeR);
+  const maxFavorableExcursionAmount = finiteOrNull(trade.maxFavorableExcursionAmount);
+  const maxAdverseExcursionAmount = finiteOrNull(trade.maxAdverseExcursionAmount);
+  const capturedR =
+    plannedRiskAmount !== null && plannedRiskAmount > 0
+      ? trade.netPnl / plannedRiskAmount
+      : sourceCapturedR;
+  const mfeR =
+    plannedRiskAmount !== null &&
+    plannedRiskAmount > 0 &&
+    maxFavorableExcursionAmount !== null
+      ? maxFavorableExcursionAmount / plannedRiskAmount
+      : sourceMfeR;
+  const maeR =
+    plannedRiskAmount !== null &&
+    plannedRiskAmount > 0 &&
+    maxAdverseExcursionAmount !== null
+      ? Math.abs(maxAdverseExcursionAmount) / plannedRiskAmount
+      : sourceMaeR;
+  const exitEfficiencyPct =
+    capturedR !== null && mfeR !== null && mfeR > 0
+      ? clampPercent((capturedR / mfeR) * 100)
+      : trade.exitEfficiencyPct;
+
+  trade.capturedR = capturedR;
+  trade.mfeR = mfeR;
+  trade.maeR = maeR;
+  trade.exitEfficiencyPct = exitEfficiencyPct;
+}
+
 function toTradingDayKey(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "unknown-day";
@@ -343,6 +488,13 @@ function mapTrades(payload: RawLiveDashboardPayload): ClosedTrade[] {
     const swap = toFiniteNumber(row.swap);
     const netPnl = toFiniteNumber(row.net, grossPnl + commission + swap);
     const setup = String(row.strategy_tag || row.comment || "").trim() || null;
+    const executionMetrics = mapTradeExecutionMetrics({
+      entryPrice,
+      exitPrice,
+      netPnl,
+      row,
+      side,
+    });
 
     const execution = {
       id: executionId,
@@ -382,6 +534,7 @@ function mapTrades(payload: RawLiveDashboardPayload): ClosedTrade[] {
         session: inferTradeSession(closedAt),
         setup,
         tradingDayKey: toTradingDayKey(closedAt),
+        ...executionMetrics,
         executions: [execution],
       });
       return;
@@ -407,6 +560,29 @@ function mapTrades(payload: RawLiveDashboardPayload): ClosedTrade[] {
     existing.session = inferTradeSession(existing.closedAt);
     existing.setup = existing.setup || setup;
     existing.tradingDayKey = toTradingDayKey(existing.closedAt);
+    existing.initialStopPrice = existing.initialStopPrice ?? executionMetrics.initialStopPrice;
+    existing.targetPrice = existing.targetPrice ?? executionMetrics.targetPrice;
+    existing.plannedRiskAmount =
+      existing.plannedRiskAmount ?? executionMetrics.plannedRiskAmount;
+    existing.plannedRewardAmount =
+      existing.plannedRewardAmount ?? executionMetrics.plannedRewardAmount;
+    existing.plannedRewardRiskRatio =
+      existing.plannedRewardRiskRatio ?? executionMetrics.plannedRewardRiskRatio;
+    existing.maxFavorableExcursionAmount = Math.max(
+      existing.maxFavorableExcursionAmount ?? Number.NEGATIVE_INFINITY,
+      executionMetrics.maxFavorableExcursionAmount ?? Number.NEGATIVE_INFINITY,
+    );
+    if (existing.maxFavorableExcursionAmount === Number.NEGATIVE_INFINITY) {
+      existing.maxFavorableExcursionAmount = null;
+    }
+    existing.maxAdverseExcursionAmount = Math.min(
+      existing.maxAdverseExcursionAmount ?? Number.POSITIVE_INFINITY,
+      executionMetrics.maxAdverseExcursionAmount ?? Number.POSITIVE_INFINITY,
+    );
+    if (existing.maxAdverseExcursionAmount === Number.POSITIVE_INFINITY) {
+      existing.maxAdverseExcursionAmount = null;
+    }
+    mergeTradeExecutionMetrics(existing);
     existing.executions.push(execution);
     if (existing.durationMinutes !== null) {
       const openedDate = new Date(existing.openedAt);
@@ -446,10 +622,55 @@ function inferPlanAccess(
 }
 
 function inferIsFunded(account: RawLiveSnapshotAccount) {
-  const source = `${account.display_name || ""} ${account.broker || ""}`.toLowerCase();
-  return ["challenge", "funded", "ftmo", "funding", "prop"].some((token) =>
+  const source = accountIdentityText(account);
+  return [
+    "challenge",
+    "funded",
+    "funding",
+    "prop",
+    "reto",
+    "evaluation",
+    "ftmo",
+    "the5ers",
+    "the 5ers",
+    "funding pips",
+    "fundingpips",
+    "orion funded",
+    "darwinex zero",
+    "wsfunded",
+    "wsf funded",
+    "wall street funded",
+  ].some((token) =>
     source.includes(token),
   );
+}
+
+function normalizeIdentityText(value: string | null | undefined) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9%]+/g, " ")
+    .trim();
+}
+
+function accountIdentityText(account: RawLiveSnapshotAccount) {
+  const payload = account.dashboard_payload || {};
+  const fundingProfile = payload.fundingProfile;
+
+  return normalizeIdentityText([
+    account.display_name,
+    account.broker,
+    account.server,
+    payload.accountName,
+    payload.name,
+    payload.broker,
+    payload.server,
+    fundingProfile?.firm,
+    fundingProfile?.phase_label,
+    fundingProfile?.playbook_label,
+    fundingProfile?.account_type,
+  ].filter(Boolean).join(" "));
 }
 
 function isGenericAccountLabel(label: string) {
@@ -498,12 +719,173 @@ function friendlyAccountLabel(account: RawLiveSnapshotAccount): string {
   return broker ? `${broker} MT5` : rawLabel;
 }
 
+type InferredFundingIdentity = {
+  firm: string | null;
+  accountMode: NonNullable<TradingAccount["funding"]>["accountMode"];
+  phaseLabel: string;
+  objectivePct: number | null;
+  playbookLabel: string;
+};
+
+function numberFromTextPercent(source: string, values: number[]) {
+  return values.find((value) =>
+    source.includes(`${value}%`) || source.includes(`${value} pct`) || source.includes(`${value} percent`),
+  ) ?? null;
+}
+
+function inferFundingFirm(account: RawLiveSnapshotAccount, source: string) {
+  const explicitFirm = String(account.dashboard_payload?.fundingProfile?.firm || "").trim();
+  if (explicitFirm) return explicitFirm;
+
+  if (source.includes("funding pips") || source.includes("fundingpips")) {
+    return "The Funding Pips";
+  }
+  if (source.includes("the5ers") || source.includes("the 5ers") || source.includes("5ers")) {
+    return "The5ers";
+  }
+  if (source.includes("ftmo")) return "FTMO";
+  if (source.includes("orion")) return "Orion Funded";
+  if (source.includes("darwinex zero")) return "Darwinex Zero";
+  if (
+    source.includes("wsfunded") ||
+    source.includes("wsf funded") ||
+    source.includes("wall street funded")
+  ) {
+    return "WSF";
+  }
+
+  return null;
+}
+
+function inferFundingAccountMode(
+  fundingProfile: RawLiveDashboardPayload["fundingProfile"] | undefined,
+  source: string,
+): NonNullable<TradingAccount["funding"]>["accountMode"] {
+  if (fundingProfile?.account_type) return fundingProfile.account_type;
+  if (
+    source.includes("funded") ||
+    source.includes("master") ||
+    source.includes("payout") ||
+    source.includes("cuenta fondeada")
+  ) {
+    return "funded";
+  }
+  if (source.includes("evaluation") || source.includes("step")) return "evaluation";
+  return "challenge";
+}
+
+function inferFundingPhaseLabel(
+  firm: string | null,
+  fundingProfile: RawLiveDashboardPayload["fundingProfile"] | undefined,
+  accountMode: NonNullable<TradingAccount["funding"]>["accountMode"],
+  source: string,
+) {
+  const explicitPhase = String(fundingProfile?.phase_label || "").trim();
+  if (explicitPhase) return explicitPhase;
+  if (accountMode === "funded") return "Cuenta fondeada";
+
+  if (source.includes("phase 2") || source.includes("fase 2") || source.includes("step 2")) {
+    return firm === "The Funding Pips" ? "Step 2" : "Fase 2";
+  }
+  if (source.includes("verification")) return "Fase 2";
+  if (source.includes("phase 1") || source.includes("fase 1") || source.includes("step 1")) {
+    return firm === "The Funding Pips" ? "Step 1" : "Fase 1";
+  }
+  if (firm === "The5ers" && source.includes("high stakes")) return "High Stakes";
+  if (firm === "The Funding Pips" && source.includes("1 step")) return "1 Step";
+
+  return "Reto";
+}
+
+function inferFundingPlaybookLabel(
+  firm: string | null,
+  fundingProfile: RawLiveDashboardPayload["fundingProfile"] | undefined,
+  source: string,
+  objectivePct: number | null,
+) {
+  const explicitPlaybook = String(fundingProfile?.playbook_label || "").trim();
+  if (explicitPlaybook) return explicitPlaybook;
+
+  if (firm === "The Funding Pips") {
+    if (source.includes("1 step") || source.includes("one step")) return "1 Step";
+    if (source.includes("2 step") || source.includes("two step") || source.includes("standard")) {
+      return "2 Step Standard";
+    }
+  }
+  if (firm === "The5ers" && source.includes("high stakes")) return "High Stakes";
+  if (firm === "Orion Funded") {
+    if (source.includes("standard swing") || source.includes("swing") || objectivePct === 8) {
+      return "Standard Swing";
+    }
+  }
+  if (firm === "FTMO") {
+    if (source.includes("1 step") || source.includes("one step")) return "1-Step Challenge";
+    if (source.includes("2 step") || source.includes("two step") || source.includes("verification")) {
+      return "2-Step Challenge";
+    }
+  }
+
+  return "Capital preservation";
+}
+
+function inferFundingObjectivePct(
+  firm: string | null,
+  fundingProfile: RawLiveDashboardPayload["fundingProfile"] | undefined,
+  source: string,
+  phaseLabel: string,
+) {
+  const explicitObjective = toNullableFiniteNumber(fundingProfile?.objective_pct);
+  if (explicitObjective !== null) return explicitObjective;
+
+  const sourcePercent = numberFromTextPercent(source, [10, 8, 6, 5, 3]);
+  if (sourcePercent !== null) return sourcePercent;
+
+  const phase = normalizeIdentityText(phaseLabel);
+  if (firm === "The Funding Pips") {
+    if (phase.includes("step 2") || phase.includes("phase 2") || phase.includes("fase 2")) {
+      return 5;
+    }
+    if (source.includes("1 step") || source.includes("one step")) return 10;
+  }
+  if (firm === "FTMO") {
+    if (phase.includes("phase 2") || phase.includes("fase 2") || source.includes("verification")) {
+      return 5;
+    }
+    if (source.includes("1 step") || source.includes("2 step")) return 10;
+  }
+  if (firm === "Orion Funded" && (source.includes("standard swing") || source.includes("swing"))) {
+    return phase.includes("phase 2") || phase.includes("fase 2") ? 5 : 8;
+  }
+
+  return null;
+}
+
+function inferFundingIdentity(account: RawLiveSnapshotAccount): InferredFundingIdentity {
+  const payload = account.dashboard_payload || {};
+  const fundingProfile = payload.fundingProfile;
+  const source = accountIdentityText(account);
+  const firm = inferFundingFirm(account, source);
+  const accountMode = inferFundingAccountMode(fundingProfile, source);
+  const phaseLabel = inferFundingPhaseLabel(firm, fundingProfile, accountMode, source);
+  const objectivePct = inferFundingObjectivePct(firm, fundingProfile, source, phaseLabel);
+  const playbookLabel = inferFundingPlaybookLabel(firm, fundingProfile, source, objectivePct);
+
+  return {
+    accountMode,
+    firm,
+    objectivePct,
+    phaseLabel,
+    playbookLabel,
+  };
+}
+
 function mapFundingProfile(account: RawLiveSnapshotAccount) {
   const payload = account.dashboard_payload || {};
   const fundingProfile = payload.fundingProfile;
+  const inferredIdentity = inferFundingIdentity(account);
   const isFunded = inferIsFunded(account);
 
-  if (!isFunded && !fundingProfile) {
+  if (!isFunded && !fundingProfile && !inferredIdentity.firm) {
     return undefined;
   }
 
@@ -513,18 +895,14 @@ function mapFundingProfile(account: RawLiveSnapshotAccount) {
   return {
     firm:
       String(
-          fundingProfile?.firm ||
-          account.broker ||
-          payload.broker ||
-          "Firma de fondeo",
+          inferredIdentity.firm ||
+            account.broker ||
+            payload.broker ||
+            "Firma de fondeo",
       ).trim() || "Firma de fondeo",
-    accountMode: fundingProfile?.account_type || "challenge",
-    phaseLabel:
-      String(
-        fundingProfile?.phase_label ||
-          (fundingProfile?.account_type === "funded" ? "Cuenta fondeada" : "Reto"),
-      ).trim() || "Reto",
-    objectivePct: toNullableFiniteNumber(fundingProfile?.objective_pct),
+    accountMode: inferredIdentity.accountMode,
+    phaseLabel: inferredIdentity.phaseLabel,
+    objectivePct: inferredIdentity.objectivePct,
     progressPct: toNullableFiniteNumber(fundingProfile?.current_progress_pct),
     consistencyPct: toNullableFiniteNumber(fundingProfile?.consistency_pct),
     payoutCadenceLabel:
@@ -532,7 +910,7 @@ function mapFundingProfile(account: RawLiveSnapshotAccount) {
     nextPayoutLabel:
       String(fundingProfile?.next_payout_label || "").trim() || null,
     playbookLabel:
-      String(fundingProfile?.playbook_label || "Capital preservation").trim() ||
+      String(inferredIdentity.playbookLabel || "Capital preservation").trim() ||
       "Capital preservation",
     recommendedRiskPct: toFiniteNumber(
       fundingProfile?.recommended_risk_pct,

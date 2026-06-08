@@ -81,7 +81,7 @@ function HighImpactNewsInfoCard() {
           disponibilidad ni actualización del proveedor externo.
         </p>
         <p>
-          RiskGuard podrá usar esta sección como contexto de solo lectura, pero no
+          Mesa de Riesgo podrá usar esta sección como contexto de solo lectura, pero no
           modifica operaciones.
         </p>
         <p className="rounded-lg border border-border/70 bg-background/35 p-3 text-foreground">

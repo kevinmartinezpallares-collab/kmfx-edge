@@ -118,7 +118,7 @@ export function getEconomicCalendarOverview(
         note: "Recomienda y avisa; no modifica operaciones",
       },
       {
-        label: "RiskGuard",
+        label: "Mesa de Riesgo",
         value: "Conectable",
         note: "Puede sugerir reducción o pausa",
       },

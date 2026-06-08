@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { Providers } from "@/components/app/providers";
@@ -18,6 +18,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "KMFX Edge",
   description: "Panel operativo para trading, riesgo, cuentas y portfolio.",
+  applicationName: "KMFX Edge",
+  other: {
+    google: "notranslate",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "KMFX Edge",
+    statusBarStyle: "default",
+  },
   icons: {
     icon: [
       { url: "/brand/kmfx-edge/favicon-16.png", sizes: "16x16", type: "image/png" },
@@ -30,6 +39,13 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#ffffff",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -38,6 +54,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
+      translate="no"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} dark h-full`}
     >

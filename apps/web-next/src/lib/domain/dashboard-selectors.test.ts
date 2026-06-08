@@ -53,7 +53,7 @@ describe("dashboard selectors", () => {
     const items = buildDashboardAttentionItems(wave1Workspace);
 
     expect(items.length).toBeLessThanOrEqual(3);
-    expect(items.some((item) => item.href === "/journal/review-queue")).toBe(true);
+    expect(items.some((item) => item.href === "/trades")).toBe(true);
   });
 
   it("builds attribution rows for setup, symbol and session", () => {

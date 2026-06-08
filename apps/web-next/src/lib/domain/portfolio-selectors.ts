@@ -325,7 +325,7 @@ export function getPortfolioOverview(workspace: WorkspaceState): PortfolioOvervi
     ),
     workspace.risk.allowNewTrades
       ? null
-      : workspace.risk.blockingRule ?? "RiskGuard recomienda revisar riesgo",
+      : workspace.risk.blockingRule ?? "Mesa de Riesgo recomienda revisar riesgo",
     largestAccount && largestAccount.sharePct >= 50
       ? `Concentración alta en ${largestAccount.label}`
       : null,

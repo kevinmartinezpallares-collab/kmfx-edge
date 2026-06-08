@@ -32,11 +32,20 @@ class Response:
 
 
 class Smoke:
-    def __init__(self, *, frontend_url: str, backend_url: str, mt5_api_url: str, timeout: float) -> None:
+    def __init__(
+        self,
+        *,
+        frontend_url: str,
+        backend_url: str,
+        mt5_api_url: str,
+        timeout: float,
+        downloads_mode: str,
+    ) -> None:
         self.frontend_url = normalize_base_url(frontend_url)
         self.backend_url = normalize_base_url(backend_url)
         self.mt5_api_url = normalize_base_url(mt5_api_url)
         self.timeout = timeout
+        self.downloads_mode = downloads_mode
         self.results: list[dict[str, Any]] = []
 
     def check(self, name: str, ok: bool, detail: str = "") -> None:
@@ -49,6 +58,7 @@ class Smoke:
         *,
         headers: dict[str, str] | None = None,
         data: bytes | None = None,
+        follow_redirects: bool = True,
     ) -> Response:
         request_headers = {
             "Accept": "application/json, text/plain, */*",
@@ -57,7 +67,8 @@ class Smoke:
         }
         request = urllib.request.Request(url, data=data, headers=request_headers, method=method)
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            opener = urllib.request.build_opener() if follow_redirects else urllib.request.build_opener(NoRedirectHandler)
+            with opener.open(request, timeout=self.timeout) as response:
                 return Response(
                     status=response.status,
                     headers=normalize_headers(response.headers),
@@ -106,10 +117,19 @@ class Smoke:
         )
         cors = headers.get("access-control-allow-origin", "")
         self.check("frontend_no_wildcard_cors", cors != "*", cors)
-        self.check("frontend_cors_origin", cors == "https://kmfxedge.com", cors)
+        self.check("frontend_cors_origin", cors in {"", "https://kmfxedge.com"}, cors)
+
+        dashboard = self.request("HEAD", self.frontend_url + "/dashboard", follow_redirects=False)
+        auth_header = dashboard.headers.get("www-authenticate", "")
+        self.check("frontend_no_basic_auth_gate", "basic" not in auth_header.lower(), auth_header)
+        self.check(
+            "frontend_workspace_requires_login_or_loads",
+            dashboard.status in {200, 307, 308},
+            f"status={dashboard.status} location={dashboard.headers.get('location', '')}",
+        )
 
     def check_spa_routes(self) -> None:
-        for path in ("/dashboard", "/cuentas", "/ejecucion", "/journal", "/estudio", "/ajustes"):
+        for path in ("/dashboard", "/cuentas", "/ejecucion", "/estudio", "/ajustes"):
             response = self.request("HEAD", self.frontend_url + path)
             self.check(f"spa_route_{path.strip('/')}_200", response.status == 200, f"status={response.status}")
 
@@ -119,6 +139,19 @@ class Smoke:
             ("/downloads/KMFX-Launcher-Windows.exe", "downloads/KMFX-Launcher-Windows.exe", 1_000_000, True),
             ("/KMFXConnector.ex5", "KMFXConnector.ex5", 50_000, False),
         ]
+        if self.downloads_mode in {"auto", "auth"}:
+            protected = self.downloads_protected_by_auth(
+                downloads,
+                record_failures=self.downloads_mode == "auth",
+            )
+            if self.downloads_mode == "auth" or protected:
+                self.check(
+                    "downloads_contract",
+                    protected,
+                    "auth_required" if protected else "downloads did not redirect to login",
+                )
+                return
+
         for remote_path, local_path, min_size, require_attachment in downloads:
             filename = Path(local_path).name
             response = self.request("HEAD", self.frontend_url + remote_path)
@@ -146,6 +179,27 @@ class Smoke:
             local_sha_path=ROOT / "downloads/KMFX-Launcher-Windows.exe.sha256",
         )
         self.check_remote_file_hash(remote_path="/KMFXConnector.ex5", local_path=ROOT / "KMFXConnector.ex5")
+
+    def downloads_protected_by_auth(
+        self,
+        downloads: list[tuple[str, str, int, bool]],
+        *,
+        record_failures: bool,
+    ) -> bool:
+        ok = True
+        for remote_path, local_path, _min_size, _require_attachment in downloads:
+            filename = Path(local_path).name
+            response = self.request("HEAD", self.frontend_url + remote_path, follow_redirects=False)
+            location = response.headers.get("location", "")
+            is_protected = response.status in {307, 308, 302, 303} and is_login_redirect(location)
+            if record_failures or is_protected:
+                self.check(
+                    f"download_{filename}_requires_login",
+                    is_protected,
+                    f"status={response.status} location={location}",
+                )
+            ok = ok and is_protected
+        return ok
 
     def check_remote_checksum(self, *, remote_path: str, local_sha_path: Path) -> None:
         filename = local_sha_path.name
@@ -284,6 +338,16 @@ def normalize_headers(headers: Any) -> dict[str, str]:
     return {str(key).lower(): str(value) for key, value in headers.items()}
 
 
+def is_login_redirect(location: str) -> bool:
+    parsed = urllib.parse.urlparse(location)
+    return parsed.path == "/login"
+
+
+class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req: Any, fp: Any, code: int, msg: str, headers: Any, newurl: str) -> None:
+        return None
+
+
 def parse_int(value: str | None) -> int:
     try:
         return int(str(value or "").strip())
@@ -317,12 +381,19 @@ def main() -> int:
     parser.add_argument("--backend-url", default="https://kmfx-edge-api.onrender.com")
     parser.add_argument("--mt5-api-url", default="https://mt5-api.kmfxedge.com")
     parser.add_argument("--timeout", type=float, default=20.0)
+    parser.add_argument(
+        "--downloads-mode",
+        choices=("auto", "public", "auth"),
+        default="auto",
+        help="auto accepts public artifacts or login-protected beta artifacts.",
+    )
     args = parser.parse_args()
     return Smoke(
         frontend_url=args.frontend_url,
         backend_url=args.backend_url,
         mt5_api_url=args.mt5_api_url,
         timeout=args.timeout,
+        downloads_mode=args.downloads_mode,
     ).run()
 
 

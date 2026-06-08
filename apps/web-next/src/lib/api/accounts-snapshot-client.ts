@@ -31,7 +31,7 @@ function resolveAuthenticatedSnapshotCacheTtlMs() {
     10,
   );
 
-  if (!Number.isFinite(raw)) return 4000;
+  if (!Number.isFinite(raw)) return 12000;
   if (raw <= 0) return 0;
 
   return Math.min(raw, 15000);

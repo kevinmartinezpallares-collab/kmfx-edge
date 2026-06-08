@@ -20,6 +20,11 @@ import {
   type SetStateAction,
   use,
 } from "react";
+import {
+  type ChartPhase,
+  type ChartStatus,
+  DEFAULT_CHART_LIFECYCLE,
+} from "./chart-phase";
 import type { ChartSelection } from "./use-chart-interaction";
 
 export interface Margin {
@@ -46,15 +51,18 @@ export interface LineConfig {
   dataKey: string;
   stroke: string;
   strokeWidth: number;
+  yAxisId?: string | number;
 }
 
 export interface ChartContextValue {
   // Data
   data: Record<string, unknown>[];
+  renderData?: Record<string, unknown>[];
 
   // Scales
   xScale: ScaleTime<number, number>;
   yScale: ScaleLinear<number, number>;
+  yScales?: Record<string, ScaleLinear<number, number>>;
 
   // Dimensions
   width: number;
@@ -78,6 +86,12 @@ export interface ChartContextValue {
 
   // Animation state
   isLoaded: boolean;
+  chartPhase?: ChartPhase;
+  chartStatus?: ChartStatus;
+  loadingLabel?: string;
+  yDomainTweenDuration?: number;
+  yDomainSkeletonByAxis?: Record<string, [number, number]>;
+  yDomainTargetByAxis?: Record<string, [number, number]>;
   animationDuration: number;
   /** CSS easing for clip-reveal / line draw (cartesian charts). */
   animationEasing?: string;
@@ -85,6 +99,7 @@ export interface ChartContextValue {
   enterTransition?: Transition;
   /** Increments when enter animation should replay. */
   revealEpoch?: number;
+  notifyLoadingPulseComplete?: () => void;
 
   // X accessor - how to get the x value from data points
   xAccessor: (d: Record<string, unknown>) => Date;
@@ -162,4 +177,46 @@ export function useChart(): ChartContextValue {
     );
   }
   return context;
+}
+
+type ChartStableContextValue = ChartContextValue & {
+  chartPhase: ChartPhase;
+  chartStatus: ChartStatus;
+  renderData: Record<string, unknown>[];
+  yDomainSkeletonByAxis: Record<string, [number, number]>;
+  yDomainTargetByAxis: Record<string, [number, number]>;
+  yDomainTweenDuration: number;
+  yScales: Record<string, ScaleLinear<number, number>>;
+};
+
+function normalizeYAxisId(id?: string | number) {
+  return id == null || id === "" ? "left" : String(id);
+}
+
+export function useChartStable(): ChartStableContextValue {
+  const context = useChart();
+
+  return {
+    ...context,
+    chartPhase: context.chartPhase ?? DEFAULT_CHART_LIFECYCLE.chartPhase,
+    chartStatus: context.chartStatus ?? DEFAULT_CHART_LIFECYCLE.chartStatus,
+    renderData: context.renderData ?? context.data,
+    yDomainSkeletonByAxis:
+      context.yDomainSkeletonByAxis ?? DEFAULT_CHART_LIFECYCLE.yDomainSkeletonByAxis,
+    yDomainTargetByAxis:
+      context.yDomainTargetByAxis ?? DEFAULT_CHART_LIFECYCLE.yDomainTargetByAxis,
+    yDomainTweenDuration:
+      context.yDomainTweenDuration ?? DEFAULT_CHART_LIFECYCLE.yDomainTweenDuration,
+    yScales: context.yScales ?? { left: context.yScale },
+  };
+}
+
+export function useYScale(yAxisId?: string | number) {
+  const context = useChartStable();
+  return context.yScales[normalizeYAxisId(yAxisId)] ?? context.yScale;
+}
+
+export function useChartHover() {
+  const { selection, tooltipData } = useChart();
+  return { selection, tooltipData };
 }

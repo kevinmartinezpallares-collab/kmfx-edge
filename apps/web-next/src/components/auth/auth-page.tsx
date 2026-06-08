@@ -28,8 +28,14 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { hasSupabasePublicConfig } from "@/lib/supabase/config";
+import {
+  createBrowserSupabaseClient,
+  type BrowserSupabasePublicConfig,
+} from "@/lib/supabase/client";
+import {
+  resolveSupabasePublishableKey,
+  resolveSupabaseUrl,
+} from "@/lib/supabase/config";
 
 declare global {
   interface Window {
@@ -64,7 +70,7 @@ const accessHighlights = [
   },
   {
     icon: ShieldCheckIcon,
-    title: "RiskGuard",
+    title: "Mesa de Riesgo",
     description: "Reglas y límites listos para evolucionar hacia protección operativa.",
   },
   {
@@ -75,7 +81,12 @@ const accessHighlights = [
 ];
 
 type AuthMode = "sign-in" | "sign-up";
+type AuthConfigStatus = "idle" | "loading" | "failed";
 type AuthStatus = "idle" | "loading";
+
+type AuthPublicConfig = BrowserSupabasePublicConfig & {
+  turnstileSiteKey: string;
+};
 
 type AuthFormState = {
   authMode: AuthMode;
@@ -100,6 +111,26 @@ const INITIAL_AUTH_FORM_STATE: AuthFormState = {
   password: "",
   status: "idle",
 };
+
+const FALLBACK_TURNSTILE_SITE_KEY = "0x4AAAAAACxJdw3wjMn7Jm0K";
+
+function getInitialAuthPublicConfig(): AuthPublicConfig {
+  return {
+    supabasePublishableKey: resolveSupabasePublishableKey(),
+    supabaseUrl: resolveSupabaseUrl(),
+    turnstileSiteKey:
+      process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ||
+      FALLBACK_TURNSTILE_SITE_KEY,
+  };
+}
+
+function hasAuthPublicConfig(config: AuthPublicConfig) {
+  return Boolean(config.supabaseUrl.trim() && config.supabasePublishableKey.trim());
+}
+
+function readString(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
 
 function authFormReducer(
   state: AuthFormState,
@@ -131,10 +162,61 @@ function useAuthPageModel(nextPath: string) {
   const captchaTokenRef = React.useRef("");
   const turnstileContainerRef = React.useRef<HTMLDivElement | null>(null);
   const turnstileWidgetIdRef = React.useRef<string | null>(null);
-  const authConfigured = hasSupabasePublicConfig();
+  const [publicAuthConfig, setPublicAuthConfig] = React.useState<AuthPublicConfig>(
+    getInitialAuthPublicConfig,
+  );
+  const [authConfigStatus, setAuthConfigStatus] =
+    React.useState<AuthConfigStatus>(() =>
+      hasAuthPublicConfig(getInitialAuthPublicConfig()) ? "idle" : "loading",
+    );
+  const authConfigured = hasAuthPublicConfig(publicAuthConfig);
   const turnstileSiteKey =
-    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ||
-    "0x4AAAAAACxJdw3wjMn7Jm0K";
+    publicAuthConfig.turnstileSiteKey || FALLBACK_TURNSTILE_SITE_KEY;
+
+  React.useEffect(() => {
+    if (authConfigured) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadPublicConfig() {
+      try {
+        const response = await fetch("/api/kmfx/public-auth-config", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("Public auth config request failed");
+        }
+
+        const payload = (await response.json()) as Record<string, unknown>;
+        if (cancelled) {
+          return;
+        }
+
+        const nextConfig: AuthPublicConfig = {
+          supabasePublishableKey: readString(payload.supabasePublishableKey),
+          supabaseUrl: readString(payload.supabaseUrl),
+          turnstileSiteKey:
+            readString(payload.turnstileSiteKey) || FALLBACK_TURNSTILE_SITE_KEY,
+        };
+
+        setPublicAuthConfig(nextConfig);
+        setAuthConfigStatus(hasAuthPublicConfig(nextConfig) ? "idle" : "failed");
+      } catch {
+        if (!cancelled) {
+          setAuthConfigStatus("failed");
+        }
+      }
+    }
+
+    void loadPublicConfig();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authConfigured]);
 
   const writeCaptchaToken = React.useCallback((token: string) => {
     captchaTokenRef.current = token;
@@ -229,7 +311,10 @@ function useAuthPageModel(nextPath: string) {
     if (!authConfigured) {
       dispatchAuthForm({
         type: "setMessage",
-        message: "El acceso real todavía no está configurado en este entorno.",
+        message:
+          authConfigStatus === "loading"
+            ? "Preparando acceso seguro. Vuelve a intentarlo en unos segundos."
+            : "No se pudo cargar el acceso seguro. Recarga e inténtalo de nuevo.",
       });
       return;
     }
@@ -247,7 +332,7 @@ function useAuthPageModel(nextPath: string) {
     dispatchAuthForm({ type: "setStatus", status: "loading" });
 
     try {
-      const supabase = createBrowserSupabaseClient();
+      const supabase = createBrowserSupabaseClient(publicAuthConfig);
       const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
       const { data, error } =
         authMode === "sign-up"
@@ -303,7 +388,10 @@ function useAuthPageModel(nextPath: string) {
     if (!authConfigured) {
       dispatchAuthForm({
         type: "setMessage",
-        message: "El acceso real todavía no está configurado en este entorno.",
+        message:
+          authConfigStatus === "loading"
+            ? "Preparando acceso seguro. Vuelve a intentarlo en unos segundos."
+            : "No se pudo cargar el acceso seguro. Recarga e inténtalo de nuevo.",
       });
       return;
     }
@@ -311,7 +399,7 @@ function useAuthPageModel(nextPath: string) {
     dispatchAuthForm({ type: "setStatus", status: "loading" });
 
     try {
-      const supabase = createBrowserSupabaseClient();
+      const supabase = createBrowserSupabaseClient(publicAuthConfig);
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider,

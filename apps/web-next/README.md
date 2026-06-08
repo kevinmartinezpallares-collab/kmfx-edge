@@ -47,6 +47,19 @@ When `KMFX_NEXT_AUTH_MODE=supabase` is active, live snapshots use the authentica
 
 Student beta route handlers live under `/api/kmfx/*`. They proxy to the existing backend with the authenticated Supabase JWT; Next does not call Stripe directly, generate KMFXKeys, talk to MT5, or store billing/account secrets.
 
+## Internal Strategy Lab
+
+`/strategy-lab` is hidden from navigation and returns 404 unless all server-side gates pass:
+
+```bash
+KMFX_ENABLE_GENETIC_LAB=1
+KMFX_NEXT_AUTH_MODE=supabase
+KMFX_GENETIC_OWNER_EMAIL=admin@gmail.com
+# or KMFX_ADMIN_EMAILS=admin@gmail.com,other-admin@gmail.com
+```
+
+Use a real admin Gmail in Vercel/local env. Do not publish these values as `NEXT_PUBLIC_*`.
+
 ## Vercel Beta Setup
 
 Create a separate Vercel project for beta. Use `apps/web-next` as the root directory and `beta.kmfxedge.com` as the beta domain. Do not deploy this app over the existing legacy `kmfx-edge` production project.

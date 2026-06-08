@@ -81,8 +81,11 @@ export function ChartTooltip({
 
   // Animated crosshair position
   const animatedX = useSpring(xWithMargin, crosshairSpringConfig);
+  const tickerX = Math.min(Math.max(xWithMargin, 44), Math.max(44, width - 44));
+  const animatedTickerX = useSpring(tickerX, crosshairSpringConfig);
 
   animatedX.set(xWithMargin);
+  animatedTickerX.set(tickerX);
 
   // Generate rows from lines
   const tooltipRows = useMemo(() => {
@@ -178,7 +181,7 @@ export function ChartTooltip({
           <g transform={`translate(${margin.left},${margin.top})`}>
             {lines.map((line) => (
               <TooltipDot
-                color={line.stroke}
+                color={line.stroke === "transparent" ? indicatorColor : line.stroke}
                 key={line.dataKey}
                 strokeColor={chartCssVars.background}
                 visible={visible}
@@ -218,7 +221,7 @@ export function ChartTooltip({
         <motion.div
           className="pointer-events-none absolute z-50"
           style={{
-            left: animatedX,
+            left: animatedTickerX,
             transform: "translateX(-50%)",
             bottom: 4,
           }}

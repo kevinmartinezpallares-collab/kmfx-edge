@@ -41,6 +41,12 @@ import {
   normalizeLivelinePoints,
   prepareHistoricalLivelineCurve,
 } from "@/lib/charts/liveline-points";
+import {
+  formatResponsiveLivelinePercent,
+  formatResponsiveLivelineSignedCurrency,
+  livelinePadding,
+} from "@/lib/charts/liveline-layout";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 const LIVELINE_ACCENT_BY_THEME = {
@@ -645,6 +651,8 @@ function CumulativeCalendarSection({
   formatCumulativeLivelineTime: (time: number) => string;
   valueMode: CalendarValueMode;
 }) {
+  const isMobile = useIsMobile();
+
   return (
     <section className="min-w-0 py-4">
       <div className="flex items-center justify-between gap-3">
@@ -672,13 +680,19 @@ function CumulativeCalendarSection({
             formatTime={formatCumulativeLivelineTime}
             formatValue={(value) =>
               valueMode === "currency"
-                ? formatSignedCurrency(Number(value))
-                : formatPercent(Number(value), 2)
+                ? formatResponsiveLivelineSignedCurrency(Number(value), "USD", isMobile)
+                : formatResponsiveLivelinePercent(Number(value), isMobile)
             }
             grid
+            badgeTail={!isMobile}
             lineWidth={2.25}
             momentum={false}
-            padding={{ top: 12, right: 132, bottom: 28, left: 18 }}
+            padding={livelinePadding(isMobile, {
+              top: 12,
+              right: 132,
+              bottom: 28,
+              left: 18,
+            })}
             pulse
             referenceLine={{ value: 0, label: valueMode === "currency" ? "0 US$" : "0%" }}
             scrub
@@ -931,6 +945,8 @@ function OpenDayCurve({
   openDayWindowSecs: number;
   valueMode: CalendarValueMode;
 }) {
+  const isMobile = useIsMobile();
+
   return (
     <div className="pt-2">
       <div className="flex items-center justify-between gap-3">
@@ -962,13 +978,19 @@ function OpenDayCurve({
             formatTime={formatOpenDayLivelineTime}
             formatValue={(value) =>
               valueMode === "currency"
-                ? formatSignedCurrency(Number(value))
-                : formatPercent(Number(value), 2)
+                ? formatResponsiveLivelineSignedCurrency(Number(value), "USD", isMobile)
+                : formatResponsiveLivelinePercent(Number(value), isMobile)
             }
             grid
+            badgeTail={!isMobile}
             lineWidth={2.2}
             momentum={false}
-            padding={{ top: 14, right: 142, bottom: 24, left: 18 }}
+            padding={livelinePadding(isMobile, {
+              top: 14,
+              right: 142,
+              bottom: 24,
+              left: 18,
+            })}
             pulse
             referenceLine={{ value: 0, label: valueMode === "currency" ? "0 US$" : "0%" }}
             scrub
@@ -1128,12 +1150,12 @@ function OpenDayDialog({
                 <span>→</span>
               </Button>
               <Button
-                render={<Link href="/journal/review-queue" />}
+                render={<Link href="/trades" />}
                 nativeButton={false}
                 variant="ghost"
                 className="justify-between"
               >
-                Revisar día
+                Ver trades del día
                 <span>→</span>
               </Button>
             </div>
