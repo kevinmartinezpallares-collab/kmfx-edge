@@ -6,6 +6,13 @@ import {
   type BillingPlanKey,
 } from "@/lib/billing/billing-plan-key";
 
+export type BillingAccessNotice =
+  | "billing_attention"
+  | "billing_paused"
+  | "plan_limit"
+  | "plan_required"
+  | "trial_expired";
+
 export async function requestBillingPlanKey(): Promise<BillingPlanKey | null> {
   try {
     const result = await requestAuthenticatedBackendJson("/api/billing/status");

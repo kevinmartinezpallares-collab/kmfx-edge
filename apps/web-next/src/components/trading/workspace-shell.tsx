@@ -465,13 +465,16 @@ function AccountSwitcher({
   workspace,
   activeAccount,
   searchParams,
+  variant = "full",
 }: {
   workspace: WorkspaceState;
   activeAccount: WorkspaceState["accounts"][number] | undefined;
   searchParams: URLSearchParams;
+  variant?: "full" | "compact";
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const compact = variant === "compact";
 
   function selectAccount(accountId: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -487,16 +490,35 @@ function AccountSwitcher({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="outline" className="min-w-0 rounded-full px-2" />
+          <Button
+            variant="outline"
+            size={compact ? "icon" : "default"}
+            className={cn(
+              "min-w-0 rounded-full",
+              compact ? "size-9 p-0" : "px-2",
+            )}
+            aria-label={`Cambiar cuenta: ${activeAccount?.label ?? "Cuenta activa"}`}
+          />
         }
       >
         <AccountBrandAvatar account={activeAccount} className="size-6" />
-        <span className="max-w-44 truncate">
-          {activeAccount?.label ?? "Cuenta activa"}
-        </span>
-        <ChevronDown data-icon="inline-end" />
+        {compact ? (
+          <span className="sr-only">
+            {activeAccount?.label ?? "Cuenta activa"}
+          </span>
+        ) : (
+          <>
+            <span className="max-w-44 truncate">
+              {activeAccount?.label ?? "Cuenta activa"}
+            </span>
+            <ChevronDown data-icon="inline-end" />
+          </>
+        )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72">
+      <DropdownMenuContent
+        align="end"
+        className="w-[min(18rem,calc(100vw-2rem))]"
+      >
         <DropdownMenuGroup>
           <DropdownMenuLabel>Cuenta activa</DropdownMenuLabel>
           <DropdownMenuItem render={<Link href={accountsHref} />}>
@@ -517,7 +539,7 @@ function AccountSwitcher({
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          {workspace.accounts.slice(0, 4).map((account) => (
+          {workspace.accounts.map((account) => (
             <DropdownMenuItem
               key={account.id}
               onClick={(event) => {
@@ -1040,6 +1062,14 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
               onRestore={restorePromo}
             />
             <ThemeSwitcher />
+            <div className="lg:hidden">
+              <AccountSwitcher
+                workspace={workspace}
+                activeAccount={activeAccount}
+                searchParams={searchParams}
+                variant="compact"
+              />
+            </div>
             <div className="hidden lg:block">
               <AccountSwitcher
                 workspace={workspace}
