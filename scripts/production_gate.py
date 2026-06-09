@@ -61,8 +61,23 @@ def run_check(check: Check) -> dict[str, object]:
     }
 
 
-def build_checks(*, full_tests: bool) -> list[Check]:
+def build_checks(*, full_tests: bool, next_beta: bool) -> list[Check]:
     python = sys.executable
+    smoke_command = [python, "scripts/production_smoke.py"]
+    if next_beta:
+        smoke_command.extend(
+            [
+                "--frontend-url",
+                "https://beta.kmfxedge.com",
+                "--profile",
+                "next-beta",
+                "--downloads-mode",
+                "auth",
+                "--cors-origin",
+                "https://kmfxedge.com",
+            ],
+        )
+
     checks = [
         Check("git_diff_check", ["git", "diff", "--check"]),
         Check(
@@ -89,7 +104,7 @@ def build_checks(*, full_tests: bool) -> list[Check]:
             ],
         ),
         Check("ea_release_integrity", [python, "scripts/verify_ea_release.py"]),
-        Check("production_smoke", [python, "scripts/production_smoke.py"]),
+        Check("production_smoke", smoke_command),
         Check(
             "connector_security_regressions",
             [
@@ -115,16 +130,26 @@ def main() -> int:
         action="store_true",
         help="Run the complete unittest suite in addition to the focused regression checks.",
     )
+    parser.add_argument(
+        "--next-beta",
+        action="store_true",
+        help="Run frontend smoke expectations against the protected Next.js beta.",
+    )
     args = parser.parse_args()
 
-    results = [run_check(check) for check in build_checks(full_tests=args.full_tests)]
+    results = [
+        run_check(check)
+        for check in build_checks(full_tests=args.full_tests, next_beta=args.next_beta)
+    ]
     failed = [result for result in results if not result["ok"]]
 
     print(
         json.dumps(
             {
                 "ok": not failed,
-                "mode": "full" if args.full_tests else "standard",
+                "mode": ("next-beta-full" if args.full_tests else "next-beta-standard")
+                if args.next_beta
+                else ("full" if args.full_tests else "standard"),
                 "checks": results,
             },
             indent=2,

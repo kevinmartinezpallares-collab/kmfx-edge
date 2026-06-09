@@ -40,12 +40,16 @@ class Smoke:
         mt5_api_url: str,
         timeout: float,
         downloads_mode: str,
+        profile: str,
+        cors_origin: str,
     ) -> None:
         self.frontend_url = normalize_base_url(frontend_url)
         self.backend_url = normalize_base_url(backend_url)
         self.mt5_api_url = normalize_base_url(mt5_api_url)
         self.timeout = timeout
         self.downloads_mode = downloads_mode
+        self.profile = profile
+        self.cors_origin = cors_origin
         self.results: list[dict[str, Any]] = []
 
     def check(self, name: str, ok: bool, detail: str = "") -> None:
@@ -129,7 +133,21 @@ class Smoke:
         )
 
     def check_spa_routes(self) -> None:
-        for path in ("/dashboard", "/cuentas", "/ejecucion", "/estudio", "/ajustes"):
+        if self.profile == "next-beta":
+            paths = (
+                "/dashboard",
+                "/accounts",
+                "/capital",
+                "/trades",
+                "/calendar",
+                "/settings",
+                "/subscription",
+                "/login",
+            )
+        else:
+            paths = ("/dashboard", "/cuentas", "/ejecucion", "/estudio", "/ajustes")
+
+        for path in paths:
             response = self.request("HEAD", self.frontend_url + path)
             self.check(f"spa_route_{path.strip('/')}_200", response.status == 200, f"status={response.status}")
 
@@ -272,13 +290,13 @@ class Smoke:
             "OPTIONS",
             self.mt5_api_url + "/api/mt5/sync",
             headers={
-                "Origin": "https://kmfxedge.com",
+                "Origin": self.cors_origin,
                 "Access-Control-Request-Method": "POST",
                 "Access-Control-Request-Headers": "content-type,x-kmfx-connection-key",
             },
         )
         allow_headers = allowed.headers.get("access-control-allow-headers", "")
-        self.check("mt5_api_cors_allowed_origin", allowed.headers.get("access-control-allow-origin") == "https://kmfxedge.com", str(allowed.headers))
+        self.check("mt5_api_cors_allowed_origin", allowed.headers.get("access-control-allow-origin") == self.cors_origin, str(allowed.headers))
         self.check("mt5_api_cors_allows_connection_key", "X-KMFX-Connection-Key" in allow_headers, allow_headers)
         self.check("mt5_api_cors_blocks_user_headers", "X-KMFX-User-Email" not in allow_headers, allow_headers)
         self.check("mt5_api_cors_no_wildcard", allowed.headers.get("access-control-allow-origin") != "*", str(allowed.headers))
@@ -286,7 +304,7 @@ class Smoke:
         accounts = self.request(
             "GET",
             self.mt5_api_url + "/api/accounts/snapshot?view=summary",
-            headers={"Origin": "https://kmfxedge.com"},
+            headers={"Origin": self.cors_origin},
         )
         self.check("mt5_api_accounts_route_not_proxied", accounts.status == 404, f"status={accounts.status}")
         self.check(
@@ -382,6 +400,17 @@ def main() -> int:
     parser.add_argument("--mt5-api-url", default="https://mt5-api.kmfxedge.com")
     parser.add_argument("--timeout", type=float, default=20.0)
     parser.add_argument(
+        "--profile",
+        choices=("production", "next-beta"),
+        default="production",
+        help="Route/download expectations to use for the frontend surface.",
+    )
+    parser.add_argument(
+        "--cors-origin",
+        default="https://kmfxedge.com",
+        help="Approved browser origin to verify against the MT5 API proxy.",
+    )
+    parser.add_argument(
         "--downloads-mode",
         choices=("auto", "public", "auth"),
         default="auto",
@@ -394,6 +423,8 @@ def main() -> int:
         mt5_api_url=args.mt5_api_url,
         timeout=args.timeout,
         downloads_mode=args.downloads_mode,
+        profile=args.profile,
+        cors_origin=args.cors_origin,
     ).run()
 
 
