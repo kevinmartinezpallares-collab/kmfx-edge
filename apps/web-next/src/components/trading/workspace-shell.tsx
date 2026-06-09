@@ -231,29 +231,36 @@ function hrefWithActiveAccount(href: string, selectedAccountId: string | null) {
   return `${href}?${params.toString()}`;
 }
 
-function getWorkspacePrefetchHrefs(selectedAccountId: string | null) {
-  const hrefs = new Set<string>();
+function getWorkspacePrefetchHrefs(
+  pathname: string,
+  selectedAccountId: string | null,
+) {
+  const workspaceCoreRoutes = [
+    "/dashboard",
+    "/accounts",
+    "/capital",
+    "/trades",
+    "/calendar",
+    "/analytics",
+  ];
+  const routeGroups: Record<string, string[]> = {
+    "/dashboard": ["/accounts", "/capital", "/trades", "/calendar"],
+    "/accounts": ["/dashboard", "/capital", "/subscription"],
+    "/capital": ["/dashboard", "/accounts", "/analytics"],
+    "/trades": ["/dashboard", "/calendar", "/analytics"],
+    "/calendar": ["/dashboard", "/trades", "/analytics/daily"],
+    "/analytics": ["/dashboard", "/analytics/daily", "/analytics/hourly"],
+    "/analytics/daily": ["/analytics", "/calendar", "/trades"],
+    "/analytics/hourly": ["/analytics", "/analytics/daily"],
+    "/analytics/risk": ["/analytics", "/dashboard"],
+    "/settings": ["/subscription", "/accounts"],
+    "/subscription": ["/accounts", "/settings"],
+  };
+  const baseRoutes = routeGroups[pathname] ?? workspaceCoreRoutes.slice(0, 4);
 
-  for (const group of navigationGroups) {
-    for (const item of group.items) {
-      if (item.enabled && item.href) {
-        hrefs.add(hrefWithActiveAccount(item.href, selectedAccountId));
-      }
-
-      for (const child of item.children ?? []) {
-        if (child.enabled) {
-          hrefs.add(hrefWithActiveAccount(child.href, selectedAccountId));
-        }
-      }
-    }
-  }
-
-  hrefs.add("/library");
-  hrefs.add("/settings");
-  hrefs.add("/subscription");
-  hrefs.add("/tools/calculator");
-
-  return Array.from(hrefs);
+  return baseRoutes.map((href) =>
+    hrefWithActiveAccount(href, selectedAccountId),
+  );
 }
 
 function NavigationGroupMenu({
@@ -270,6 +277,7 @@ function NavigationGroupMenu({
   workspace: WorkspaceState;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
+  const [, startNavigationTransition] = React.useTransition();
 
   function prefetchTo(href: string) {
     router.prefetch(hrefWithActiveAccount(href, selectedAccountId));
@@ -282,8 +290,9 @@ function NavigationGroupMenu({
       setOpenMobile(false);
     }
 
-    router.prefetch(targetHref);
-    router.push(targetHref);
+    startNavigationTransition(() => {
+      router.push(targetHref);
+    });
   }
 
   return (
@@ -1077,8 +1086,8 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
     (promo) => !dismissedPromoIds.includes(promo.id),
   ).length;
   const prefetchHrefs = React.useMemo(
-    () => getWorkspacePrefetchHrefs(selectedAccountId),
-    [selectedAccountId],
+    () => getWorkspacePrefetchHrefs(pathname, selectedAccountId),
+    [pathname, selectedAccountId],
   );
 
   React.useEffect(() => {
@@ -1099,7 +1108,7 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
             if (!cancelled && href !== pathname) {
               router.prefetch(href);
             }
-          }, index * 45),
+          }, index * 220),
         );
       });
     };
@@ -1108,8 +1117,8 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
         ? window.requestIdleCallback.bind(window)
         : null;
     const idleCallback = scheduleIdle
-      ? scheduleIdle(prefetchQueuedRoutes, { timeout: 1800 })
-      : window.setTimeout(prefetchQueuedRoutes, 800);
+      ? scheduleIdle(prefetchQueuedRoutes, { timeout: 2500 })
+      : window.setTimeout(prefetchQueuedRoutes, 1400);
 
     return () => {
       cancelled = true;
