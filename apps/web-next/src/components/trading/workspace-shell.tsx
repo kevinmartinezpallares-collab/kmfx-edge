@@ -277,22 +277,15 @@ function NavigationGroupMenu({
   workspace: WorkspaceState;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
-  const [, startNavigationTransition] = React.useTransition();
 
   function prefetchTo(href: string) {
     router.prefetch(hrefWithActiveAccount(href, selectedAccountId));
   }
 
-  function navigateTo(href: string) {
-    const targetHref = hrefWithActiveAccount(href, selectedAccountId);
-
+  function closeMobileSidebar() {
     if (isMobile) {
       setOpenMobile(false);
     }
-
-    startNavigationTransition(() => {
-      router.push(targetHref);
-    });
   }
 
   return (
@@ -304,6 +297,9 @@ function NavigationGroupMenu({
         const isActive = href ? isHrefActive(pathname, href) || hasActiveChild : hasActiveChild;
         const badge = getNavBadge(href, item, workspace);
         const showChildren = Boolean(item.children?.length) && (isActive || pathname === href);
+        const targetHref = href && item.enabled
+          ? hrefWithActiveAccount(href, selectedAccountId)
+          : undefined;
 
         return (
           <SidebarMenuItem key={item.title}>
@@ -311,6 +307,11 @@ function NavigationGroupMenu({
               size="sm"
               isActive={isActive}
               tooltip={item.title}
+              render={
+                targetHref ? (
+                  <Link href={targetHref} prefetch />
+                ) : undefined
+              }
               aria-disabled={!item.enabled || undefined}
               disabled={!item.enabled}
               tabIndex={!item.enabled ? -1 : undefined}
@@ -319,11 +320,7 @@ function NavigationGroupMenu({
                 !item.enabled &&
                   "text-sidebar-foreground/35 hover:text-sidebar-foreground/35 disabled:opacity-100",
               )}
-              onClick={() => {
-                if (href && item.enabled) {
-                  navigateTo(href);
-                }
-              }}
+              onClick={targetHref ? closeMobileSidebar : undefined}
               onFocus={() => {
                 if (href && item.enabled) {
                   prefetchTo(href);
@@ -343,18 +340,21 @@ function NavigationGroupMenu({
               <SidebarMenuSub>
                 {item.children?.map((child) => {
                   const childActive = isHrefActive(pathname, child.href);
+                  const childTargetHref = child.enabled
+                    ? hrefWithActiveAccount(child.href, selectedAccountId)
+                    : undefined;
                   return (
                     <SidebarMenuSubItem key={child.href}>
                       <SidebarMenuSubButton
                         isActive={childActive}
+                        render={
+                          childTargetHref ? (
+                            <Link href={childTargetHref} prefetch />
+                          ) : undefined
+                        }
                         aria-disabled={!child.enabled || undefined}
                         tabIndex={!child.enabled ? -1 : undefined}
-                        onClick={(event) => {
-                          event.preventDefault();
-                          if (child.enabled) {
-                            navigateTo(child.href);
-                          }
-                        }}
+                        onClick={childTargetHref ? closeMobileSidebar : undefined}
                         onFocus={() => {
                           if (child.enabled) {
                             prefetchTo(child.href);
