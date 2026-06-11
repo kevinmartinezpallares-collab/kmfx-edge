@@ -365,7 +365,12 @@ def next_frontend_audit(next_base_url: str) -> dict[str, Any]:
         f"{base_url}/api/kmfx/public-auth-config",
         timeout=20,
     )
+    version_status, version_payload, version_headers = request_json_with_headers(
+        f"{base_url}/api/kmfx/version",
+        timeout=20,
+    )
     public_auth = public_auth_payload if isinstance(public_auth_payload, dict) else {}
+    version = version_payload if isinstance(version_payload, dict) else {}
     supabase_url = str(public_auth.get("supabaseUrl") or "").strip()
     publishable_key = str(public_auth.get("supabasePublishableKey") or "").strip()
     supabase_host = ""
@@ -389,6 +394,13 @@ def next_frontend_audit(next_base_url: str) -> dict[str, Any]:
         "public_auth_config_status": public_auth_status,
         "public_auth_config_ok": public_auth_status == 200 and public_auth.get("ok") is True,
         "public_auth_cache_control": public_auth_headers.get("cache-control", ""),
+        "version_status": version_status,
+        "version_ok": version_status == 200 and version.get("ok") is True,
+        "version_cache_control": version_headers.get("cache-control", ""),
+        "version_commit": str(version.get("commit") or ""),
+        "version_branch": str(version.get("branch") or ""),
+        "version_environment": str(version.get("environment") or ""),
+        "version_region": str(version.get("region") or ""),
         "has_supabase_url": bool(supabase_url),
         "has_supabase_publishable_key": bool(publishable_key),
         "supabase_host": supabase_host,
@@ -517,6 +529,8 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         blockers.append("next_login_server_error")
     if not next_frontend["public_auth_config_ok"]:
         blockers.append("next_public_auth_config_missing")
+    if not next_frontend["version_ok"]:
+        warnings.append("next_version_endpoint_missing")
     if not next_frontend["has_supabase_url"]:
         blockers.append("next_public_supabase_url_missing")
     if not next_frontend["has_supabase_publishable_key"]:
@@ -598,7 +612,7 @@ def print_human(report: dict[str, Any]) -> None:
     print(f"Worker: {report['worker_base_url']} | ok={report['worker']['ok']} | commit={report['worker'].get('commit')}")
     next_frontend = report["next_frontend"]
     print(
-        "Next beta: {base_url} | dashboard={dashboard_status} | login={login_status} | public_auth={public_auth_config_ok} | supabase_host={supabase_host}".format(
+        "Next beta: {base_url} | dashboard={dashboard_status} | login={login_status} | public_auth={public_auth_config_ok} | version={version_ok} | commit={version_commit} | branch={version_branch} | supabase_host={supabase_host}".format(
             **next_frontend
         )
     )

@@ -71,8 +71,11 @@ function isAuthRoute(pathname: string) {
   return pathname === "/login" || pathname.startsWith("/auth/");
 }
 
-function isPublicAuthConfigRoute(pathname: string) {
-  return pathname === "/api/kmfx/public-auth-config";
+function isPublicKmfxRoute(pathname: string) {
+  return (
+    pathname === "/api/kmfx/public-auth-config" ||
+    pathname === "/api/kmfx/version"
+  );
 }
 
 function isBillingGuardedWorkspaceRoute(pathname: string) {
@@ -122,7 +125,7 @@ async function resolveBlockedBillingAccess(accessToken: string | undefined) {
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  if (isPublicAuthConfigRoute(pathname)) {
+  if (isPublicKmfxRoute(pathname)) {
     return NextResponse.next();
   }
 
