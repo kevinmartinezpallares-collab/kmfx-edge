@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import { cookies } from "next/headers";
 
 import {
   resolveKmfxAccountsSnapshotUrl,
@@ -105,6 +106,25 @@ function snapshotCacheKey(view: SnapshotView, headers: Headers) {
   ].join(":");
 }
 
+async function snapshotCacheKeyFromAuthCookies(view: SnapshotView) {
+  if (!isSupabaseAuthEnabled()) return "";
+
+  const cookieStore = await cookies();
+  const authCookieFingerprint = cookieStore
+    .getAll()
+    .filter(
+      (cookie) =>
+        cookie.name.startsWith("sb-") && cookie.name.includes("auth-token"),
+    )
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .sort()
+    .join("|");
+
+  if (!authCookieFingerprint) return "";
+
+  return [view, "auth-cookie", fingerprint(authCookieFingerprint)].join(":");
+}
+
 async function requestLiveAccountsSnapshot(
   view: SnapshotView,
   headers: Headers,
@@ -153,17 +173,26 @@ export async function fetchLiveAccountsSnapshot({
 }: {
   view?: SnapshotView;
 } = {}): Promise<RawLiveAccountsSnapshot> {
-  const headers = await buildSnapshotHeaders();
   const ttlMs = resolveEffectiveSnapshotCacheTtlMs();
+  const now = Date.now();
+  let cacheKey = "";
+
+  if (ttlMs > 0) {
+    cacheKey = await snapshotCacheKeyFromAuthCookies(view);
+    const cached = cacheKey ? liveSnapshotCache.get(cacheKey) : undefined;
+
+    if (cached && cached.expiresAt > now) {
+      return cached.promise;
+    }
+  }
+
+  const headers = await buildSnapshotHeaders();
   if (ttlMs <= 0) return requestLiveAccountsSnapshot(view, headers, ttlMs);
 
-  const now = Date.now();
-  const cacheKey = snapshotCacheKey(view, headers);
+  cacheKey = cacheKey || snapshotCacheKey(view, headers);
   const cached = liveSnapshotCache.get(cacheKey);
 
-  if (cached && cached.expiresAt > now) {
-    return cached.promise;
-  }
+  if (cached && cached.expiresAt > now) return cached.promise;
 
   const promise = requestLiveAccountsSnapshot(view, headers, ttlMs).catch(
     (error: unknown) => {
