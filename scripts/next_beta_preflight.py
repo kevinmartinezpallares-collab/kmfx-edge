@@ -21,6 +21,7 @@ RENDER_API_BASE = "https://api.render.com/v1"
 DEFAULT_RENDER_SERVICE_ID = "srv-d79k3b75r7bs73fspuu0"
 DEFAULT_API_BASE_URL = "https://kmfx-edge-api.onrender.com"
 DEFAULT_WORKER_BASE_URL = "https://mt5-api.kmfxedge.com"
+DEFAULT_NEXT_BASE_URL = "https://beta.kmfxedge.com"
 
 
 def env_value(*names: str) -> str:
@@ -350,6 +351,53 @@ def student_surface_audit(api_base_url: str) -> dict[str, Any]:
     }
 
 
+def next_frontend_audit(next_base_url: str) -> dict[str, Any]:
+    base_url = next_base_url.rstrip("/")
+    dashboard_status, dashboard_payload, dashboard_headers = request_json_with_headers(
+        f"{base_url}/dashboard",
+        timeout=20,
+    )
+    login_status, _login_payload, login_headers = request_json_with_headers(
+        f"{base_url}/login",
+        timeout=20,
+    )
+    public_auth_status, public_auth_payload, public_auth_headers = request_json_with_headers(
+        f"{base_url}/api/kmfx/public-auth-config",
+        timeout=20,
+    )
+    public_auth = public_auth_payload if isinstance(public_auth_payload, dict) else {}
+    supabase_url = str(public_auth.get("supabaseUrl") or "").strip()
+    publishable_key = str(public_auth.get("supabasePublishableKey") or "").strip()
+    supabase_host = ""
+    if supabase_url:
+        try:
+            supabase_host = urllib.parse.urlparse(supabase_url).netloc
+        except ValueError:
+            supabase_host = ""
+
+    dashboard_basic_auth = "basic" in dashboard_headers.get("www-authenticate", "").lower()
+    login_basic_auth = "basic" in login_headers.get("www-authenticate", "").lower()
+
+    return {
+        "base_url": base_url,
+        "dashboard_status": dashboard_status,
+        "dashboard_basic_auth_gate": dashboard_basic_auth,
+        "dashboard_server_error": dashboard_status >= 500,
+        "login_status": login_status,
+        "login_basic_auth_gate": login_basic_auth,
+        "login_server_error": login_status >= 500,
+        "public_auth_config_status": public_auth_status,
+        "public_auth_config_ok": public_auth_status == 200 and public_auth.get("ok") is True,
+        "public_auth_cache_control": public_auth_headers.get("cache-control", ""),
+        "has_supabase_url": bool(supabase_url),
+        "has_supabase_publishable_key": bool(publishable_key),
+        "supabase_host": supabase_host,
+        "raw_error": str(dashboard_payload.get("raw") or "")[:120]
+        if isinstance(dashboard_payload, dict)
+        else "",
+    }
+
+
 def local_next_checks() -> dict[str, Any]:
     package_json_path = WEB_NEXT / "package.json"
     result = {
@@ -361,7 +409,15 @@ def local_next_checks() -> dict[str, Any]:
         return result
     package_json = json.loads(package_json_path.read_text(encoding="utf-8"))
     scripts = package_json.get("scripts") if isinstance(package_json, dict) else {}
-    expected = ["validate:cascade", "test:smoke:routes", "qa:mobile:v1", "qa:live:snapshot", "qa:live:integrity"]
+    expected = [
+        "validate:cascade",
+        "test:smoke:routes",
+        "qa:mobile:v1",
+        "qa:live:snapshot",
+        "qa:live:integrity",
+        "preflight:beta",
+        "preflight:platform",
+    ]
     result["scripts"] = {name: name in scripts for name in expected}
     return result
 
@@ -430,9 +486,11 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
     service_id = args.render_service_id or env_value("RENDER_SERVICE_ID") or DEFAULT_RENDER_SERVICE_ID
     api_base_url = args.api_base_url or env_value("KMFX_API_BASE_URL") or DEFAULT_API_BASE_URL
     worker_base_url = args.worker_base_url or DEFAULT_WORKER_BASE_URL
+    next_base_url = args.next_base_url or env_value("KMFX_NEXT_BASE_URL") or DEFAULT_NEXT_BASE_URL
     headers, preview_warnings = resolve_preview_headers(service_id)
     render_health = health_check(api_base_url)
     worker_health = health_check(worker_base_url)
+    next_frontend = next_frontend_audit(next_base_url)
     snapshot = snapshot_audit(api_base_url, headers)
     surface = browser_surface_audit(api_base_url, worker_base_url)
     student = student_surface_audit(api_base_url) if scope == "student" else {}
@@ -451,6 +509,20 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         blockers.append("render_health_failed")
     if not worker_health["ok"]:
         blockers.append("worker_health_failed")
+    if next_frontend["dashboard_basic_auth_gate"] or next_frontend["login_basic_auth_gate"]:
+        blockers.append("next_beta_basic_auth_gate_enabled")
+    if next_frontend["dashboard_server_error"]:
+        blockers.append("next_dashboard_server_error")
+    if next_frontend["login_server_error"]:
+        blockers.append("next_login_server_error")
+    if not next_frontend["public_auth_config_ok"]:
+        blockers.append("next_public_auth_config_missing")
+    if not next_frontend["has_supabase_url"]:
+        blockers.append("next_public_supabase_url_missing")
+    if not next_frontend["has_supabase_publishable_key"]:
+        blockers.append("next_public_supabase_publishable_key_missing")
+    if "no-store" not in str(next_frontend.get("public_auth_cache_control") or "").lower():
+        warnings.append("next_public_auth_config_not_no_store")
     if not surface["backend_legacy_blocked"]:
         blockers.append("legacy_dashboard_live_block_missing")
     if not surface["worker_accounts_closed"]:
@@ -504,8 +576,10 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         "scope": scope,
         "api_base_url": api_base_url,
         "worker_base_url": worker_base_url,
+        "next_base_url": next_base_url,
         "render": render_health,
         "worker": worker_health,
+        "next_frontend": next_frontend,
         "surface": surface,
         "student": student,
         "snapshot": snapshot,
@@ -522,6 +596,12 @@ def print_human(report: dict[str, Any]) -> None:
     print(f"Estado: {report['status']} | scope={report['scope']}")
     print(f"Backend: {report['api_base_url']} | ok={report['render']['ok']} | commit={report['render'].get('commit')}")
     print(f"Worker: {report['worker_base_url']} | ok={report['worker']['ok']} | commit={report['worker'].get('commit')}")
+    next_frontend = report["next_frontend"]
+    print(
+        "Next beta: {base_url} | dashboard={dashboard_status} | login={login_status} | public_auth={public_auth_config_ok} | supabase_host={supabase_host}".format(
+            **next_frontend
+        )
+    )
     surface = report["surface"]
     print(
         "Surface: backend_legacy_blocked={backend_legacy_blocked}, worker_accounts_closed={worker_accounts_closed}, worker_mt5_cors_ok={worker_mt5_cors_ok}".format(
@@ -568,6 +648,7 @@ def main() -> int:
     parser.add_argument("--render-service-id", default="")
     parser.add_argument("--api-base-url", default="")
     parser.add_argument("--worker-base-url", default="")
+    parser.add_argument("--next-base-url", default="")
     parser.add_argument("--scope", choices=("full", "platform", "student"), default="full")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
