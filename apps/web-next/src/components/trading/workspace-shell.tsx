@@ -18,6 +18,7 @@ import {
 import { CommandPalette } from "@/components/uitripled/command-palette-shadcnui";
 import { LogoMark, LogoWordmark } from "@/components/logo";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { WorkspaceProvider } from "@/components/trading/workspace-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1074,6 +1075,17 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
   const activeAccount =
     workspace.accounts.find((account) => account.id === selectedAccountId) ??
     workspace.accounts[0];
+  const selectedWorkspace = React.useMemo(() => {
+    if (!selectedAccountId) return workspace;
+    if (!workspace.accounts.some((account) => account.id === selectedAccountId)) {
+      return workspace;
+    }
+
+    return {
+      ...workspace,
+      activeAccountId: selectedAccountId,
+    };
+  }, [selectedAccountId, workspace]);
   const promoNotifications = React.useMemo(
     () => getPromoNotifications(),
     [],
@@ -1224,7 +1236,9 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
                   </div>
                 </div>
               ) : null}
-              {children}
+              <WorkspaceProvider workspace={selectedWorkspace}>
+                {children}
+              </WorkspaceProvider>
             </div>
           </div>
         </main>
