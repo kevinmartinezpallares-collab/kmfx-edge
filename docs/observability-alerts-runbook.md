@@ -32,6 +32,11 @@ Tambien existe el workflow `Beta Monitor` en GitHub Actions. Se ejecuta cada dos
 horas y puede lanzarse manualmente desde `Actions > Beta Monitor > Run workflow`.
 El resultado queda guardado como artifact `beta-monitor-report`.
 
+Si el workflow falla, GitHub Actions marca la ejecucion en rojo y envia sus
+notificaciones habituales. Para aviso adicional a Discord o Slack, configurar el
+secret `BETA_MONITOR_WEBHOOK_URL`; el workflow enviara un resumen con checks
+fallidos, deployment y uso Render MTD.
+
 Checks cubiertos:
 
 - `beta_version_endpoint`: confirma que `https://beta.kmfxedge.com` responde con
@@ -64,6 +69,17 @@ KMFX_BETA_MT5_CORS_ORIGIN=https://kmfxedge.com
 KMFX_BETA_MAX_BANDWIDTH_USAGE=0.05
 ```
 
+Secrets recomendados en GitHub Actions:
+
+```text
+RENDER_API_KEY
+BETA_MONITOR_WEBHOOK_URL
+```
+
+`RENDER_API_KEY` permite que el workflow mida consumo Render desde GitHub.
+`BETA_MONITOR_WEBHOOK_URL` es opcional y solo sirve para enviar aviso adicional
+a Discord o Slack cuando el monitor falle.
+
 Si aparece `slow_check:<name>:<ms>`, no bloquea por si solo, pero conviene
 revisarlo si supera de forma repetida 2500 ms.
 
@@ -86,6 +102,8 @@ revisarlo si supera de forma repetida 2500 ms.
 4. Mirar logs de Render filtrando `[KMFX][ALERT]`.
 5. Si el alumno instala EA/Launcher, confirmar que no aparecen rechazos
    anormales de MT5 sync.
+
+Runbook de incidencias de alumno: `docs/beta-incident-response-runbook.md`.
 
 ## Eventos Cubiertos
 
@@ -182,6 +200,28 @@ Usar estos filtros en logs:
 event=api_5xx_response
 event=billing_webhook_failed
 event=mt5_sync_rejected_abnormal
+```
+
+## Logs De Vercel
+
+Para consultar runtime logs desde terminal hace falta `VERCEL_TOKEN`. Si no esta
+disponible localmente, usar Vercel Dashboard o GitHub Actions como primera
+fuente operativa.
+
+Con token disponible:
+
+```bash
+curl -N -H "Authorization: Bearer $VERCEL_TOKEN" \
+  "https://api.vercel.com/v3/deployments/<deployment-id>/events" \
+  --max-time 120
+```
+
+Buscar:
+
+```text
+backend_proxy_failed
+level":"error
+[KMFX][ALERT]
 ```
 
 ## Escalado Futuro

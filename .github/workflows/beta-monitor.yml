@@ -41,3 +41,9 @@ jobs:
           name: beta-monitor-report
           path: beta-monitor.json
           if-no-files-found: ignore
+
+      - name: Notify monitor failure
+        if: failure()
+        env:
+          BETA_MONITOR_WEBHOOK_URL: ${{ secrets.BETA_MONITOR_WEBHOOK_URL }}
+        run: python3 scripts/beta_monitor_notify.py --report beta-monitor.json
