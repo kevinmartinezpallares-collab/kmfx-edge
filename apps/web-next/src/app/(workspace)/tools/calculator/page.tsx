@@ -1,5 +1,15 @@
 import { CalculatorWorkspaceRoute } from "@/components/trading/workspace-routes";
+import {
+  getWorkspaceStateForSearchParams,
+  type WorkspaceSearchParams,
+} from "@/lib/data/workspace-source";
 
-export default function ToolsCalculatorPage() {
-  return <CalculatorWorkspaceRoute />;
+type ToolsCalculatorPageProps = {
+  searchParams?: Promise<WorkspaceSearchParams>;
+};
+
+export default async function ToolsCalculatorPage({ searchParams }: ToolsCalculatorPageProps) {
+  const workspace = await getWorkspaceStateForSearchParams(searchParams);
+
+  return <CalculatorWorkspaceRoute workspace={workspace} />;
 }

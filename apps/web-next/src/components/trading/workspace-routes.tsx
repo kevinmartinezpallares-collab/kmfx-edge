@@ -10,6 +10,16 @@ type WorkspaceRouteProps = {
   workspace: WorkspaceState;
 };
 
+type WorkspaceRouteShellProps = {
+  workspace?: WorkspaceState;
+};
+
+function useRouteWorkspace(workspace?: WorkspaceState) {
+  const contextWorkspace = useWorkspace();
+
+  return workspace ?? contextWorkspace;
+}
+
 function WorkspaceRouteFallback() {
   return (
     <div className="space-y-6">
@@ -127,58 +137,60 @@ const NotesRouteView = dynamic<WorkspaceRouteProps>(
   { loading: WorkspaceRouteFallback },
 );
 
-export function DashboardWorkspaceRoute() {
-  return <DashboardRouteView workspace={useWorkspace()} />;
+export function DashboardWorkspaceRoute({ workspace }: WorkspaceRouteShellProps = {}) {
+  return <DashboardRouteView workspace={useRouteWorkspace(workspace)} />;
 }
 
-export function AccountsWorkspaceRoute() {
-  return <AccountsRouteView workspace={useWorkspace()} />;
+export function AccountsWorkspaceRoute({ workspace }: WorkspaceRouteShellProps = {}) {
+  return <AccountsRouteView workspace={useRouteWorkspace(workspace)} />;
 }
 
-export function CapitalWorkspaceRoute() {
-  return <CapitalRouteView workspace={useWorkspace()} />;
+export function CapitalWorkspaceRoute({ workspace }: WorkspaceRouteShellProps = {}) {
+  return <CapitalRouteView workspace={useRouteWorkspace(workspace)} />;
 }
 
-export function TradesWorkspaceRoute() {
-  return <TradesRouteView workspace={useWorkspace()} />;
+export function TradesWorkspaceRoute({ workspace }: WorkspaceRouteShellProps = {}) {
+  return <TradesRouteView workspace={useRouteWorkspace(workspace)} />;
 }
 
-export function CalendarWorkspaceRoute() {
-  return <CalendarRouteView workspace={useWorkspace()} />;
+export function CalendarWorkspaceRoute({ workspace }: WorkspaceRouteShellProps = {}) {
+  return <CalendarRouteView workspace={useRouteWorkspace(workspace)} />;
 }
 
-export function AnalyticsWorkspaceRoute() {
+export function AnalyticsWorkspaceRoute({ workspace }: WorkspaceRouteShellProps = {}) {
+  const routeWorkspace = useRouteWorkspace(workspace);
+
   return (
     <div className="flex flex-col gap-4">
-      <AnalyticsOverviewRouteView workspace={useWorkspace()} />
+      <AnalyticsOverviewRouteView workspace={routeWorkspace} />
     </div>
   );
 }
 
-export function AnalyticsDailyWorkspaceRoute() {
-  return <AnalyticsDailyRouteView workspace={useWorkspace()} />;
+export function AnalyticsDailyWorkspaceRoute({ workspace }: WorkspaceRouteShellProps = {}) {
+  return <AnalyticsDailyRouteView workspace={useRouteWorkspace(workspace)} />;
 }
 
-export function AnalyticsHourlyWorkspaceRoute() {
-  return <AnalyticsHourlyRouteView workspace={useWorkspace()} />;
+export function AnalyticsHourlyWorkspaceRoute({ workspace }: WorkspaceRouteShellProps = {}) {
+  return <AnalyticsHourlyRouteView workspace={useRouteWorkspace(workspace)} />;
 }
 
-export function AnalyticsRiskWorkspaceRoute() {
-  return <AnalyticsRiskRouteView workspace={useWorkspace()} />;
+export function AnalyticsRiskWorkspaceRoute({ workspace }: WorkspaceRouteShellProps = {}) {
+  return <AnalyticsRiskRouteView workspace={useRouteWorkspace(workspace)} />;
 }
 
-export function SettingsWorkspaceRoute() {
-  return <SettingsRouteView workspace={useWorkspace()} />;
+export function SettingsWorkspaceRoute({ workspace }: WorkspaceRouteShellProps = {}) {
+  return <SettingsRouteView workspace={useRouteWorkspace(workspace)} />;
 }
 
-export function CalculatorWorkspaceRoute() {
-  return <CalculatorRouteView workspace={useWorkspace()} />;
+export function CalculatorWorkspaceRoute({ workspace }: WorkspaceRouteShellProps = {}) {
+  return <CalculatorRouteView workspace={useRouteWorkspace(workspace)} />;
 }
 
-export function StudyWorkspaceRoute() {
-  return <StudyRouteView workspace={useWorkspace()} />;
+export function StudyWorkspaceRoute({ workspace }: WorkspaceRouteShellProps = {}) {
+  return <StudyRouteView workspace={useRouteWorkspace(workspace)} />;
 }
 
-export function NotesWorkspaceRoute() {
-  return <NotesRouteView workspace={useWorkspace()} />;
+export function NotesWorkspaceRoute({ workspace }: WorkspaceRouteShellProps = {}) {
+  return <NotesRouteView workspace={useRouteWorkspace(workspace)} />;
 }

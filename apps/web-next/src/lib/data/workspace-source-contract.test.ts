@@ -24,6 +24,10 @@ function readAccountsSnapshotClient() {
   );
 }
 
+function readWorkspacePage(pagePath: string) {
+  return fs.readFileSync(path.join(process.cwd(), pagePath), "utf8");
+}
+
 describe("workspace source contract", () => {
   it("keeps the one-year fixture as the default V1 source", () => {
     const source = readWorkspaceSource();
@@ -63,6 +67,31 @@ describe("workspace source contract", () => {
     expect(source).toContain("withActiveWorkspaceAccount");
     expect(source).toContain("getWorkspaceStateForSearchParams");
     expect(source).toContain("resolvedSearchParams?.account");
+  });
+
+  it("hydrates V1 workspace pages from the selected account instead of only the shell", () => {
+    const pagePaths = [
+      "src/app/(workspace)/dashboard/page.tsx",
+      "src/app/(workspace)/accounts/page.tsx",
+      "src/app/(workspace)/capital/page.tsx",
+      "src/app/(workspace)/trades/page.tsx",
+      "src/app/(workspace)/calendar/page.tsx",
+      "src/app/(workspace)/analytics/page.tsx",
+      "src/app/(workspace)/analytics/daily/page.tsx",
+      "src/app/(workspace)/analytics/hourly/page.tsx",
+      "src/app/(workspace)/analytics/risk/page.tsx",
+      "src/app/(workspace)/settings/page.tsx",
+      "src/app/(workspace)/tools/calculator/page.tsx",
+      "src/app/(workspace)/study/page.tsx",
+    ];
+
+    for (const pagePath of pagePaths) {
+      const pageSource = readWorkspacePage(pagePath);
+
+      expect(pageSource, pagePath).toContain("getWorkspaceStateForSearchParams");
+      expect(pageSource, pagePath).toContain("searchParams");
+      expect(pageSource, pagePath).toContain("workspace={workspace}");
+    }
   });
 
   it("keeps preview mode explicit and backed by the redacted fixture", () => {
