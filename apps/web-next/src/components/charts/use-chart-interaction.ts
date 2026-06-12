@@ -68,6 +68,10 @@ export function useChartInteraction({
   const resolveTooltipFromX = useCallback(
     (pixelX: number): TooltipData | null => {
       const x0 = xScale.invert(pixelX);
+      const xRange = xScale.range();
+      const minX = Math.min(...xRange);
+      const maxX = Math.max(...xRange);
+      const tooltipX = Math.min(Math.max(pixelX, minX), maxX);
       const index = bisectDate(data, x0, 1);
       const d0 = data[index - 1];
       const d1 = data[index];
@@ -98,7 +102,7 @@ export function useChartInteraction({
       return {
         point: d,
         index: finalIndex,
-        x: xScale(xAccessor(d)) ?? 0,
+        x: tooltipX,
         yPositions,
       };
     },

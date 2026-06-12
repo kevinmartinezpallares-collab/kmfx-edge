@@ -10,7 +10,6 @@ import {
   resolveFadeSides,
 } from "./fade-edges";
 import { useProfitLossLegendHover } from "./profit-loss-legend-hover";
-import { splitProfitLossSegments } from "@/lib/profit-loss-segments";
 
 // CurveFactory type - simplified version compatible with visx
 // biome-ignore lint/suspicious/noExplicitAny: d3 curve factory type
@@ -53,7 +52,6 @@ function segmentLegendIndex(isPositive: boolean) {
 
 export function ProfitLossLine({
   dataKey,
-  xDataKey = "date",
   strokeWidth = 2.5,
   positiveColor = PROFIT_LOSS_POSITIVE_COLOR,
   negativeColor = PROFIT_LOSS_NEGATIVE_COLOR,
@@ -62,13 +60,15 @@ export function ProfitLossLine({
 }: ProfitLossLineProps) {
   const { tooltipData } = useChart();
   const { hoveredIndex } = useProfitLossLegendHover();
-  const { renderData, xScale, yScale, xAccessor, innerWidth } =
+  const { renderData, xScale, yScale, xAccessor, innerHeight, innerWidth } =
     useChartStable();
   const reactId = useId();
   const fadeSides = resolveFadeSides(fadeEdges);
   const fadeStops = fadeSides.any ? fadeGradientStops(fadeSides) : null;
   const positiveGradientId = `profit-loss-gradient-pos-${dataKey}-${reactId}`;
   const negativeGradientId = `profit-loss-gradient-neg-${dataKey}-${reactId}`;
+  const positiveClipId = `profit-loss-clip-pos-${dataKey}-${reactId}`;
+  const negativeClipId = `profit-loss-clip-neg-${dataKey}-${reactId}`;
 
   const focusedLegendIndex = useMemo(() => {
     if (hoveredIndex !== null) {
@@ -84,17 +84,6 @@ export function ProfitLossLine({
     return segmentLegendIndex(value >= 0);
   }, [dataKey, hoveredIndex, tooltipData]);
 
-  const segments = useMemo(
-    () =>
-      splitProfitLossSegments({
-        data: renderData,
-        dataKey,
-        xDataKey,
-        xAccessor,
-      }),
-    [dataKey, renderData, xAccessor, xDataKey]
-  );
-
   const getX = useCallback(
     (d: Record<string, unknown>) => xScale(xAccessor(d)) ?? 0,
     [xAccessor, xScale]
@@ -107,9 +96,42 @@ export function ProfitLossLine({
     },
     [dataKey, yScale]
   );
+  const zeroY = Math.min(innerHeight, Math.max(0, yScale(0) ?? innerHeight));
+  const clipOverlap = Math.max(1, strokeWidth);
+  const positiveClipHeight = Math.min(innerHeight, zeroY + clipOverlap / 2);
+  const negativeClipY = Math.max(0, zeroY - clipOverlap / 2);
+  const negativeClipHeight = Math.max(0, innerHeight - negativeClipY);
+  const positiveStroke = fadeStops ? `url(#${positiveGradientId})` : positiveColor;
+  const negativeStroke = fadeStops ? `url(#${negativeGradientId})` : negativeColor;
+  const positiveOpacity =
+    focusedLegendIndex !== null && focusedLegendIndex !== segmentLegendIndex(true)
+      ? LEGEND_DIM_OPACITY
+      : 1;
+  const negativeOpacity =
+    focusedLegendIndex !== null && focusedLegendIndex !== segmentLegendIndex(false)
+      ? LEGEND_DIM_OPACITY
+      : 1;
 
   return (
     <>
+      <defs>
+        <clipPath id={positiveClipId}>
+          <rect
+            height={positiveClipHeight}
+            width={innerWidth}
+            x={0}
+            y={0}
+          />
+        </clipPath>
+        <clipPath id={negativeClipId}>
+          <rect
+            height={negativeClipHeight}
+            width={innerWidth}
+            x={0}
+            y={negativeClipY}
+          />
+        </clipPath>
+      </defs>
       {fadeStops ? (
         <defs>
           <linearGradient
@@ -152,37 +174,40 @@ export function ProfitLossLine({
           </linearGradient>
         </defs>
       ) : null}
-      {segments.map((segment) => {
-        const isDimmed =
-          focusedLegendIndex !== null &&
-          focusedLegendIndex !== segmentLegendIndex(segment.isPositive);
-        const firstPoint = segment.data[0];
-        const lastPoint = segment.data.at(-1);
-        const segmentKey = `${dataKey}-${segment.isPositive ? "pos" : "neg"}-${String(firstPoint?.[xDataKey])}-${String(lastPoint?.[xDataKey])}`;
-        const stroke = segment.isPositive ? positiveColor : negativeColor;
-        const segmentStroke = fadeStops
-          ? `url(#${segment.isPositive ? positiveGradientId : negativeGradientId})`
-          : stroke;
-
-        return (
-          <g
-            key={segmentKey}
-            opacity={isDimmed ? LEGEND_DIM_OPACITY : 1}
-            style={{ transition: "opacity 0.2s ease-in-out" }}
-          >
-            <LinePath
-              curve={curve}
-              data={segment.data}
-              stroke={segmentStroke}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={strokeWidth}
-              x={getX}
-              y={getY}
-            />
-          </g>
-        );
-      })}
+      <g
+        clipPath={`url(#${positiveClipId})`}
+        opacity={positiveOpacity}
+        style={{ transition: "opacity 0.2s ease-in-out" }}
+      >
+        <LinePath
+          curve={curve}
+          data-chart-line-path={dataKey}
+          data={renderData}
+          stroke={positiveStroke}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+          x={getX}
+          y={getY}
+        />
+      </g>
+      <g
+        clipPath={`url(#${negativeClipId})`}
+        opacity={negativeOpacity}
+        style={{ transition: "opacity 0.2s ease-in-out" }}
+      >
+        <LinePath
+          curve={curve}
+          data-chart-line-path={dataKey}
+          data={renderData}
+          stroke={negativeStroke}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+          x={getX}
+          y={getY}
+        />
+      </g>
     </>
   );
 }

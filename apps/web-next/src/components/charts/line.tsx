@@ -197,6 +197,7 @@ export function Line({
       >
         <LinePath
           curve={curve}
+          data-chart-line-path={dataKey}
           data={renderData}
           innerRef={pathRef}
           stroke={visibleStroke}

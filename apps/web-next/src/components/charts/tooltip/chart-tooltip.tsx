@@ -14,6 +14,34 @@ import { TooltipIndicator } from "./tooltip-indicator";
 // Spring config for crosshair
 const crosshairSpringConfig = { stiffness: 300, damping: 30 };
 
+function getSvgPathYAtX(path: SVGPathElement, targetX: number) {
+  const pathLength = path.getTotalLength();
+  if (!Number.isFinite(pathLength) || pathLength <= 0) return null;
+
+  const start = path.getPointAtLength(0);
+  const end = path.getPointAtLength(pathLength);
+  const isIncreasing = end.x >= start.x;
+
+  if (isIncreasing ? targetX <= start.x : targetX >= start.x) return start.y;
+  if (isIncreasing ? targetX >= end.x : targetX <= end.x) return end.y;
+
+  let low = 0;
+  let high = pathLength;
+
+  for (let step = 0; step < 24; step += 1) {
+    const mid = (low + high) / 2;
+    const point = path.getPointAtLength(mid);
+
+    if (isIncreasing ? point.x < targetX : point.x > targetX) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+
+  return path.getPointAtLength((low + high) / 2).y;
+}
+
 export interface ChartTooltipProps {
   /** Whether to show the date pill at bottom. Default: true */
   showDatePill?: boolean;
@@ -142,6 +170,16 @@ export function ChartTooltip({
     return null;
   }
 
+  const visualLinePaths = Array.from(
+    container.querySelectorAll<SVGPathElement>("[data-chart-line-path]")
+  );
+
+  const resolveVisualLineY = (dataKey: string, targetX: number) => {
+    const path = visualLinePaths.find((node) => node.dataset.chartLinePath === dataKey);
+
+    return path ? getSvgPathYAtX(path, targetX) : null;
+  };
+
   // Dynamic import to avoid SSR issues
   const { createPortal } = require("react-dom") as typeof import("react-dom");
 
@@ -180,14 +218,21 @@ export function ChartTooltip({
         >
           <g transform={`translate(${margin.left},${margin.top})`}>
             {lines.map((line) => (
-              <TooltipDot
-                color={line.stroke === "transparent" ? indicatorColor : line.stroke}
-                key={line.dataKey}
-                strokeColor={chartCssVars.background}
-                visible={visible}
-                x={tooltipData?.xPositions?.[line.dataKey] ?? x}
-                y={tooltipData?.yPositions[line.dataKey] ?? 0}
-              />
+              (() => {
+                const dotX = tooltipData?.xPositions?.[line.dataKey] ?? x;
+                const yFromPath = resolveVisualLineY(line.dataKey, dotX);
+
+                return (
+                  <TooltipDot
+                    color={line.stroke === "transparent" ? indicatorColor : line.stroke}
+                    key={line.dataKey}
+                    strokeColor={chartCssVars.background}
+                    visible={visible}
+                    x={dotX}
+                    y={yFromPath ?? tooltipData?.yPositions[line.dataKey] ?? 0}
+                  />
+                );
+              })()
             ))}
           </g>
         </svg>
