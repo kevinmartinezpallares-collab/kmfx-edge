@@ -270,6 +270,66 @@ class AccountServiceTests(unittest.TestCase):
         self.assertEqual(52.5, payload["winRate"])
         self.assertEqual({"totalTrades": 80, "netProfit": 100}, payload["reportMetrics"])
 
+    def test_bound_connection_key_cannot_mutate_to_another_mt5_account(self) -> None:
+        first = self.service.ingest_account_snapshot(
+            user_id="user-123",
+            account_info={
+                "broker": "Raw Trading Ltd",
+                "platform": "mt5",
+                "login": "52651704",
+                "server": "ICMarketsSC",
+            },
+            connection_mode="connector",
+            payload={"balance": 140000, "equity": 140100},
+            api_key="ic-markets-key",
+        )
+
+        with self.assertRaisesRegex(ValueError, "connection_key_identity_mismatch"):
+            self.service.ingest_account_snapshot(
+                user_id="user-123",
+                account_info={
+                    "broker": "Raw Trading Ltd",
+                    "platform": "mt5",
+                    "login": "52659999",
+                    "server": "ICMarketsSC",
+                },
+                connection_mode="connector",
+                payload={"balance": 50000, "equity": 50030},
+                account_id=first.account_id,
+                api_key="ic-markets-key",
+            )
+
+        stored = self.service.build_accounts_snapshot("user-123")["accounts"][0]
+        self.assertEqual("52651704", stored["login"])
+        self.assertEqual(140100, stored["dashboard_payload"]["equity"])
+
+    def test_pending_connection_key_can_bind_on_first_sync(self) -> None:
+        pending = self.service.create_pending_account_with_key(
+            user_id="user-123",
+            alias="IC Markets MT5",
+            connection_key="ic-markets-key",
+        )
+
+        self.assertIsNotNone(pending)
+
+        bound = self.service.ingest_account_snapshot(
+            user_id="user-123",
+            account_info={
+                "broker": "Raw Trading Ltd",
+                "platform": "mt5",
+                "login": "52651704",
+                "server": "ICMarketsSC",
+            },
+            connection_mode="connector",
+            payload={"balance": 140000, "equity": 140100},
+            account_id=pending.account_id,
+            api_key="ic-markets-key",
+        )
+
+        self.assertEqual(pending.account_id, bound.account_id)
+        self.assertEqual("52651704", bound.login)
+        self.assertEqual("ICMarketsSC", bound.server)
+
     def test_compact_storage_payload_preserves_existing_summary_counts(self) -> None:
         payload = compact_storage_payload_from_payload(
             {

@@ -5931,15 +5931,42 @@ def sync_direct_mt5_provider_account(
         label=label,
         previous_payload=previous_payload,
     )
-    synced = account_service.ingest_account_snapshot(
-        user_id=user_id,
-        account_info=account_info,
-        connection_mode="direct",
-        payload=dashboard_payload,
-        account_id=account_id,
-        api_key=connection_key,
-        nickname=label,
-    )
+    try:
+        synced = account_service.ingest_account_snapshot(
+            user_id=user_id,
+            account_info=account_info,
+            connection_mode="direct",
+            payload=dashboard_payload,
+            account_id=account_id,
+            api_key=connection_key,
+            nickname=label,
+        )
+    except ValueError as exc:
+        reason = str(exc) or "direct_mt5_persist_invalid"
+        return {
+            "ok": False,
+            "available": True,
+            "fatal": True,
+            "reason": reason,
+            "message": (
+                "Esta KMFX Key ya pertenece a otra cuenta MT5."
+                if reason == "connection_key_identity_mismatch"
+                else "No se pudo guardar la conexión MT5."
+            ),
+            "status_code": 409 if reason == "connection_key_identity_mismatch" else 400,
+            "retryable": False,
+            "details": redact_sensitive_data(
+                {
+                    "section": "account",
+                    "field": "connection_key",
+                    "problem": "identity_mismatch" if reason == "connection_key_identity_mismatch" else reason,
+                    "account_id": account_id,
+                    "incoming_login": account_info.get("login", ""),
+                    "incoming_server": account_info.get("server", ""),
+                }
+            ),
+            "provider": direct_provider_status_dict(),
+        }
     return {
         "ok": True,
         "available": True,
@@ -8237,6 +8264,26 @@ async def mt5_sync(request: Request) -> JSONResponse:
                 account_id=bound_account.account_id if bound_account else None,
                 api_key=connection_key,
                 nickname=bound_account.alias if bound_account else None,
+            )
+        except ValueError as exc:
+            reason = str(exc) or "sync_persist_invalid"
+            details = {
+                "section": "account",
+                "field": "connection_key",
+                "problem": "identity_mismatch" if reason == "connection_key_identity_mismatch" else reason,
+                "connection_key": mask_connection_key(connection_key),
+                "bound_account_id": bound_account.account_id if bound_account else "",
+                "bound_login": bound_account.login if bound_account else "",
+                "bound_server": bound_account.server if bound_account else "",
+                "incoming_login": login,
+                "incoming_server": safe_str(sanitized_account.get("server")),
+            }
+            log.warning("SYNC rejected | reason=%s details=%s", reason, details)
+            return sync_error_response(
+                reason,
+                details,
+                http_status=409 if reason == "connection_key_identity_mismatch" else 400,
+                sync_id=sync_id,
             )
         except OSError as exc:
             if is_account_store_unavailable_exception(exc):

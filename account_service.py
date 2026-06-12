@@ -500,6 +500,26 @@ def _identity_tuple(account: Account) -> tuple[str, str, str, str]:
     )
 
 
+def _mt5_binding_tuple(platform: str, server: str, login: str) -> tuple[str, str, str]:
+    return (
+        str(platform or "mt5").strip().lower(),
+        str(server or "").strip().lower(),
+        str(login or "").strip(),
+    )
+
+
+def _account_mt5_binding_tuple(account: Account) -> tuple[str, str, str]:
+    return _mt5_binding_tuple(
+        account.platform or "mt5",
+        account.server or "",
+        account.login or account.mt5_login or "",
+    )
+
+
+def _has_complete_mt5_binding(account: Account) -> bool:
+    return all(_account_mt5_binding_tuple(account))
+
+
 def _has_complete_mt5_identity(account: Account) -> bool:
     platform, broker, server, login = _identity_tuple(account)
     return bool(platform and broker and server and login)
@@ -1073,6 +1093,26 @@ class AccountService:
         resolved_account_id = account_id or _resolve_account_id(platform, broker, server, login)
         now = _now_utc()
         target = next((account for account in accounts if account.account_id == resolved_account_id and not _is_deleted(account)), None)
+        incoming_binding = _mt5_binding_tuple(platform, server, login)
+        if (
+            account_id
+            and target is not None
+            and _has_complete_mt5_binding(target)
+            and all(incoming_binding)
+            and _account_mt5_binding_tuple(target) != incoming_binding
+        ):
+            log.warning(
+                "[KMFX][CONNECTION_KEY_VALIDATION] event=identity_mismatch "
+                "account_id=%s user_id=%s stored_login=%s incoming_login=%s "
+                "stored_server=%s incoming_server=%s",
+                target.account_id,
+                target.user_id,
+                target.login or target.mt5_login,
+                login,
+                target.server,
+                server,
+            )
+            raise ValueError("connection_key_identity_mismatch")
         is_first = not any(account.user_id == user_id and _is_operational(account) for account in accounts)
         if should_store_full_dashboard_payload(payload):
             merged_payload = merge_historical_dashboard_payload(target.latest_payload if target else {}, payload)
