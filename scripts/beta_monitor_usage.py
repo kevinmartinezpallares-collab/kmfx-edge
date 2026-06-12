@@ -12,6 +12,8 @@ import json
 import os
 import subprocess
 import sys
+import time
+import urllib.parse
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -20,6 +22,10 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 PRIVATE_ENV = Path.home() / ".kmfx-beta-monitor.env"
+DEFAULT_FRONTEND_URL = "https://beta.kmfxedge.com"
+DEFAULT_BACKEND_URL = "https://kmfx-edge-api.onrender.com"
+DEFAULT_MT5_API_URL = "https://mt5-api.kmfxedge.com"
+LATENCY_WARNING_MS = 2500
 
 
 def load_private_env() -> list[str]:
@@ -53,6 +59,7 @@ def request(method: str, url: str, *, headers: dict[str, str] | None = None) -> 
             **(headers or {}),
         },
     )
+    start = time.perf_counter()
     try:
         opener = urllib.request.build_opener(NoRedirectHandler)
         with opener.open(req, timeout=20) as resp:
@@ -61,6 +68,7 @@ def request(method: str, url: str, *, headers: dict[str, str] | None = None) -> 
                 "status": resp.status,
                 "headers": {str(k).lower(): str(v) for k, v in resp.headers.items()},
                 "body": body.decode("utf-8", errors="replace")[:800],
+                "elapsed_ms": round((time.perf_counter() - start) * 1000),
             }
     except urllib.error.HTTPError as exc:
         body = exc.read()
@@ -68,9 +76,15 @@ def request(method: str, url: str, *, headers: dict[str, str] | None = None) -> 
             "status": exc.code,
             "headers": {str(k).lower(): str(v) for k, v in exc.headers.items()},
             "body": body.decode("utf-8", errors="replace")[:800],
+            "elapsed_ms": round((time.perf_counter() - start) * 1000),
         }
     except urllib.error.URLError as exc:
-        return {"status": 0, "headers": {}, "body": str(exc)}
+        return {
+            "status": 0,
+            "headers": {},
+            "body": str(exc),
+            "elapsed_ms": round((time.perf_counter() - start) * 1000),
+        }
 
 
 class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -84,6 +98,37 @@ def json_body(response: dict[str, Any]) -> dict[str, Any]:
     except json.JSONDecodeError:
         return {}
     return payload if isinstance(payload, dict) else {}
+
+
+def normalize_base_url(value: str) -> str:
+    return str(value or "").strip().rstrip("/")
+
+
+def is_login_redirect(location: str) -> bool:
+    parsed = urllib.parse.urlparse(location)
+    return parsed.path == "/login"
+
+
+def check_response_latency(response: dict[str, Any], name: str, warnings: list[str]) -> None:
+    elapsed = int(response.get("elapsed_ms") or 0)
+    if elapsed > LATENCY_WARNING_MS:
+        warnings.append(f"slow_check:{name}:{elapsed}ms")
+
+
+def append_check(
+    checks: list[dict[str, Any]],
+    warnings: list[str],
+    *,
+    name: str,
+    ok: bool,
+    response: dict[str, Any] | None = None,
+    **details: Any,
+) -> None:
+    if response is not None:
+        check_response_latency(response, name, warnings)
+        details.setdefault("status", response.get("status"))
+        details.setdefault("elapsed_ms", response.get("elapsed_ms"))
+    checks.append({"name": name, "ok": bool(ok), **details})
 
 
 def render_pipeline_usage() -> dict[str, Any]:
@@ -118,49 +163,226 @@ def render_pipeline_usage() -> dict[str, Any]:
 def main() -> int:
     warnings = load_private_env()
     checks: list[dict[str, Any]] = []
+    frontend_url = normalize_base_url(os.environ.get("KMFX_BETA_FRONTEND_URL") or DEFAULT_FRONTEND_URL)
+    backend_url = normalize_base_url(os.environ.get("KMFX_BETA_BACKEND_URL") or DEFAULT_BACKEND_URL)
+    mt5_api_url = normalize_base_url(os.environ.get("KMFX_BETA_MT5_API_URL") or DEFAULT_MT5_API_URL)
+    mt5_cors_origin = normalize_base_url(os.environ.get("KMFX_BETA_MT5_CORS_ORIGIN") or "https://kmfxedge.com")
 
-    dashboard = request("HEAD", "https://beta.kmfxedge.com/dashboard")
-    checks.append(
-        {
-            "name": "beta_no_basic_auth",
-            "ok": "basic" not in dashboard["headers"].get("www-authenticate", "").lower(),
-            "status": dashboard["status"],
-            "location": dashboard["headers"].get("location", ""),
-        }
+    root = request("HEAD", f"{frontend_url}/")
+    append_check(
+        checks,
+        warnings,
+        name="beta_root_loads",
+        ok=root["status"] == 200
+        or (
+            root["status"] in {302, 303, 307, 308}
+            and is_login_redirect(root["headers"].get("location", ""))
+        ),
+        response=root,
+        location=root["headers"].get("location", ""),
     )
-    checks.append(
-        {
-            "name": "beta_dashboard_requires_login",
-            "ok": dashboard["status"] in {302, 303, 307, 308}
-            and dashboard["headers"].get("location", "").startswith("/login"),
-            "status": dashboard["status"],
-            "location": dashboard["headers"].get("location", ""),
-        }
+
+    version = request("GET", f"{frontend_url}/api/kmfx/version")
+    version_payload = json_body(version)
+    append_check(
+        checks,
+        warnings,
+        name="beta_version_endpoint",
+        ok=version["status"] == 200
+        and version_payload.get("ok") is True
+        and bool(version_payload.get("deploymentId")),
+        response=version,
+        deployment_id=version_payload.get("deploymentId", ""),
+        environment=version_payload.get("environment", ""),
     )
+
+    public_auth = request("GET", f"{frontend_url}/api/kmfx/public-auth-config")
+    public_auth_payload = json_body(public_auth)
+    append_check(
+        checks,
+        warnings,
+        name="beta_public_auth_config",
+        ok=public_auth["status"] == 200
+        and public_auth_payload.get("ok") is True
+        and bool(public_auth_payload.get("supabaseUrl"))
+        and bool(public_auth_payload.get("supabasePublishableKey")),
+        response=public_auth,
+        supabase_host=urllib.parse.urlparse(str(public_auth_payload.get("supabaseUrl") or "")).netloc,
+    )
+
+    login = request("GET", f"{frontend_url}/login")
+    append_check(
+        checks,
+        warnings,
+        name="beta_login_page_loads",
+        ok=login["status"] == 200,
+        response=login,
+    )
+
+    dashboard = request("HEAD", f"{frontend_url}/dashboard")
+    append_check(
+        checks,
+        warnings,
+        name="beta_no_basic_auth",
+        ok="basic" not in dashboard["headers"].get("www-authenticate", "").lower(),
+        response=dashboard,
+        location=dashboard["headers"].get("location", ""),
+    )
+    append_check(
+        checks,
+        warnings,
+        name="beta_dashboard_requires_login",
+        ok=dashboard["status"] in {302, 303, 307, 308}
+        and is_login_redirect(dashboard["headers"].get("location", "")),
+        response=dashboard,
+        location=dashboard["headers"].get("location", ""),
+    )
+
+    for path in ("/accounts", "/capital", "/trades", "/calendar", "/settings", "/subscription"):
+        response = request("HEAD", f"{frontend_url}{path}")
+        append_check(
+            checks,
+            warnings,
+            name=f"beta_route_{path.strip('/')}_requires_login",
+            ok=response["status"] in {302, 303, 307, 308}
+            and is_login_redirect(response["headers"].get("location", "")),
+            response=response,
+            location=response["headers"].get("location", ""),
+        )
+
+    billing_status = request("GET", f"{frontend_url}/api/kmfx/billing/status")
+    billing_status_payload = json_body(billing_status)
+    append_check(
+        checks,
+        warnings,
+        name="beta_billing_status_requires_auth",
+        ok=(billing_status["status"] == 401 and billing_status_payload.get("auth_required") is True)
+        or (
+            billing_status["status"] in {302, 303, 307, 308}
+            and is_login_redirect(billing_status["headers"].get("location", ""))
+        ),
+        response=billing_status,
+        location=billing_status["headers"].get("location", ""),
+        reason=billing_status_payload.get("reason", ""),
+    )
+
+    checkout = request(
+        "POST",
+        f"{frontend_url}/api/kmfx/billing/checkout",
+        headers={"Content-Type": "application/json"},
+    )
+    checkout_payload = json_body(checkout)
+    append_check(
+        checks,
+        warnings,
+        name="beta_checkout_requires_auth",
+        ok=(checkout["status"] == 401 and checkout_payload.get("auth_required") is True)
+        or (
+            checkout["status"] in {302, 303, 307, 308}
+            and is_login_redirect(checkout["headers"].get("location", ""))
+        ),
+        response=checkout,
+        location=checkout["headers"].get("location", ""),
+        reason=checkout_payload.get("reason", ""),
+    )
+
+    pending = request("GET", f"{frontend_url}/api/kmfx/accounts/pending")
+    pending_payload = json_body(pending)
+    append_check(
+        checks,
+        warnings,
+        name="beta_pending_accounts_requires_auth",
+        ok=(pending["status"] == 401 and pending_payload.get("auth_required") is True)
+        or (
+            pending["status"] in {302, 303, 307, 308}
+            and is_login_redirect(pending["headers"].get("location", ""))
+        ),
+        response=pending,
+        location=pending["headers"].get("location", ""),
+        reason=pending_payload.get("reason", ""),
+    )
+
+    for path in (
+        "/downloads/KMFX-Launcher-macOS.zip",
+        "/downloads/KMFX-Launcher-Windows.exe",
+        "/KMFXConnector.ex5",
+    ):
+        response = request("HEAD", f"{frontend_url}{path}")
+        append_check(
+            checks,
+            warnings,
+            name=f"beta_download_{Path(path).name}_requires_login",
+            ok=response["status"] in {302, 303, 307, 308}
+            and is_login_redirect(response["headers"].get("location", "")),
+            response=response,
+            location=response["headers"].get("location", ""),
+        )
 
     for name, url in {
-        "backend_health": "https://kmfx-edge-api.onrender.com/health",
-        "mt5_api_health": "https://mt5-api.kmfxedge.com/health",
+        "backend_health": f"{backend_url}/health",
+        "mt5_api_health": f"{mt5_api_url}/health",
     }.items():
         response = request("GET", url)
         payload = json_body(response)
-        checks.append({"name": name, "ok": response["status"] == 200 and payload.get("ok") is True})
+        append_check(
+            checks,
+            warnings,
+            name=name,
+            ok=response["status"] == 200 and payload.get("ok") is True,
+            response=response,
+        )
 
     snapshot = request(
         "GET",
-        "https://kmfx-edge-api.onrender.com/api/accounts/snapshot?view=summary",
-        headers={"Origin": "https://beta.kmfxedge.com"},
+        f"{backend_url}/api/accounts/snapshot?view=summary",
+        headers={"Origin": frontend_url},
     )
     snapshot_payload = json_body(snapshot)
-    checks.append(
-        {
-            "name": "snapshot_public_requires_auth",
-            "ok": snapshot["status"] == 200
-            and snapshot_payload.get("auth_required") is True
-            and snapshot_payload.get("accounts") == [],
-            "bandwidth_guard": snapshot["headers"].get("x-kmfx-bandwidth-guard", ""),
-            "bandwidth_usage": snapshot["headers"].get("x-kmfx-bandwidth-usage", ""),
-        }
+    append_check(
+        checks,
+        warnings,
+        name="snapshot_public_requires_auth",
+        ok=snapshot["status"] == 200
+        and snapshot_payload.get("auth_required") is True
+        and snapshot_payload.get("accounts") == [],
+        response=snapshot,
+        bandwidth_guard=snapshot["headers"].get("x-kmfx-bandwidth-guard", ""),
+        bandwidth_usage=snapshot["headers"].get("x-kmfx-bandwidth-usage", ""),
+    )
+
+    mt5_cors = request(
+        "OPTIONS",
+        f"{mt5_api_url}/api/mt5/sync",
+        headers={
+            "Origin": mt5_cors_origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type,x-kmfx-connection-key",
+        },
+    )
+    append_check(
+        checks,
+        warnings,
+        name="mt5_api_cors_allows_expected_origin",
+        ok=mt5_cors["headers"].get("access-control-allow-origin") == mt5_cors_origin
+        and "X-KMFX-Connection-Key" in mt5_cors["headers"].get("access-control-allow-headers", ""),
+        response=mt5_cors,
+        allow_origin=mt5_cors["headers"].get("access-control-allow-origin", ""),
+        allow_headers=mt5_cors["headers"].get("access-control-allow-headers", ""),
+        expected_origin=mt5_cors_origin,
+    )
+
+    mt5_accounts = request(
+        "GET",
+        f"{mt5_api_url}/api/accounts/snapshot?view=summary",
+        headers={"Origin": frontend_url},
+    )
+    append_check(
+        checks,
+        warnings,
+        name="mt5_api_accounts_route_not_proxied",
+        ok=mt5_accounts["status"] == 404
+        and "access-control-allow-origin" not in mt5_accounts["headers"],
+        response=mt5_accounts,
     )
 
     render_usage = render_pipeline_usage()
@@ -170,6 +392,9 @@ def main() -> int:
     failed = [check for check in checks if not check.get("ok")]
     result = {
         "ok": not failed,
+        "frontend_url": frontend_url,
+        "backend_url": backend_url,
+        "mt5_api_url": mt5_api_url,
         "checks": checks,
         "warnings": warnings,
         "render_pipeline_usage": render_usage,

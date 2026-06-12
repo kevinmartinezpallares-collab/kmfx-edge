@@ -14,6 +14,50 @@ El backend emite alertas estructuradas en logs con el prefijo:
 Todas las alertas pasan por el mismo sanitizador que los eventos de auditoria:
 no deben imprimir keys completas, JWTs, bearer tokens, contrasenas ni secretos.
 
+## Monitor Beta
+
+Antes de abrir mas usuarios, despues de cada deploy beta y cuando un alumno
+reporte que no puede entrar o sincronizar, ejecutar:
+
+```bash
+cd apps/web-next
+npm run monitor:beta
+```
+
+El comando usa `scripts/beta_monitor_usage.py` y no imprime secretos. Carga
+opcionalmente `~/.kmfx-beta-monitor.env` para leer tokens privados ya existentes
+en la maquina.
+
+Checks cubiertos:
+
+- `beta_version_endpoint`: confirma que `https://beta.kmfxedge.com` responde con
+  version y deployment ID de Vercel.
+- `beta_public_auth_config`: confirma que la configuracion publica de Supabase
+  esta disponible. Si falla, el login puede mostrar "acceso seguro no cargado".
+- `beta_route_*_requires_login`: confirma que las rutas privadas redirigen a
+  login y no a Basic Auth ni a una pantalla rota.
+- `beta_download_*_requires_login`: confirma que Launcher, Windows y EA no se
+  descargan fuera de una sesion real.
+- `backend_health` y `mt5_api_health`: confirman Render y Worker MT5 vivos.
+- `snapshot_public_requires_auth`: confirma que la lectura publica de cuentas no
+  devuelve datos sin sesion y muestra el guard de consumo.
+- `mt5_api_cors_allows_expected_origin`: confirma que el Worker permite el
+  origen esperado para el conector MT5 y no abre CORS universal.
+- `render_pipeline_usage`: resume minutos de deploy Render del mes para vigilar
+  consumo operativo.
+
+Variables opcionales:
+
+```bash
+KMFX_BETA_FRONTEND_URL=https://beta.kmfxedge.com
+KMFX_BETA_BACKEND_URL=https://kmfx-edge-api.onrender.com
+KMFX_BETA_MT5_API_URL=https://mt5-api.kmfxedge.com
+KMFX_BETA_MT5_CORS_ORIGIN=https://kmfxedge.com
+```
+
+Si aparece `slow_check:<name>:<ms>`, no bloquea por si solo, pero conviene
+revisarlo si supera de forma repetida 2500 ms.
+
 ## Eventos Cubiertos
 
 ### API 5xx
