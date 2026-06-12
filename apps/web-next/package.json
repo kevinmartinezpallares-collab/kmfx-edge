@@ -17,6 +17,7 @@
     "preflight:beta": "python3 ../../scripts/next_beta_preflight.py --scope student",
     "preflight:platform": "python3 ../../scripts/next_beta_preflight.py --scope platform",
     "preflight:full": "python3 ../../scripts/next_beta_preflight.py --scope full",
+    "deploy:beta": "python3 ../../scripts/deploy_next_beta.py",
     "test:smoke:routes": "node scripts/smoke-workspace-routes.mjs",
     "typecheck": "tsc --noEmit --pretty false",
     "validate": "npm run test && npm run typecheck && npm run lint",
