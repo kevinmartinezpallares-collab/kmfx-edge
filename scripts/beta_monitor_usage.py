@@ -26,6 +26,24 @@ DEFAULT_FRONTEND_URL = "https://beta.kmfxedge.com"
 DEFAULT_BACKEND_URL = "https://kmfx-edge-api.onrender.com"
 DEFAULT_MT5_API_URL = "https://mt5-api.kmfxedge.com"
 LATENCY_WARNING_MS = 2500
+DEFAULT_MAX_BANDWIDTH_USAGE = 0.05
+WORKSPACE_PRIVATE_ROUTES = (
+    "/dashboard",
+    "/accounts",
+    "/capital",
+    "/analytics",
+    "/analytics/daily",
+    "/analytics/hourly",
+    "/analytics/risk",
+    "/trades",
+    "/notes",
+    "/calendar",
+    "/tools/calculator",
+    "/study",
+    "/settings",
+    "/settings/subscription",
+    "/subscription",
+)
 
 
 def load_private_env() -> list[str]:
@@ -104,6 +122,13 @@ def normalize_base_url(value: str) -> str:
     return str(value or "").strip().rstrip("/")
 
 
+def parse_float(value: Any, fallback: float = 0.0) -> float:
+    try:
+        return float(str(value or "").strip())
+    except ValueError:
+        return fallback
+
+
 def is_login_redirect(location: str) -> bool:
     parsed = urllib.parse.urlparse(location)
     return parsed.path == "/login"
@@ -167,6 +192,10 @@ def main() -> int:
     backend_url = normalize_base_url(os.environ.get("KMFX_BETA_BACKEND_URL") or DEFAULT_BACKEND_URL)
     mt5_api_url = normalize_base_url(os.environ.get("KMFX_BETA_MT5_API_URL") or DEFAULT_MT5_API_URL)
     mt5_cors_origin = normalize_base_url(os.environ.get("KMFX_BETA_MT5_CORS_ORIGIN") or "https://kmfxedge.com")
+    max_bandwidth_usage = parse_float(
+        os.environ.get("KMFX_BETA_MAX_BANDWIDTH_USAGE"),
+        DEFAULT_MAX_BANDWIDTH_USAGE,
+    )
 
     root = request("HEAD", f"{frontend_url}/")
     append_check(
@@ -228,18 +257,9 @@ def main() -> int:
         response=dashboard,
         location=dashboard["headers"].get("location", ""),
     )
-    append_check(
-        checks,
-        warnings,
-        name="beta_dashboard_requires_login",
-        ok=dashboard["status"] in {302, 303, 307, 308}
-        and is_login_redirect(dashboard["headers"].get("location", "")),
-        response=dashboard,
-        location=dashboard["headers"].get("location", ""),
-    )
 
-    for path in ("/accounts", "/capital", "/trades", "/calendar", "/settings", "/subscription"):
-        response = request("HEAD", f"{frontend_url}{path}")
+    for path in WORKSPACE_PRIVATE_ROUTES:
+        response = dashboard if path == "/dashboard" else request("HEAD", f"{frontend_url}{path}")
         append_check(
             checks,
             warnings,
@@ -338,6 +358,7 @@ def main() -> int:
         headers={"Origin": frontend_url},
     )
     snapshot_payload = json_body(snapshot)
+    snapshot_bandwidth_usage = parse_float(snapshot["headers"].get("x-kmfx-bandwidth-usage", "0"))
     append_check(
         checks,
         warnings,
@@ -348,6 +369,14 @@ def main() -> int:
         response=snapshot,
         bandwidth_guard=snapshot["headers"].get("x-kmfx-bandwidth-guard", ""),
         bandwidth_usage=snapshot["headers"].get("x-kmfx-bandwidth-usage", ""),
+    )
+    append_check(
+        checks,
+        warnings,
+        name="snapshot_bandwidth_usage_below_threshold",
+        ok=snapshot_bandwidth_usage <= max_bandwidth_usage,
+        bandwidth_usage=snapshot_bandwidth_usage,
+        max_bandwidth_usage=max_bandwidth_usage,
     )
 
     mt5_cors = request(
@@ -369,6 +398,24 @@ def main() -> int:
         allow_origin=mt5_cors["headers"].get("access-control-allow-origin", ""),
         allow_headers=mt5_cors["headers"].get("access-control-allow-headers", ""),
         expected_origin=mt5_cors_origin,
+    )
+
+    mt5_cors_unexpected = request(
+        "OPTIONS",
+        f"{mt5_api_url}/api/mt5/sync",
+        headers={
+            "Origin": "https://example.invalid",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type,x-kmfx-connection-key",
+        },
+    )
+    append_check(
+        checks,
+        warnings,
+        name="mt5_api_cors_blocks_unexpected_origin",
+        ok=mt5_cors_unexpected["headers"].get("access-control-allow-origin") != "https://example.invalid",
+        response=mt5_cors_unexpected,
+        allow_origin=mt5_cors_unexpected["headers"].get("access-control-allow-origin", ""),
     )
 
     mt5_accounts = request(

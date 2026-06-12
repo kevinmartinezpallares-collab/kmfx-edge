@@ -28,21 +28,29 @@ El comando usa `scripts/beta_monitor_usage.py` y no imprime secretos. Carga
 opcionalmente `~/.kmfx-beta-monitor.env` para leer tokens privados ya existentes
 en la maquina.
 
+Tambien existe el workflow `Beta Monitor` en GitHub Actions. Se ejecuta cada dos
+horas y puede lanzarse manualmente desde `Actions > Beta Monitor > Run workflow`.
+El resultado queda guardado como artifact `beta-monitor-report`.
+
 Checks cubiertos:
 
 - `beta_version_endpoint`: confirma que `https://beta.kmfxedge.com` responde con
   version y deployment ID de Vercel.
 - `beta_public_auth_config`: confirma que la configuracion publica de Supabase
   esta disponible. Si falla, el login puede mostrar "acceso seguro no cargado".
-- `beta_route_*_requires_login`: confirma que las rutas privadas redirigen a
-  login y no a Basic Auth ni a una pantalla rota.
+- `beta_route_*_requires_login`: confirma que las rutas privadas visibles en
+  beta redirigen a login y no a Basic Auth ni a una pantalla rota.
 - `beta_download_*_requires_login`: confirma que Launcher, Windows y EA no se
   descargan fuera de una sesion real.
 - `backend_health` y `mt5_api_health`: confirman Render y Worker MT5 vivos.
 - `snapshot_public_requires_auth`: confirma que la lectura publica de cuentas no
   devuelve datos sin sesion y muestra el guard de consumo.
+- `snapshot_bandwidth_usage_below_threshold`: avisa si una lectura publica de
+  snapshot se acerca al limite operativo definido para beta.
 - `mt5_api_cors_allows_expected_origin`: confirma que el Worker permite el
   origen esperado para el conector MT5 y no abre CORS universal.
+- `mt5_api_cors_blocks_unexpected_origin`: confirma que un origen ajeno no queda
+  autorizado por CORS.
 - `render_pipeline_usage`: resume minutos de deploy Render del mes para vigilar
   consumo operativo.
 
@@ -53,10 +61,31 @@ KMFX_BETA_FRONTEND_URL=https://beta.kmfxedge.com
 KMFX_BETA_BACKEND_URL=https://kmfx-edge-api.onrender.com
 KMFX_BETA_MT5_API_URL=https://mt5-api.kmfxedge.com
 KMFX_BETA_MT5_CORS_ORIGIN=https://kmfxedge.com
+KMFX_BETA_MAX_BANDWIDTH_USAGE=0.05
 ```
 
 Si aparece `slow_check:<name>:<ms>`, no bloquea por si solo, pero conviene
 revisarlo si supera de forma repetida 2500 ms.
+
+### Interpretacion Del Monitor
+
+- Si `ok=false`, no abrir mas usuarios hasta revisar el check fallido.
+- Si `ok=true` con `warnings`, la beta sigue operativa, pero conviene revisar
+  consumo Render, latencia o tokens ausentes.
+- Si falta token Render en GitHub, el workflow seguira validando beta y dejara
+  `render_usage_unavailable` como warning. Para medir consumo de Render desde
+  Actions, anadir `RENDER_API_KEY` como secret del repositorio.
+
+### Checklist Al Entrar Un Usuario Nuevo
+
+1. Ejecutar `npm run monitor:beta` o lanzar el workflow `Beta Monitor`.
+2. Revisar que `beta_public_auth_config`, `backend_health` y `mt5_api_health`
+   esten en verde.
+3. Confirmar que `snapshot_bandwidth_usage_below_threshold` no se acerca al
+   limite configurado.
+4. Mirar logs de Render filtrando `[KMFX][ALERT]`.
+5. Si el alumno instala EA/Launcher, confirmar que no aparecen rechazos
+   anormales de MT5 sync.
 
 ## Eventos Cubiertos
 
