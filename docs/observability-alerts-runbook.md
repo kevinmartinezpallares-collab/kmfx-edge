@@ -60,6 +60,28 @@ revisarlo si supera de forma repetida 2500 ms.
 
 ## Eventos Cubiertos
 
+### Proxy Next Hacia Backend
+
+Patrones:
+
+```text
+event=backend_proxy_done
+event=backend_proxy_failed
+```
+
+Los emiten las rutas `app/api/kmfx/*` del dashboard Next cuando llaman a Render
+con la sesion Supabase del usuario. No imprimen JWTs, bearer tokens ni payloads;
+solo metodo, ruta sanitizada, status, duracion y motivo de fallo.
+
+Accion:
+
+1. Si `reason=auth_required`, el problema esta antes del backend: sesion
+   Supabase ausente/caducada o cookie no disponible.
+2. Si `event=backend_proxy_done` trae `status>=400`, revisar la ruta exacta en
+   Render con el mismo horario.
+3. Si `ms` es alto de forma repetida, revisar latencia Render/Supabase antes de
+   tocar UI.
+
 ### API 5xx
 
 Patron:
