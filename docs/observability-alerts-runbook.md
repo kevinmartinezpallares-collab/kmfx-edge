@@ -208,6 +208,43 @@ Para consultar runtime logs desde terminal hace falta `VERCEL_TOKEN`. Si no esta
 disponible localmente, usar Vercel Dashboard o GitHub Actions como primera
 fuente operativa.
 
+El frontend Next emite eventos estructurados desde el `proxy` para explicar
+redirecciones y bloqueos sin imprimir emails, tokens ni payloads:
+
+```text
+event=auth_redirect_login
+event=auth_redirect_dashboard
+event=billing_guard_redirect
+event=billing_guard_status_failed
+event=marketing_preview_redirect
+event=beta_gate_blocked
+event=internal_route_disabled
+event=internal_route_admin_blocked
+```
+
+Accion:
+
+1. Si aparece `auth_redirect_login`, el usuario no tenia sesion Supabase valida
+   para esa ruta.
+2. Si aparece `billing_guard_redirect`, revisar `reason`:
+   `billing_required`, `billing_past_due`, `entitlement_required` o
+   `plan_limit_reached`.
+3. Si aparece `billing_guard_status_failed`, el proxy no pudo comprobar billing
+   contra el backend; revisar Render en el mismo minuto.
+4. Si aparece `internal_route_disabled` o `internal_route_admin_blocked`, la
+   ruta pertenece a una superficie interna/futura y se esta ocultando como
+   corresponde.
+
+Vercel Web Analytics y Speed Insights estan activos en el layout de Next para
+medir trafico real, rutas lentas y Core Web Vitals sin afectar el flujo de
+usuario. Revisar desde Vercel:
+
+```text
+Project > Analytics
+Project > Speed Insights
+Project > Logs
+```
+
 Con token disponible:
 
 ```bash
@@ -220,6 +257,8 @@ Buscar:
 
 ```text
 backend_proxy_failed
+billing_guard_redirect
+billing_guard_status_failed
 level":"error
 [KMFX][ALERT]
 ```

@@ -39,6 +39,28 @@ function betaGateEnabled() {
   return Boolean(process.env.KMFX_BETA_GATE_PASSWORD?.trim());
 }
 
+function logProxyEvent(
+  level: "info" | "warn",
+  event: string,
+  request: NextRequest,
+  fields: Record<string, unknown> = {},
+) {
+  const payload = JSON.stringify({
+    event,
+    level,
+    path: request.nextUrl.pathname,
+    requestId: request.headers.get("x-vercel-id") || undefined,
+    service: "kmfx-next",
+    ...fields,
+  });
+
+  if (level === "warn") {
+    console.warn(payload);
+  } else {
+    console.log(payload);
+  }
+}
+
 function unauthorized() {
   return new NextResponse("Beta privada", {
     status: 401,
@@ -125,7 +147,15 @@ async function resolveBlockedBillingAccess(accessToken: string | undefined) {
       access.reason !== "billing_status_unavailable";
 
     return blocked ? access : null;
-  } catch {
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        event: "billing_guard_status_failed",
+        level: "warn",
+        reason: error instanceof Error ? error.message : "billing_status_failed",
+        service: "kmfx-next",
+      }),
+    );
     return null;
   }
 }
@@ -141,19 +171,23 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/debug") &&
     process.env.KMFX_ENABLE_DEBUG_ROUTE !== "1"
   ) {
+    logProxyEvent("warn", "debug_route_blocked", request);
     return new NextResponse(null, { status: 404 });
   }
 
   if (isGeneticLabPath(pathname) && !isGeneticLabEnabled()) {
+    logProxyEvent("warn", "internal_route_disabled", request);
     return new NextResponse(null, { status: 404 });
   }
 
   if (betaGateEnabled() && !hasBetaAccess(request)) {
+    logProxyEvent("warn", "beta_gate_blocked", request);
     return unauthorized();
   }
 
   if (!isSupabaseAuthEnabled()) {
     if (isGeneticLabPath(pathname)) {
+      logProxyEvent("warn", "internal_route_auth_unconfigured", request);
       return new NextResponse(null, { status: 404 });
     }
 
@@ -168,6 +202,10 @@ export async function proxy(request: NextRequest) {
       !session.authenticated ||
       !isAdminEmailAllowed(session.userEmail)
     ) {
+      logProxyEvent("warn", "internal_route_admin_blocked", request, {
+        authenticated: session.authenticated,
+        configured: session.configured,
+      });
       return new NextResponse(null, { status: 404 });
     }
   }
@@ -180,6 +218,7 @@ export async function proxy(request: NextRequest) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+    logProxyEvent("info", "auth_redirect_login", request);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -187,6 +226,7 @@ export async function proxy(request: NextRequest) {
     const dashboardUrl = request.nextUrl.clone();
     dashboardUrl.pathname = "/dashboard";
     dashboardUrl.search = "";
+    logProxyEvent("info", "auth_redirect_dashboard", request);
     return NextResponse.redirect(dashboardUrl);
   }
 
@@ -198,6 +238,7 @@ export async function proxy(request: NextRequest) {
   ) {
     const marketingUrl = request.nextUrl.clone();
     marketingUrl.searchParams.set("demo", "marketing");
+    logProxyEvent("info", "marketing_preview_redirect", request);
     return NextResponse.redirect(marketingUrl);
   }
 
@@ -220,6 +261,10 @@ export async function proxy(request: NextRequest) {
       "access",
       subscriptionAccessReasonSearchValue(blockedBillingAccess),
     );
+    logProxyEvent("warn", "billing_guard_redirect", request, {
+      reason: blockedBillingAccess.reason,
+      status: blockedBillingAccess.status,
+    });
     return NextResponse.redirect(subscriptionUrl);
   }
 
