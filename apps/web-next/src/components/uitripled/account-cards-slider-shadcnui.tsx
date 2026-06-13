@@ -976,6 +976,9 @@ export function AccountCardsSlider({
   const isMobile = useIsMobile();
   const containerRef = useRef<HTMLDivElement>(null);
   const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null);
+  const [optimisticAccountLabels, setOptimisticAccountLabels] = useState<
+    Record<string, string>
+  >({});
   const [renameState, dispatchRename] = useReducer(
     renameDialogReducer,
     INITIAL_RENAME_DIALOG_STATE,
@@ -987,18 +990,26 @@ export function AccountCardsSlider({
     value: renameValue,
   } = renameState;
   const x = useMotionValue(0);
+  const visibleAccounts = useMemo(
+    () =>
+      accounts.map((account) => {
+        const label = optimisticAccountLabels[account.id];
+        return label ? { ...account, label } : account;
+      }),
+    [accounts, optimisticAccountLabels],
+  );
   const cards = useMemo(
-    () => buildCards(accounts, activeAccountId),
-    [accounts, activeAccountId],
+    () => buildCards(visibleAccounts, activeAccountId),
+    [visibleAccounts, activeAccountId],
   );
   const width = useScrollableWidth(containerRef);
   const [selectedAccountId, setSelectedAccountId] = useState(
     activeAccountId ?? cards[0]?.id ?? "",
   );
   const selectedAccount =
-    accounts.find((account) => account.id === selectedAccountId) ??
-    accounts.find((account) => account.id === activeAccountId) ??
-    accounts[0];
+    visibleAccounts.find((account) => account.id === selectedAccountId) ??
+    visibleAccounts.find((account) => account.id === activeAccountId) ??
+    visibleAccounts[0];
 
   const scrollTo = (direction: "left" | "right") => {
     const currentX = x.get();
@@ -1093,6 +1104,10 @@ export function AccountCardsSlider({
         throw new Error(String(payload?.reason || "rename_failed"));
       }
 
+      setOptimisticAccountLabels((current) => ({
+        ...current,
+        [renamingAccount.id]: alias,
+      }));
       dispatchRename({ type: "saved" });
       router.refresh();
     } catch {
