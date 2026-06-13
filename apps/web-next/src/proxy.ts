@@ -101,6 +101,10 @@ function subscriptionAccessReasonSearchValue(access: ConnectionAccess) {
   return "plan-required";
 }
 
+function hasExplicitDemoMode(request: NextRequest) {
+  return Boolean(request.nextUrl.searchParams.get("demo"));
+}
+
 async function resolveBlockedBillingAccess(accessToken: string | undefined) {
   if (!accessToken) return null;
 
@@ -184,6 +188,17 @@ export async function proxy(request: NextRequest) {
     dashboardUrl.pathname = "/dashboard";
     dashboardUrl.search = "";
     return NextResponse.redirect(dashboardUrl);
+  }
+
+  if (
+    session.authenticated &&
+    isMarketingPreviewEmail(session.userEmail) &&
+    isBillingGuardedWorkspaceRoute(pathname) &&
+    !hasExplicitDemoMode(request)
+  ) {
+    const marketingUrl = request.nextUrl.clone();
+    marketingUrl.searchParams.set("demo", "marketing");
+    return NextResponse.redirect(marketingUrl);
   }
 
   const blockedBillingAccess =
