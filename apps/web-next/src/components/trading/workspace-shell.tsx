@@ -36,8 +36,6 @@ import {
   routeTitles,
   type NavigationItem,
 } from "@/lib/domain/navigation";
-import { getAccountsOverview } from "@/lib/domain/accounts-selectors";
-import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -191,36 +189,9 @@ function getPromoNotifications(): PromoNotification[] {
 function getNavBadge(
   href: string | undefined,
   item: NavigationItem,
-  workspace: WorkspaceState,
-  options?: { marketingPreview?: boolean },
 ) {
   if (!item.enabled) return item.badge ?? "Próximamente";
   if (!href) return item.badge;
-
-  if (href === "/dashboard") return "Activo";
-  if (href === "/accounts") {
-    if (options?.marketingPreview) return "7";
-    return String(getAccountsOverview(workspace).totalCount);
-  }
-  if (href === "/risk") {
-    if (workspace.risk.status === "blocked") return "Límite";
-    if (workspace.risk.status === "caution") return "Vigilar";
-    return "OK";
-  }
-  if (href === "/analytics") return workspace.analytics.currentPeriod;
-  if (href === "/trades") return String(countClosedTradeExecutions(workspace.trades));
-  if (href === "/capital") {
-    const fundedCount = workspace.accounts.filter((account) => account.isFunded).length;
-    return `${fundedCount}F`;
-  }
-  if (href === "/strategies") {
-    const fundedCount = workspace.accounts.filter((account) => account.isFunded).length;
-    return String(fundedCount);
-  }
-  if (href === "/funding") {
-    const linkedFunding = workspace.accounts.filter((account) => account.funding).length;
-    return linkedFunding > 0 ? String(linkedFunding) : "0";
-  }
 
   return item.badge;
 }
@@ -273,15 +244,11 @@ function NavigationGroupMenu({
   pathname,
   router,
   selectedAccountId,
-  workspace,
-  marketingPreview,
 }: {
   items: NavigationItem[];
-  marketingPreview: boolean;
   pathname: string;
   router: ReturnType<typeof useRouter>;
   selectedAccountId: string | null;
-  workspace: WorkspaceState;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
 
@@ -302,7 +269,7 @@ function NavigationGroupMenu({
         const href = item.href;
         const hasActiveChild = item.children?.some((child) => isHrefActive(pathname, child.href)) ?? false;
         const isActive = href ? isHrefActive(pathname, href) || hasActiveChild : hasActiveChild;
-        const badge = getNavBadge(href, item, workspace, { marketingPreview });
+        const badge = getNavBadge(href, item);
         const showChildren = Boolean(item.children?.length) && (isActive || pathname === href);
         const targetHref = href && item.enabled
           ? hrefWithActiveAccount(href, selectedAccountId)
@@ -1005,10 +972,8 @@ function WorkspaceSidebar({
   remainingPromoCount,
   selectedAccountId,
   workspace,
-  marketingPreview,
 }: {
   activePromo: PromoNotification | undefined;
-  marketingPreview: boolean;
   onDismissPromo: (promoId: string) => void;
   remainingPromoCount: number;
   selectedAccountId: string | null;
@@ -1016,6 +981,14 @@ function WorkspaceSidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const showUpcomingNavigation = workspace.meta.userRoleLabel === "Administrador";
+  const visibleNavigationGroups = React.useMemo(
+    () =>
+      navigationGroups.filter(
+        (group) => showUpcomingNavigation || group.label !== "Próximamente",
+      ),
+    [showUpcomingNavigation],
+  );
 
   return (
     <Sidebar
@@ -1041,7 +1014,7 @@ function WorkspaceSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        {navigationGroups.map((group, index) => (
+        {visibleNavigationGroups.map((group, index) => (
           <React.Fragment key={group.label}>
               <SidebarGroup>
                 <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
@@ -1051,12 +1024,10 @@ function WorkspaceSidebar({
                     pathname={pathname}
                     router={router}
                     selectedAccountId={selectedAccountId}
-                    marketingPreview={marketingPreview}
-                    workspace={workspace}
                   />
                 </SidebarGroupContent>
               </SidebarGroup>
-            {index < navigationGroups.length - 1 ? <SidebarSeparator /> : null}
+            {index < visibleNavigationGroups.length - 1 ? <SidebarSeparator /> : null}
           </React.Fragment>
         ))}
       </SidebarContent>
@@ -1080,7 +1051,6 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
   const searchParams = useLocationSearchParams();
   const demoMode = searchParams.get("demo");
   const previewMode = demoMode === "1";
-  const marketingPreview = demoMode === "marketing";
   const selectedAccountId =
     searchParams.get("account") ?? workspace.activeAccountId;
   const activeAccount =
@@ -1172,7 +1142,6 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
         onDismissPromo={dismissPromo}
         remainingPromoCount={remainingPromoCount}
         selectedAccountId={selectedAccountId}
-        marketingPreview={marketingPreview}
         workspace={workspace}
       />
       <SidebarInset className="min-h-svh min-w-0 overflow-x-hidden bg-background">
