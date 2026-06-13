@@ -15,16 +15,24 @@ npm run validate:cascade
 Estado operativo actual:
 
 - Cierre beta 2026-06-13: `docs/next-beta-operational-closure-2026-06-13.md`.
+- Corte Next en dominio principal 2026-06-13:
+  `docs/next-production-cutover-2026-06-13.md`.
 - `npm run monitor:beta`: verde el 2026-06-13.
 - `npm run preflight:beta`: verde el 2026-06-13 cuando se exportan las cuatro
   confirmaciones manuales de alumno real.
 - `scripts/production_smoke.py --profile next-beta --downloads-mode auth`:
-  verde el 2026-06-13.
+  verde el 2026-06-13 contra `https://kmfxedge.com`.
 
 Desde la raíz, si se quiere validar producción completa:
 
 ```bash
-python3 scripts/production_smoke.py --profile next-beta --frontend-url https://beta.kmfxedge.com --backend-url https://kmfx-edge-api.onrender.com --mt5-api-url https://mt5-api.kmfxedge.com --downloads-mode auth
+python3 scripts/production_smoke.py --profile next-beta --frontend-url https://kmfxedge.com --backend-url https://kmfx-edge-api.onrender.com --mt5-api-url https://mt5-api.kmfxedge.com --downloads-mode auth --cors-origin https://kmfxedge.com
+```
+
+Para validar beta como entorno paralelo:
+
+```bash
+python3 scripts/production_smoke.py --profile next-beta --frontend-url https://beta.kmfxedge.com --backend-url https://kmfx-edge-api.onrender.com --mt5-api-url https://mt5-api.kmfxedge.com --downloads-mode auth --cors-origin https://beta.kmfxedge.com
 ```
 
 ## Gates Bloqueantes
@@ -36,6 +44,8 @@ python3 scripts/production_smoke.py --profile next-beta --frontend-url https://b
 - `https://mt5-api.kmfxedge.com/api/mt5/sync` debe aceptar WebRequest solo con los headers esperados.
 - La ruta legacy de cuentas del dashboard antiguo debe seguir bloqueada.
 - El proyecto Vercel correcto para Next es `apps/web-next` -> `kmfx-edge-next-beta`.
+- `kmfxedge.com`, `www.kmfxedge.com`, `dashboard.kmfxedge.com` y
+  `beta.kmfxedge.com` deben apuntar al despliegue validado de `kmfx-edge-next-beta`.
 
 ## Confirmaciones Manuales
 
@@ -57,4 +67,6 @@ npm run preflight:beta
 
 ## No Mezclar
 
-No usar el proyecto Vercel raíz para cortar tráfico Next. El root pertenece a la superficie legacy. Next vive en `apps/web-next`.
+No usar el proyecto Vercel raíz `kmfx-edge` para cortar tráfico Next. Esa superficie
+queda como legacy. Next vive en `apps/web-next` y el proyecto Vercel operativo es
+`kmfx-edge-next-beta`.
