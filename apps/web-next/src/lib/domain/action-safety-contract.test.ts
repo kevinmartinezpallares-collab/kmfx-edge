@@ -74,4 +74,18 @@ describe("V1 action safety contract", () => {
     expect(source).toContain("Cache-Control");
     expect(source).not.toContain("NEXT_PUBLIC_KMFX_BETA_GATE_PASSWORD");
   });
+
+  it("keeps marketing preview explicit and owner-scoped without billing interception", () => {
+    const proxySource = readSource("src/proxy.ts");
+    const workspaceSource = readSource("src/lib/data/workspace-source.ts");
+    const accessSource = readSource("src/lib/auth/marketing-preview-access.ts");
+
+    expect(proxySource).toContain("isMarketingPreviewDemoValue");
+    expect(proxySource).toContain("isMarketingPreviewEmail(session.userEmail)");
+    expect(workspaceSource).toContain('previewMode === "marketing"');
+    expect(workspaceSource).toContain('previewMode !== "live"');
+    expect(workspaceSource).toContain("isMarketingPreviewEmail(userEmail)");
+    expect(accessSource).toContain("KMFX_MARKETING_PREVIEW_EMAILS");
+    expect(accessSource).toContain("kevinmartinezpallares@gmail.com");
+  });
 });

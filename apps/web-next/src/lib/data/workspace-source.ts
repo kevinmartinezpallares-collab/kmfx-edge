@@ -3,11 +3,13 @@ import "server-only";
 import { cache } from "react";
 
 import { fetchLiveAccountsSnapshot } from "@/lib/api/accounts-snapshot-client";
+import { isMarketingPreviewEmail } from "@/lib/auth/marketing-preview-access";
 import type { RawLiveAccountsSnapshot } from "@/lib/contracts/live-snapshot";
 import type { WorkspaceState } from "@/lib/contracts/workspace-state";
 import { createWorkspaceFromLiveSnapshot } from "@/lib/data/live-snapshot-adapter";
 import fixtureSnapshot from "@/lib/data/fixtures/live-accounts-snapshot.fixture.json";
 import { wave1Workspace } from "@/lib/data/wave1-mock";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type WorkspaceSourceMode = WorkspaceState["meta"]["sourceMode"];
 export type WorkspaceSearchParams = Record<
@@ -93,6 +95,16 @@ async function readMarketingWorkspaceState(activeAccountId?: string) {
   );
 }
 
+async function getAuthenticatedWorkspaceEmail() {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data } = await supabase.auth.getUser();
+    return data.user?.email ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function buildWorkspaceState(
   activeAccountId?: string,
 ): Promise<WorkspaceState> {
@@ -169,6 +181,13 @@ export async function getWorkspaceStateForSearchParams(
 
   if (previewMode === "marketing") {
     return readMarketingWorkspaceState(activeAccountId);
+  }
+
+  if (previewMode !== "live") {
+    const userEmail = await getAuthenticatedWorkspaceEmail();
+    if (isMarketingPreviewEmail(userEmail)) {
+      return readMarketingWorkspaceState(activeAccountId);
+    }
   }
 
   if (!activeAccountId) {

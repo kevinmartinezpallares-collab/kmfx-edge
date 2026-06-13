@@ -101,6 +101,8 @@ describe("workspace source contract", () => {
     expect(source).toContain("previewMode");
     expect(source).toContain('previewMode === "mock"');
     expect(source).toContain('previewMode === "marketing"');
+    expect(source).toContain('previewMode !== "live"');
+    expect(source).toContain("isMarketingPreviewEmail(userEmail)");
     expect(source).toContain("return readFixtureWorkspaceState(activeAccountId)");
     expect(source).toContain("return readMarketingWorkspaceState(activeAccountId)");
   });

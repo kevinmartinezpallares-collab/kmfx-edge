@@ -7,6 +7,10 @@ import {
   isGeneticLabPath,
 } from "@/lib/auth/admin-access";
 import {
+  isMarketingPreviewDemoValue,
+  isMarketingPreviewEmail,
+} from "@/lib/auth/marketing-preview-access";
+import {
   resolveConnectionAccess,
   type ConnectionAccess,
 } from "@/lib/billing/connection-access";
@@ -185,6 +189,8 @@ export async function proxy(request: NextRequest) {
   const blockedBillingAccess =
     session.authenticated &&
     request.nextUrl.searchParams.get("demo") !== "1" &&
+    !isMarketingPreviewDemoValue(request.nextUrl.searchParams.get("demo")) &&
+    !isMarketingPreviewEmail(session.userEmail) &&
     isBillingGuardedWorkspaceRoute(pathname)
       ? await resolveBlockedBillingAccess(session.accessToken)
       : null;
