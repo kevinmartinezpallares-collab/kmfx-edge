@@ -562,13 +562,13 @@ describe("createWorkspaceFromLiveSnapshot", () => {
     expect(fixture.auth_email).toBe("kevinmartinezpallares@gmail.com");
     expect(accounts).toHaveLength(7);
     expect(accounts.map((account) => account.display_name)).toEqual([
-      "Darwinex Zero 100K",
+      "Darwinex Zero 100K Allocation",
       "IC Markets Real",
-      "FTMO Fase 1 100K",
-      "The5ers Fase 2 100K",
+      "FTMO Challenge Fase 1 100K",
+      "The5ers High Stakes Fase 2 100K",
       "Orion Funded 50K",
-      "Pepperstone Demo 10K",
-      "Funding Pips Funded 200K",
+      "WSF Evaluation 50K",
+      "Funding Pips 2-Step 100K",
     ]);
     expect(totals.some((value) => value > 0)).toBe(true);
     expect(totals.some((value) => value < 0)).toBe(true);
@@ -582,7 +582,7 @@ describe("createWorkspaceFromLiveSnapshot", () => {
     const workspace = createWorkspaceFromLiveSnapshot(fixture, "fixture");
 
     expect(workspace.accounts).toHaveLength(7);
-    expect(workspace.accounts[0]?.label).toBe("Darwinex Zero 100K");
+    expect(workspace.accounts[0]?.label).toBe("Darwinex Zero 100K Allocation");
     expect(workspace.trades.length).toBeGreaterThan(100);
     expect(workspace.analytics.performance.totalTrades).toBeGreaterThan(100);
   });
