@@ -148,6 +148,7 @@ const ALLOCATION_FUNNEL_COLORS = [
   "oklch(0.28 0 0)",
   "oklch(0.22 0 0)",
 ];
+const MAX_ALLOCATION_FUNNEL_SEGMENTS = 5;
 const LIVELINE_ACCENT_BY_THEME = {
   dark: "#f5f5f5",
   light: "#171717",
@@ -709,6 +710,17 @@ function allocationFunnelVisualPct(index: number, total: number) {
   return Math.round(100 - progress * (100 - minPct));
 }
 
+function compactAllocationLabel(label: string) {
+  const cleaned = label
+    .replace(/\s+/g, " ")
+    .replace(/\b(Account|Cuenta)\b/gi, "")
+    .replace(/\b(Challenge|Evaluation|Funded)\b/gi, "")
+    .trim();
+
+  if (cleaned.length <= 18) return cleaned || label;
+  return `${cleaned.slice(0, 17).trimEnd()}…`;
+}
+
 function useCapitalReferenceModel(workspace: WorkspaceState) {
   const portfolioChartTheme = useReferenceLivelineTheme();
   const initialPortfolioCalendarOverview = React.useMemo(
@@ -1157,16 +1169,58 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
   } => Boolean(row));
   const allocationFunnelRows = [...allocationRows]
     .toSorted((left, right) => right.allocationPct - left.allocationPct);
-  const allocationFunnelData = allocationFunnelRows.map((row, index) => ({
-    label: row.account.label,
-    value: allocationFunnelVisualPct(index, allocationFunnelRows.length),
-    displayValue: formatCurrency(row.account.equity, row.account.baseCurrency),
+  const allocationFunnelVisibleRows =
+    allocationFunnelRows.length > MAX_ALLOCATION_FUNNEL_SEGMENTS
+      ? allocationFunnelRows.slice(0, MAX_ALLOCATION_FUNNEL_SEGMENTS - 1)
+      : allocationFunnelRows;
+  const allocationFunnelRestRows =
+    allocationFunnelRows.length > MAX_ALLOCATION_FUNNEL_SEGMENTS
+      ? allocationFunnelRows.slice(MAX_ALLOCATION_FUNNEL_SEGMENTS - 1)
+      : [];
+  const allocationFunnelItems = [
+    ...allocationFunnelVisibleRows.map((row) => ({
+      accountCount: 1,
+      allocationPct: row.allocationPct,
+      baseCurrency: row.account.baseCurrency,
+      chartLabel: compactAllocationLabel(row.account.label),
+      equity: row.account.equity,
+      id: row.account.id,
+      isRest: false,
+      label: row.account.label,
+    })),
+    ...(allocationFunnelRestRows.length > 0
+      ? [
+          {
+            accountCount: allocationFunnelRestRows.length,
+            allocationPct: allocationFunnelRestRows.reduce(
+              (sum, row) => sum + row.allocationPct,
+              0,
+            ),
+            baseCurrency:
+              allocationFunnelRestRows[0]?.account.baseCurrency ??
+              dominantAllocation?.account.baseCurrency ??
+              "USD",
+            chartLabel: "Resto",
+            equity: allocationFunnelRestRows.reduce(
+              (sum, row) => sum + row.account.equity,
+              0,
+            ),
+            id: "allocation-rest",
+            isRest: true,
+            label: `Resto (${allocationFunnelRestRows.length})`,
+          },
+        ]
+      : []),
+  ];
+  const allocationFunnelData = allocationFunnelItems.map((item, index) => ({
+    label: item.chartLabel,
+    value: allocationFunnelVisualPct(index, allocationFunnelItems.length),
+    displayValue: formatCurrency(item.equity, item.baseCurrency),
     color: ALLOCATION_FUNNEL_COLORS[index] ?? "oklch(0.28 0 0)",
   }));
-  const allocationFunnelLegend = allocationFunnelRows.map((row, index) => ({
-    account: row.account,
-    allocationPct: row.allocationPct,
-    visualPct: allocationFunnelVisualPct(index, allocationFunnelRows.length),
+  const allocationFunnelLegend = allocationFunnelItems.map((item, index) => ({
+    ...item,
+    visualPct: allocationFunnelVisualPct(index, allocationFunnelItems.length),
   }));
   const riskDuplicationRows = [
     topExposure
@@ -1246,6 +1300,8 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     accountRows,
     allocationFunnelData,
     allocationFunnelLegend,
+    allocationFunnelRestRows,
+    allocationFunnelVisibleRows,
     allocationRows,
     allocationScore,
     allocationScoreLabel,
@@ -1335,6 +1391,8 @@ function renderCapitalReferenceSection(
     accountRows,
     allocationFunnelData,
     allocationFunnelLegend,
+    allocationFunnelRestRows,
+    allocationFunnelVisibleRows,
     allocationRows,
     allocationScore,
     allocationScoreLabel,
@@ -1425,7 +1483,9 @@ function renderCapitalReferenceSection(
                       Asignación de mayor a menor
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Efecto visual relativo frente al líder. La tabla inferior enseña el peso real.
+                      {allocationFunnelRestRows.length > 0
+                        ? `Top ${allocationFunnelVisibleRows.length} y resto agrupado. El desglose completo queda debajo.`
+                        : "Efecto visual relativo frente al líder. La tabla inferior enseña el peso real."}
                     </p>
                   </div>
                   <p className="text-sm font-medium text-foreground">
@@ -1499,22 +1559,22 @@ function renderCapitalReferenceSection(
                       <div className="grid divide-y divide-border/50 sm:auto-cols-fr sm:grid-flow-col sm:divide-x sm:divide-y-0">
                         {allocationFunnelLegend.map((item) => (
                           <div
-                            key={item.account.id}
-                            className="grid min-h-[78px] min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 p-3"
+                            key={item.id}
+                            className="grid min-h-[92px] min-w-0 content-center gap-2 p-3"
                           >
-                            <div className="min-w-0 self-center">
+                            <div className="min-w-0">
                               <p className="truncate text-xs font-medium leading-tight text-foreground">
-                                {item.account.label}
+                                {item.label}
                               </p>
                               <p className="mt-2 truncate font-mono text-[11px] text-muted-foreground">
-                                {formatCurrency(item.account.equity, item.account.baseCurrency)}
+                                {formatCurrency(item.equity, item.baseCurrency)}
                               </p>
                             </div>
-                            <div className="min-w-[58px] self-center text-right">
-                              <p className="whitespace-nowrap font-mono text-xs font-medium leading-none text-muted-foreground">
+                            <div className="grid min-w-0 gap-1">
+                              <p className="truncate font-mono text-[11px] font-medium leading-none text-muted-foreground">
                                 {item.visualPct}% escala
                               </p>
-                              <p className="mt-2 whitespace-nowrap font-mono text-xs text-foreground">
+                              <p className="truncate font-mono text-[11px] text-foreground">
                                 {item.allocationPct.toFixed(1)}%
                                 <span className="ml-1 text-muted-foreground">real</span>
                               </p>
