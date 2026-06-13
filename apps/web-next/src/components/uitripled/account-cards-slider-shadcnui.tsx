@@ -49,6 +49,7 @@ import {
   type FormEvent,
   type RefObject,
   useCallback,
+  useEffect,
   useMemo,
   useReducer,
   useRef,
@@ -1006,30 +1007,68 @@ export function AccountCardsSlider({
   const [selectedAccountId, setSelectedAccountId] = useState(
     activeAccountId ?? cards[0]?.id ?? "",
   );
+  const resolvedSelectedAccountId = cards.some((card) => card.id === selectedAccountId)
+    ? selectedAccountId
+    : activeAccountId ?? cards[0]?.id ?? "";
   const selectedAccount =
-    visibleAccounts.find((account) => account.id === selectedAccountId) ??
+    visibleAccounts.find((account) => account.id === resolvedSelectedAccountId) ??
     visibleAccounts.find((account) => account.id === activeAccountId) ??
     visibleAccounts[0];
 
+  const getCenteredXForIndex = useCallback((index: number) => {
+    const container = containerRef.current;
+    const card = container?.querySelectorAll<HTMLElement>("[data-account-card]")[index];
+
+    if (!container || !card) {
+      return x.get();
+    }
+
+    const scrollableWidth = getScrollableWidth(container);
+    const targetX =
+      container.clientWidth / 2 - card.offsetLeft - card.offsetWidth / 2;
+
+    return Math.max(Math.min(targetX, 0), -scrollableWidth);
+  }, [x]);
+
+  const centerCardAtIndex = useCallback(
+    (index: number) => {
+      animate(x, getCenteredXForIndex(index), {
+        type: "spring",
+        stiffness: 300,
+        damping: 32,
+        mass: 1,
+      });
+    },
+    [getCenteredXForIndex, x],
+  );
+
   const scrollTo = (direction: "left" | "right") => {
-    const currentX = x.get();
-    const containerWidth = containerRef.current?.offsetWidth || 0;
-    const scrollAmount = isMobile
-      ? Math.min(Math.max(containerWidth - 48, 272), 360) + 24
-      : containerWidth * 0.8;
+    const currentIndex = Math.max(
+      cards.findIndex((card) => card.id === resolvedSelectedAccountId),
+      0,
+    );
+    const nextIndex =
+      direction === "left"
+        ? Math.max(currentIndex - 1, 0)
+        : Math.min(currentIndex + 1, cards.length - 1);
+    const nextCard = cards[nextIndex];
 
-    let newX =
-      direction === "left" ? currentX + scrollAmount : currentX - scrollAmount;
+    if (!nextCard) {
+      return;
+    }
 
-    newX = Math.max(Math.min(newX, 0), -width);
-
-    animate(x, newX, {
-      type: "spring",
-      stiffness: 300,
-      damping: 30,
-      mass: 1,
-    });
+    setSelectedAccountId(nextCard.id);
+    centerCardAtIndex(nextIndex);
   };
+
+  useEffect(() => {
+    const selectedIndex = cards.findIndex(
+      (card) => card.id === resolvedSelectedAccountId,
+    );
+    if (selectedIndex < 0) return;
+
+    centerCardAtIndex(selectedIndex);
+  }, [cards, centerCardAtIndex, resolvedSelectedAccountId, width]);
 
   async function deleteAccount(account: AccountRow) {
     if (deletingAccountId || !deleteAccountConfirmation(account)) {
@@ -1159,6 +1198,7 @@ export function AccountCardsSlider({
           whileTap={{ cursor: "grabbing" }}
         >
           <motion.div
+            data-account-track
             drag={isMobile ? false : "x"}
             dragConstraints={{ right: 0, left: -width }}
             dragElastic={0.1}
@@ -1174,7 +1214,7 @@ export function AccountCardsSlider({
                 onDeleteAccount={(account) => void deleteAccount(account)}
                 onOpenRenameDialog={openRenameDialog}
                 onSelectAccount={setSelectedAccountId}
-                selectedAccountId={selectedAccountId}
+                selectedAccountId={resolvedSelectedAccountId}
               />
             ))}
           </motion.div>

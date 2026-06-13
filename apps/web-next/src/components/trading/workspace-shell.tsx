@@ -192,12 +192,16 @@ function getNavBadge(
   href: string | undefined,
   item: NavigationItem,
   workspace: WorkspaceState,
+  options?: { marketingPreview?: boolean },
 ) {
   if (!item.enabled) return item.badge ?? "Próximamente";
   if (!href) return item.badge;
 
   if (href === "/dashboard") return "Activo";
-  if (href === "/accounts") return String(getAccountsOverview(workspace).totalCount);
+  if (href === "/accounts") {
+    if (options?.marketingPreview) return "7";
+    return String(getAccountsOverview(workspace).totalCount);
+  }
   if (href === "/risk") {
     if (workspace.risk.status === "blocked") return "Límite";
     if (workspace.risk.status === "caution") return "Vigilar";
@@ -270,8 +274,10 @@ function NavigationGroupMenu({
   router,
   selectedAccountId,
   workspace,
+  marketingPreview,
 }: {
   items: NavigationItem[];
+  marketingPreview: boolean;
   pathname: string;
   router: ReturnType<typeof useRouter>;
   selectedAccountId: string | null;
@@ -296,7 +302,7 @@ function NavigationGroupMenu({
         const href = item.href;
         const hasActiveChild = item.children?.some((child) => isHrefActive(pathname, child.href)) ?? false;
         const isActive = href ? isHrefActive(pathname, href) || hasActiveChild : hasActiveChild;
-        const badge = getNavBadge(href, item, workspace);
+        const badge = getNavBadge(href, item, workspace, { marketingPreview });
         const showChildren = Boolean(item.children?.length) && (isActive || pathname === href);
         const targetHref = href && item.enabled
           ? hrefWithActiveAccount(href, selectedAccountId)
@@ -999,8 +1005,10 @@ function WorkspaceSidebar({
   remainingPromoCount,
   selectedAccountId,
   workspace,
+  marketingPreview,
 }: {
   activePromo: PromoNotification | undefined;
+  marketingPreview: boolean;
   onDismissPromo: (promoId: string) => void;
   remainingPromoCount: number;
   selectedAccountId: string | null;
@@ -1043,6 +1051,7 @@ function WorkspaceSidebar({
                     pathname={pathname}
                     router={router}
                     selectedAccountId={selectedAccountId}
+                    marketingPreview={marketingPreview}
                     workspace={workspace}
                   />
                 </SidebarGroupContent>
@@ -1069,7 +1078,9 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useLocationSearchParams();
-  const previewMode = searchParams.get("demo") === "1";
+  const demoMode = searchParams.get("demo");
+  const previewMode = demoMode === "1";
+  const marketingPreview = demoMode === "marketing";
   const selectedAccountId =
     searchParams.get("account") ?? workspace.activeAccountId;
   const activeAccount =
@@ -1161,6 +1172,7 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
         onDismissPromo={dismissPromo}
         remainingPromoCount={remainingPromoCount}
         selectedAccountId={selectedAccountId}
+        marketingPreview={marketingPreview}
         workspace={workspace}
       />
       <SidebarInset className="min-h-svh min-w-0 overflow-x-hidden bg-background">

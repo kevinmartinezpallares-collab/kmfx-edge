@@ -1,5 +1,5 @@
 import { WorkspaceShell } from "@/components/trading/workspace-shell";
-import { getWorkspaceState } from "@/lib/data/workspace-source";
+import { getWorkspaceStateForSearchParams } from "@/lib/data/workspace-source";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +8,7 @@ export default async function WorkspaceLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const workspace = await getWorkspaceState();
+  const workspace = await getWorkspaceStateForSearchParams();
 
   return <WorkspaceShell workspace={workspace}>{children}</WorkspaceShell>;
 }
