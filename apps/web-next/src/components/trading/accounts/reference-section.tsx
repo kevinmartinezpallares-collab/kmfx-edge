@@ -654,7 +654,7 @@ function AddAccountKeyStep({
             </code>
             {linkState.accountId ? (
               <p className="text-xs text-muted-foreground">
-                Cuenta pendiente: {linkState.accountId}
+                Identificador interno: {linkState.accountId}
               </p>
             ) : null}
           </div>
