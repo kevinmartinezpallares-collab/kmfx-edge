@@ -12,6 +12,15 @@ npm run preflight:beta
 npm run validate:cascade
 ```
 
+Estado operativo actual:
+
+- Cierre beta 2026-06-13: `docs/next-beta-operational-closure-2026-06-13.md`.
+- `npm run monitor:beta`: verde el 2026-06-13.
+- `npm run preflight:beta`: verde el 2026-06-13 cuando se exportan las cuatro
+  confirmaciones manuales de alumno real.
+- `scripts/production_smoke.py --profile next-beta --downloads-mode auth`:
+  verde el 2026-06-13.
+
 Desde la raíz, si se quiere validar producción completa:
 
 ```bash
