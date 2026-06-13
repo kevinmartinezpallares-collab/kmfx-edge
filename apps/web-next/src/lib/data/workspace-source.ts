@@ -20,6 +20,8 @@ type SearchParamsLike =
   | WorkspaceSearchParams
   | undefined;
 
+const MARKETING_SNAPSHOT_ANCHOR_MS = Date.parse("2026-06-13T09:00:00Z");
+
 function resolveWorkspaceSourceMode(): WorkspaceSourceMode {
   const normalized = String(process.env.KMFX_WAVE1_SOURCE || "fixture")
     .trim()
@@ -43,6 +45,49 @@ function shouldAllowLiveFixtureFallback() {
 async function readFixtureWorkspaceState(activeAccountId?: string) {
   return createWorkspaceFromLiveSnapshot(
     fixtureSnapshot as RawLiveAccountsSnapshot,
+    "fixture",
+    activeAccountId,
+  );
+}
+
+function shiftIsoTimestamp(value: unknown, offsetMs: number) {
+  const timestamp = Date.parse(String(value || ""));
+  if (!Number.isFinite(timestamp)) return value;
+
+  return new Date(timestamp + offsetMs).toISOString();
+}
+
+function shiftMarketingSnapshotTimestamps(snapshot: RawLiveAccountsSnapshot) {
+  const offsetMs = Date.now() - MARKETING_SNAPSHOT_ANCHOR_MS;
+  const shifted = JSON.parse(JSON.stringify(snapshot)) as RawLiveAccountsSnapshot;
+
+  shifted.accounts?.forEach((account) => {
+    account.last_sync_at = shiftIsoTimestamp(account.last_sync_at, offsetMs) as string;
+
+    const payload = account.dashboard_payload;
+    if (!payload) return;
+
+    payload.timestamp = shiftIsoTimestamp(payload.timestamp, offsetMs) as string;
+    payload.history?.forEach((point) => {
+      point.timestamp = shiftIsoTimestamp(point.timestamp, offsetMs) as string;
+    });
+    payload.trades?.forEach((trade) => {
+      trade.open_time = shiftIsoTimestamp(trade.open_time, offsetMs) as string;
+      trade.close_time = shiftIsoTimestamp(trade.close_time, offsetMs) as string;
+      trade.time = shiftIsoTimestamp(trade.time, offsetMs) as string;
+    });
+  });
+
+  return shifted;
+}
+
+async function readMarketingWorkspaceState(activeAccountId?: string) {
+  const { default: marketingSnapshot } = await import(
+    "@/lib/data/fixtures/marketing-accounts-snapshot.fixture.json"
+  );
+
+  return createWorkspaceFromLiveSnapshot(
+    shiftMarketingSnapshotTimestamps(marketingSnapshot as RawLiveAccountsSnapshot),
     "fixture",
     activeAccountId,
   );
@@ -120,6 +165,10 @@ export async function getWorkspaceStateForSearchParams(
 
   if (previewMode === "1") {
     return readFixtureWorkspaceState(activeAccountId);
+  }
+
+  if (previewMode === "marketing") {
+    return readMarketingWorkspaceState(activeAccountId);
   }
 
   if (!activeAccountId) {

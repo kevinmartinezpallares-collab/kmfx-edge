@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RawLiveAccountsSnapshot } from "@/lib/contracts/live-snapshot";
 import { createWorkspaceFromLiveSnapshot } from "@/lib/data/live-snapshot-adapter";
 import fixtureSnapshot from "@/lib/data/fixtures/live-accounts-snapshot.fixture.json";
+import marketingSnapshot from "@/lib/data/fixtures/marketing-accounts-snapshot.fixture.json";
 import { getAccountsOverview } from "@/lib/domain/accounts-selectors";
 import { resolveFundingRuleForAccount } from "@/lib/domain/funding-rule-catalog";
 import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
@@ -549,6 +550,41 @@ describe("createWorkspaceFromLiveSnapshot", () => {
     expect(new Set(activePayload?.trades?.map((trade) => trade.symbol))).toEqual(
       new Set(["EURUSD", "NAS100", "USDCAD", "GBPUSD", "XAUUSD"]),
     );
+  });
+
+  it("keeps the owner marketing fixture rich enough for public dashboard captures", () => {
+    const fixture = marketingSnapshot as RawLiveAccountsSnapshot;
+    const accounts = fixture.accounts ?? [];
+    const totals = accounts.map((account) =>
+      Number(account.dashboard_payload?.totalPnl ?? 0),
+    );
+
+    expect(fixture.auth_email).toBe("kevinmartinezpallares@gmail.com");
+    expect(accounts).toHaveLength(7);
+    expect(accounts.map((account) => account.display_name)).toEqual([
+      "Darwinex Zero 100K",
+      "IC Markets Real",
+      "FTMO Fase 1 100K",
+      "The5ers Fase 2 100K",
+      "Orion Funded 50K",
+      "Pepperstone Demo 10K",
+      "Funding Pips Funded 200K",
+    ]);
+    expect(totals.some((value) => value > 0)).toBe(true);
+    expect(totals.some((value) => value < 0)).toBe(true);
+    expect(
+      accounts.reduce(
+        (sum, account) => sum + (account.dashboard_payload?.trades?.length ?? 0),
+        0,
+      ),
+    ).toBeGreaterThan(600);
+
+    const workspace = createWorkspaceFromLiveSnapshot(fixture, "fixture");
+
+    expect(workspace.accounts).toHaveLength(7);
+    expect(workspace.accounts[0]?.label).toBe("Darwinex Zero 100K");
+    expect(workspace.trades.length).toBeGreaterThan(100);
+    expect(workspace.analytics.performance.totalTrades).toBeGreaterThan(100);
   });
 
   it("builds daily and hourly buckets from the one-year close-time history", () => {
