@@ -582,12 +582,7 @@ function MonthlyCalendarCard({
                             {cell.dayNumber}
                           </span>
                           <span className="hidden min-w-5 rounded-full bg-background/55 px-1 py-0.5 text-center font-mono text-[10px] leading-none whitespace-nowrap text-muted-foreground sm:inline-block">
-                            {cell.trades ? (
-                              <>
-                                {cell.trades}
-                                <span> op</span>
-                              </>
-                            ) : null}
+                            {cell.trades ? cell.trades : null}
                           </span>
                         </div>
                         <div className="mt-2 xl:mt-5">

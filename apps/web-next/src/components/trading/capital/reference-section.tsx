@@ -139,12 +139,14 @@ const PORTFOLIO_READINESS_STATUS_LABELS = {
   requires_review: "Requiere revisión",
   ready: "Lista",
 } as const;
-const ALLOCATION_FUNNEL_STEPS = [100, 53, 23, 8];
 const ALLOCATION_FUNNEL_COLORS = [
   "oklch(0.84 0 0)",
+  "oklch(0.68 0 0)",
   "oklch(0.47 0 0)",
+  "oklch(0.38 0 0)",
   "oklch(0.31 0 0)",
   "oklch(0.28 0 0)",
+  "oklch(0.22 0 0)",
 ];
 const LIVELINE_ACCENT_BY_THEME = {
   dark: "#f5f5f5",
@@ -699,6 +701,14 @@ function formatCalendarValue(
   return formatSignedCurrency(value);
 }
 
+function allocationFunnelVisualPct(index: number, total: number) {
+  if (total <= 1) return 100;
+
+  const minPct = 8;
+  const progress = index / (total - 1);
+  return Math.round(100 - progress * (100 - minPct));
+}
+
 function useCapitalReferenceModel(workspace: WorkspaceState) {
   const portfolioChartTheme = useReferenceLivelineTheme();
   const initialPortfolioCalendarOverview = React.useMemo(
@@ -1146,18 +1156,17 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     tone: string;
   } => Boolean(row));
   const allocationFunnelRows = [...allocationRows]
-    .toSorted((left, right) => right.allocationPct - left.allocationPct)
-    .slice(0, 4);
+    .toSorted((left, right) => right.allocationPct - left.allocationPct);
   const allocationFunnelData = allocationFunnelRows.map((row, index) => ({
     label: row.account.label,
-    value: ALLOCATION_FUNNEL_STEPS[index] ?? Math.max(8, 100 - index * 24),
+    value: allocationFunnelVisualPct(index, allocationFunnelRows.length),
     displayValue: formatCurrency(row.account.equity, row.account.baseCurrency),
     color: ALLOCATION_FUNNEL_COLORS[index] ?? "oklch(0.28 0 0)",
   }));
   const allocationFunnelLegend = allocationFunnelRows.map((row, index) => ({
     account: row.account,
     allocationPct: row.allocationPct,
-    visualPct: ALLOCATION_FUNNEL_STEPS[index] ?? Math.max(8, 100 - index * 24),
+    visualPct: allocationFunnelVisualPct(index, allocationFunnelRows.length),
   }));
   const riskDuplicationRows = [
     topExposure
@@ -1898,7 +1907,7 @@ function renderCapitalReferenceSection(
         </section>
 
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {allocationRows.length > 0 ? allocationRows.slice(0, 4).map((row, index) => {
+          {allocationRows.length > 0 ? allocationRows.map((row, index) => {
               const contributionTone =
                 row.account.totalPnl < 0 ? "text-loss" : signedTextClass(row.account.totalPnl);
               const companyName = portfolioCompanyName(row.account);
@@ -2557,8 +2566,8 @@ function renderCapitalReferenceSection(
                               <span className="text-sm font-medium text-foreground">
                                 {cell.dayNumber}
                               </span>
-                              <span className="rounded-full bg-background/55 px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                                {cell.trades ? `${cell.trades} op` : ""}
+                              <span className="hidden rounded-full bg-background/55 px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline-block">
+                                {cell.trades ? cell.trades : ""}
                               </span>
                             </div>
                             <div className="mt-2 xl:mt-5">

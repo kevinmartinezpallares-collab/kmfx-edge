@@ -1771,8 +1771,8 @@ function DailyCalendarDayButton({
             <span className="truncate text-[11px] font-semibold text-foreground md:text-xs">
               {formatSignedCurrency(day?.pnl ?? 0)}
             </span>
-            <span className="text-[9px] text-muted-foreground">
-              {day?.trades ?? 0} op
+            <span className="hidden text-[9px] text-muted-foreground sm:block">
+              {day?.trades ?? 0}
             </span>
           </>
         ) : (
