@@ -9,24 +9,35 @@ const v1Routes = [
   "/analytics/daily",
   "/analytics/hourly",
   "/analytics/risk",
+  "/analisis",
+  "/analisis/daily",
+  "/analisis/hourly",
+  "/analisis/risk",
   "/insights",
   "/insights/daily",
   "/insights/hourly",
   "/insights/risk",
   "/trades",
+  "/operaciones",
   "/notes",
   "/calendar",
+  "/calendario",
   "/capital",
+  "/cuentas",
   "/tools/calculator",
   "/study",
   "/settings",
+  "/ajustes",
   "/subscription",
   "/settings/subscription",
+  "/herramientas",
+  "/estudio",
 ];
 
 const upcomingRoutes = [
   "/risk",
   "/strategies",
+  "/estrategias",
   "/strategies/backtest-vs-real",
   "/strategies/portfolio",
   "/funding",
@@ -37,6 +48,7 @@ const upcomingRoutes = [
   "/market",
   "/market/economic-calendar",
   "/execution",
+  "/ejecucion",
 ];
 
 const adminBlockedRoutes = [

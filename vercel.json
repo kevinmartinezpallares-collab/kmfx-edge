@@ -30,73 +30,23 @@
       "permanent": true
     },
     {
-      "source": "/analytics",
-      "destination": "/insights",
-      "permanent": true
-    },
-    {
-      "source": "/analisis",
-      "destination": "/insights",
-      "permanent": true
-    },
-    {
-      "source": "/execution",
-      "destination": "/ejecucion",
-      "permanent": true
-    },
-    {
       "source": "/discipline",
-      "destination": "/ejecucion",
-      "permanent": true
-    },
-    {
-      "source": "/risk",
-      "destination": "/risk-engine",
-      "permanent": true
-    },
-    {
-      "source": "/trades",
-      "destination": "/operaciones",
-      "permanent": true
-    },
-    {
-      "source": "/calendar",
-      "destination": "/calendario",
-      "permanent": true
-    },
-    {
-      "source": "/accounts",
-      "destination": "/cuentas",
+      "destination": "/execution",
       "permanent": true
     },
     {
       "source": "/connections",
-      "destination": "/cuentas",
-      "permanent": true
-    },
-    {
-      "source": "/tools",
-      "destination": "/herramientas",
+      "destination": "/accounts",
       "permanent": true
     },
     {
       "source": "/calculator",
-      "destination": "/herramientas",
-      "permanent": true
-    },
-    {
-      "source": "/strategies",
-      "destination": "/estrategias",
-      "permanent": true
-    },
-    {
-      "source": "/settings",
-      "destination": "/ajustes",
+      "destination": "/tools/calculator",
       "permanent": true
     },
     {
       "source": "/configuracion",
-      "destination": "/ajustes",
+      "destination": "/settings",
       "permanent": true
     },
     {
@@ -110,13 +60,8 @@
       "permanent": true
     },
     {
-      "source": "/study",
-      "destination": "/estudio",
-      "permanent": true
-    },
-    {
       "source": "/glossary",
-      "destination": "/estudio",
+      "destination": "/study",
       "permanent": true
     }
   ],
@@ -136,90 +81,6 @@
     {
       "source": "/support",
       "destination": "/support.html"
-    },
-    {
-      "source": "/dashboard",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/calendario",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/operaciones",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/estrategias",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/estrategias/:path*",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/insights",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/insights/:path*",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/cuentas",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/capital",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/funding",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/funding/:path*",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/market",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/estudio",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/debug",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/ejecucion",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/risk-engine",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/risk-engine/:path*",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/journal",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/journal/:path*",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/herramientas",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/ajustes",
-      "destination": "/index.html"
     }
   ],
   "headers": [
@@ -306,7 +167,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com https://esm.sh https://s3.tradingview.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://uuhiqreifisppqkawzif.supabase.co wss://uuhiqreifisppqkawzif.supabase.co https://kmfx-edge-api.onrender.com wss://kmfx-edge-api.onrender.com https://mt5-api.kmfxedge.com wss://mt5-api.kmfxedge.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com https://www.tradingview.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com https://esm.sh https://s3.tradingview.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://kmfx-edge-api.onrender.com wss://kmfx-edge-api.onrender.com https://mt5-api.kmfxedge.com wss://mt5-api.kmfxedge.com https://challenges.cloudflare.com https://checkout.stripe.com https://billing.stripe.com; frame-src https://challenges.cloudflare.com https://checkout.stripe.com https://billing.stripe.com https://www.tradingview.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
         },
         {
           "key": "X-Content-Type-Options",
@@ -339,7 +200,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com https://esm.sh https://s3.tradingview.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://uuhiqreifisppqkawzif.supabase.co wss://uuhiqreifisppqkawzif.supabase.co https://kmfx-edge-api.onrender.com wss://kmfx-edge-api.onrender.com https://mt5-api.kmfxedge.com wss://mt5-api.kmfxedge.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com https://www.tradingview.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com https://esm.sh https://s3.tradingview.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://kmfx-edge-api.onrender.com wss://kmfx-edge-api.onrender.com https://mt5-api.kmfxedge.com wss://mt5-api.kmfxedge.com https://challenges.cloudflare.com https://checkout.stripe.com https://billing.stripe.com; frame-src https://challenges.cloudflare.com https://checkout.stripe.com https://billing.stripe.com https://www.tradingview.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
         },
         {
           "key": "X-Content-Type-Options",

@@ -38,6 +38,14 @@ export const upcomingRoutes = {
     nextStep:
       "Evitar duplicar Portfolio y preparar solo la relación entre estrategia, cuenta y riesgo.",
   },
+  estrategias: {
+    href: "/estrategias",
+    title: "Playbooks",
+    description:
+      "Los playbooks deben ayudar a corregir operativa sin depender de que el usuario etiquete todo manualmente desde el primer día.",
+    nextStep:
+      "Priorizar sesiones, símbolos y patrones repetibles antes de un laboratorio completo de estrategias.",
+  },
   funding: {
     href: "/funding",
     title: "Prop Firms",
@@ -96,6 +104,14 @@ export const upcomingRoutes = {
   },
   execution: {
     href: "/execution",
+    title: "Ejecución",
+    description:
+      "Ejecución requiere métricas de timing, deslizamiento y disciplina suficientemente claras para no duplicar Insights.",
+    nextStep:
+      "Definir qué puede medirse desde trades cerrados y qué necesita datos MT5 adicionales.",
+  },
+  ejecucion: {
+    href: "/ejecucion",
     title: "Ejecución",
     description:
       "Ejecución requiere métricas de timing, deslizamiento y disciplina suficientemente claras para no duplicar Insights.",
