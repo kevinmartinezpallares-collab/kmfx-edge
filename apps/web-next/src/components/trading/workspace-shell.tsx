@@ -51,7 +51,6 @@ import {
   type NavigationItem,
 } from "@/lib/domain/navigation";
 import { getAccountsOverview } from "@/lib/domain/accounts-selectors";
-import { buildReviewPriorityRows } from "@/lib/domain/review-selectors";
 import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
 import { cn } from "@/lib/utils";
 import {
@@ -92,6 +91,15 @@ type PromoNotification = {
   actionLabel: string;
   code?: string;
   href?: string;
+};
+
+type NavigationBadgeSnapshot = {
+  accountCount: number;
+  fundedCount: number;
+  analyticsPeriod: string;
+  tradeCount: number;
+  reviewCount: number;
+  activeDays: number;
 };
 
 const LOCATION_SEARCH_CHANGE_EVENT = "kmfx-location-search-change";
@@ -204,32 +212,81 @@ function getPromoNotifications(): PromoNotification[] {
   ];
 }
 
+function formatNavigationCount(value: number) {
+  if (value <= 0) return undefined;
+  return value > 99 ? "99+" : String(value);
+}
+
+function countReviewCandidates(workspace: WorkspaceState) {
+  const trades = workspace.trades;
+  let lossCount = 0;
+  let lossTotal = 0;
+
+  for (const trade of trades) {
+    if (trade.netPnl < 0) {
+      lossCount += 1;
+      lossTotal += Math.abs(trade.netPnl);
+    }
+  }
+
+  const averageLoss = lossCount > 0 ? lossTotal / lossCount : 0;
+  let candidates = 0;
+
+  for (const trade of trades) {
+    const relevantLoss =
+      trade.netPnl < 0 &&
+      (lossCount <= 1 ||
+        averageLoss === 0 ||
+        Math.abs(trade.netPnl) >= averageLoss);
+    const missingSetup = !trade.setup;
+    const fastExit = (trade.durationMinutes ?? Number.POSITIVE_INFINITY) <= 10;
+    const multiExecution = trade.executions.length > 1;
+
+    if (relevantLoss || missingSetup || fastExit || multiExecution) {
+      candidates += 1;
+    }
+  }
+
+  return candidates;
+}
+
+function buildNavigationBadgeSnapshot(
+  workspace: WorkspaceState,
+): NavigationBadgeSnapshot {
+  const accountsOverview = getAccountsOverview(workspace);
+
+  return {
+    accountCount: accountsOverview.totalCount,
+    fundedCount: accountsOverview.fundedCount,
+    analyticsPeriod: workspace.analytics.currentPeriod,
+    tradeCount: countClosedTradeExecutions(workspace.trades),
+    reviewCount: countReviewCandidates(workspace),
+    activeDays: workspace.analytics.daily.length,
+  };
+}
+
 function getNavBadge(
   href: string | undefined,
   item: NavigationItem,
-  workspace: WorkspaceState,
+  badges: NavigationBadgeSnapshot,
 ) {
   if (!item.enabled) return item.badge ?? "Próximamente";
   if (!href) return item.badge;
 
-  const accountsOverview = getAccountsOverview(workspace);
-
   if (href === "/dashboard") return "Activo";
-  if (href === "/accounts") return String(accountsOverview.totalCount);
+  if (href === "/accounts") return String(badges.accountCount);
   if (href === "/capital") {
-    return accountsOverview.fundedCount > 0
-      ? `${accountsOverview.fundedCount}F`
-      : String(accountsOverview.totalCount);
+    return badges.fundedCount > 0
+      ? `${badges.fundedCount}F`
+      : String(badges.accountCount);
   }
-  if (href === "/analytics") return workspace.analytics.currentPeriod;
-  if (href === "/trades") return String(countClosedTradeExecutions(workspace.trades));
+  if (href === "/analytics") return badges.analyticsPeriod;
+  if (href === "/trades") return String(badges.tradeCount);
   if (href === "/notes") {
-    const reviewCount = buildReviewPriorityRows(workspace).length;
-    return reviewCount > 0 ? String(reviewCount) : item.badge;
+    return formatNavigationCount(badges.reviewCount) ?? item.badge;
   }
   if (href === "/calendar") {
-    const activeDays = workspace.analytics.daily.length;
-    return activeDays > 0 ? String(activeDays) : item.badge;
+    return formatNavigationCount(badges.activeDays) ?? item.badge;
   }
 
   return item.badge;
@@ -279,17 +336,17 @@ function getWorkspacePrefetchHrefs(
 }
 
 function NavigationGroupMenu({
+  badges,
   items,
   pathname,
   router,
   selectedAccountId,
-  workspace,
 }: {
+  badges: NavigationBadgeSnapshot;
   items: NavigationItem[];
   pathname: string;
   router: ReturnType<typeof useRouter>;
   selectedAccountId: string | null;
-  workspace: WorkspaceState;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
 
@@ -310,7 +367,7 @@ function NavigationGroupMenu({
         const href = item.href;
         const hasActiveChild = item.children?.some((child) => isHrefActive(pathname, child.href)) ?? false;
         const isActive = href ? isHrefActive(pathname, href) || hasActiveChild : hasActiveChild;
-        const badge = getNavBadge(href, item, workspace);
+        const badge = getNavBadge(href, item, badges);
         const showChildren = Boolean(item.children?.length) && (isActive || pathname === href);
         const targetHref = href && item.enabled
           ? hrefWithActiveAccount(href, selectedAccountId)
@@ -1186,6 +1243,10 @@ function WorkspaceSidebar({
       ),
     [showUpcomingNavigation],
   );
+  const navigationBadges = React.useMemo(
+    () => buildNavigationBadgeSnapshot(workspace),
+    [workspace],
+  );
 
   return (
     <Sidebar
@@ -1217,11 +1278,11 @@ function WorkspaceSidebar({
                 <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <NavigationGroupMenu
+                    badges={navigationBadges}
                     items={group.items}
                     pathname={pathname}
                     router={router}
                     selectedAccountId={selectedAccountId}
-                    workspace={workspace}
                   />
                 </SidebarGroupContent>
               </SidebarGroup>
