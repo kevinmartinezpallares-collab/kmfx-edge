@@ -85,12 +85,14 @@ type AuthConfigStatus = "idle" | "loading" | "failed";
 type AuthStatus = "idle" | "loading";
 
 type AuthPublicConfig = BrowserSupabasePublicConfig & {
+  betaInviteRequired: boolean;
   turnstileSiteKey: string;
 };
 
 type AuthFormState = {
   authMode: AuthMode;
   email: string;
+  inviteCode: string;
   message: string;
   password: string;
   status: AuthStatus;
@@ -99,6 +101,7 @@ type AuthFormState = {
 type AuthFormAction =
   | { type: "clearMessage" }
   | { type: "setEmail"; email: string }
+  | { type: "setInviteCode"; inviteCode: string }
   | { type: "setMessage"; message: string }
   | { type: "setMode"; authMode: AuthMode }
   | { type: "setPassword"; password: string }
@@ -107,6 +110,7 @@ type AuthFormAction =
 const INITIAL_AUTH_FORM_STATE: AuthFormState = {
   authMode: "sign-in",
   email: "",
+  inviteCode: "",
   message: "",
   password: "",
   status: "idle",
@@ -116,6 +120,7 @@ const FALLBACK_TURNSTILE_SITE_KEY = "0x4AAAAAACxJdw3wjMn7Jm0K";
 
 function getInitialAuthPublicConfig(): AuthPublicConfig {
   return {
+    betaInviteRequired: false,
     supabasePublishableKey: resolveSupabasePublishableKey(),
     supabaseUrl: resolveSupabaseUrl(),
     turnstileSiteKey:
@@ -132,6 +137,10 @@ function readString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function readBoolean(value: unknown) {
+  return value === true || value === "true" || value === "1";
+}
+
 function authFormReducer(
   state: AuthFormState,
   action: AuthFormAction,
@@ -141,6 +150,8 @@ function authFormReducer(
       return state.message ? { ...state, message: "" } : state;
     case "setEmail":
       return { ...state, email: action.email };
+    case "setInviteCode":
+      return { ...state, inviteCode: action.inviteCode };
     case "setMessage":
       return { ...state, message: action.message };
     case "setMode":
@@ -158,7 +169,7 @@ function useAuthPageModel(nextPath: string) {
     authFormReducer,
     INITIAL_AUTH_FORM_STATE,
   );
-  const { authMode, email, message, password, status } = authForm;
+  const { authMode, email, inviteCode, message, password, status } = authForm;
   const captchaTokenRef = React.useRef("");
   const turnstileContainerRef = React.useRef<HTMLDivElement | null>(null);
   const turnstileWidgetIdRef = React.useRef<string | null>(null);
@@ -174,10 +185,22 @@ function useAuthPageModel(nextPath: string) {
     publicAuthConfig.turnstileSiteKey || FALLBACK_TURNSTILE_SITE_KEY;
 
   React.useEffect(() => {
-    if (authConfigured) {
-      return;
-    }
+    const error = new URLSearchParams(window.location.search).get("error");
+    if (!error) return;
 
+    const errorMessages: Record<string, string> = {
+      auth_callback_failed: "No se pudo completar el acceso seguro.",
+      beta_invite_required:
+        "La beta está cerrada por invitación. Crea tu acceso con email y código privado.",
+    };
+
+    dispatchAuthForm({
+      type: "setMessage",
+      message: errorMessages[error] || "No se pudo completar el acceso seguro.",
+    });
+  }, []);
+
+  React.useEffect(() => {
     let cancelled = false;
 
     async function loadPublicConfig() {
@@ -195,9 +218,13 @@ function useAuthPageModel(nextPath: string) {
           return;
         }
 
+        const initialConfig = getInitialAuthPublicConfig();
         const nextConfig: AuthPublicConfig = {
-          supabasePublishableKey: readString(payload.supabasePublishableKey),
-          supabaseUrl: readString(payload.supabaseUrl),
+          betaInviteRequired: readBoolean(payload.betaInviteRequired),
+          supabasePublishableKey:
+            readString(payload.supabasePublishableKey) ||
+            initialConfig.supabasePublishableKey,
+          supabaseUrl: readString(payload.supabaseUrl) || initialConfig.supabaseUrl,
           turnstileSiteKey:
             readString(payload.turnstileSiteKey) || FALLBACK_TURNSTILE_SITE_KEY,
         };
@@ -206,7 +233,7 @@ function useAuthPageModel(nextPath: string) {
         setAuthConfigStatus(hasAuthPublicConfig(nextConfig) ? "idle" : "failed");
       } catch {
         if (!cancelled) {
-          setAuthConfigStatus("failed");
+          setAuthConfigStatus(authConfigured ? "idle" : "failed");
         }
       }
     }
@@ -332,15 +359,52 @@ function useAuthPageModel(nextPath: string) {
     dispatchAuthForm({ type: "setStatus", status: "loading" });
 
     try {
+      if (authMode === "sign-up" && publicAuthConfig.betaInviteRequired) {
+        const normalizedInviteCode = inviteCode.trim();
+        if (!normalizedInviteCode) {
+          dispatchAuthForm({
+            type: "setMessage",
+            message: "Introduce tu código de invitación para crear la cuenta.",
+          });
+          dispatchAuthForm({ type: "setStatus", status: "idle" });
+          return;
+        }
+
+        const inviteResponse = await fetch("/api/kmfx/beta-invite", {
+          body: JSON.stringify({ inviteCode: normalizedInviteCode }),
+          cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        });
+        const invitePayload = (await inviteResponse
+          .json()
+          .catch(() => ({}))) as Record<string, unknown>;
+
+        if (!inviteResponse.ok || invitePayload.ok !== true) {
+          dispatchAuthForm({
+            type: "setMessage",
+            message:
+              readString(invitePayload.message) ||
+              "No se pudo validar el código de invitación.",
+          });
+          resetTurnstile();
+          return;
+        }
+      }
+
       const supabase = createBrowserSupabaseClient(publicAuthConfig);
       const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
       const { data, error } =
         authMode === "sign-up"
           ? await supabase.auth.signUp({
               email,
-              options: captchaToken
-                ? { captchaToken, emailRedirectTo }
-                : { emailRedirectTo },
+              options: {
+                ...(captchaToken ? { captchaToken } : {}),
+                data: publicAuthConfig.betaInviteRequired
+                  ? { kmfx_beta_invited: true }
+                  : undefined,
+                emailRedirectTo,
+              },
               password,
             })
           : await supabase.auth.signInWithPassword({
@@ -457,13 +521,21 @@ function useAuthPageModel(nextPath: string) {
   return {
     authConfigured,
     authMode,
+    betaInviteRequired: publicAuthConfig.betaInviteRequired,
     email,
     handlePasswordAuth,
+    inviteCode,
     message,
     messageIsSuccess,
     password,
     setAuthMode,
     setEmail,
+    setInviteCode: React.useCallback((nextInviteCode: string) => {
+      dispatchAuthForm({
+        type: "setInviteCode",
+        inviteCode: nextInviteCode,
+      });
+    }, []),
     setPassword,
     signInWithProvider,
     status,
@@ -527,9 +599,22 @@ function AuthHero() {
 }
 
 function ProviderButtons({
+  betaInviteRequired,
   signInWithProvider,
   status,
-}: Pick<AuthPageModel, "signInWithProvider" | "status">) {
+}: Pick<
+  AuthPageModel,
+  "betaInviteRequired" | "signInWithProvider" | "status"
+>) {
+  if (betaInviteRequired) {
+    return (
+      <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm leading-6 text-muted-foreground">
+        La beta está cerrada por invitación. Entra o crea tu acceso con email,
+        contraseña y código privado.
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <Button
@@ -597,12 +682,15 @@ function AuthModeTabs({
 function EmailPasswordForm({
   authConfigured,
   authMode,
+  betaInviteRequired,
   email,
   handlePasswordAuth,
+  inviteCode,
   message,
   messageIsSuccess,
   password,
   setEmail,
+  setInviteCode,
   setPassword,
   status,
   turnstileContainerRef,
@@ -611,12 +699,15 @@ function EmailPasswordForm({
   AuthPageModel,
   | "authConfigured"
   | "authMode"
+  | "betaInviteRequired"
   | "email"
   | "handlePasswordAuth"
+  | "inviteCode"
   | "message"
   | "messageIsSuccess"
   | "password"
   | "setEmail"
+  | "setInviteCode"
   | "setPassword"
   | "status"
   | "turnstileContainerRef"
@@ -666,6 +757,29 @@ function EmailPasswordForm({
             />
           </InputGroup>
         </Field>
+        {authMode === "sign-up" && betaInviteRequired ? (
+          <Field>
+            <FieldLabel htmlFor="invite-code">Código de invitación</FieldLabel>
+            <InputGroup className="h-10 rounded-xl">
+              <InputGroupAddon align="inline-start">
+                <ShieldCheckIcon className="size-4" />
+              </InputGroupAddon>
+              <InputGroupInput
+                autoComplete="off"
+                disabled={status === "loading"}
+                id="invite-code"
+                onChange={(event) => setInviteCode(event.target.value)}
+                placeholder="Código privado"
+                required
+                type="text"
+                value={inviteCode}
+              />
+            </InputGroup>
+            <FieldDescription>
+              Solo los usuarios invitados pueden crear una cuenta nueva en la beta.
+            </FieldDescription>
+          </Field>
+        ) : null}
       </FieldGroup>
 
       {message ? (
