@@ -89,6 +89,16 @@ type AccountGradientTheme = Omit<CustomConfig, "preset" | "speed">;
 
 function getScrollableWidth(element: HTMLElement | null) {
   if (!element) return 0;
+
+  const cards = element.querySelectorAll<HTMLElement>("[data-account-card]");
+  const lastCard = cards[cards.length - 1];
+  if (lastCard) {
+    return Math.max(
+      0,
+      lastCard.offsetLeft + lastCard.offsetWidth - element.clientWidth,
+    );
+  }
+
   return Math.max(0, element.scrollWidth - element.offsetWidth);
 }
 
