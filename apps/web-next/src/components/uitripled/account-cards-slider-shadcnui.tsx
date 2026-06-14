@@ -87,9 +87,44 @@ interface AccountCardData {
 
 type AccountGradientTheme = Omit<CustomConfig, "preset" | "speed">;
 
+function getAccountCardElements(element: HTMLElement | null) {
+  return Array.from(
+    element?.querySelectorAll<HTMLElement>("[data-account-card]") ?? [],
+  );
+}
+
+function getCenteredXForCard(container: HTMLElement, card: HTMLElement) {
+  return container.clientWidth / 2 - card.offsetLeft - card.offsetWidth / 2;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getCarouselBounds(element: HTMLElement | null) {
+  if (!element) {
+    return { left: 0, right: 0 };
+  }
+
+  const cards = getAccountCardElements(element);
+  const lastCard = cards[cards.length - 1];
+
+  if (!lastCard) {
+    return {
+      left: -Math.max(0, element.scrollWidth - element.offsetWidth),
+      right: 0,
+    };
+  }
+
+  return {
+    left: Math.min(0, getCenteredXForCard(element, lastCard)),
+    right: 0,
+  };
+}
+
 function getScrollableWidth(element: HTMLElement | null) {
-  if (!element) return 0;
-  return Math.max(0, element.scrollWidth - element.offsetWidth);
+  const bounds = getCarouselBounds(element);
+  return Math.abs(bounds.left);
 }
 
 function useScrollableWidth(containerRef: RefObject<HTMLDivElement | null>) {
@@ -1007,9 +1042,16 @@ export function AccountCardsSlider({
   const [selectedAccountId, setSelectedAccountId] = useState(
     activeAccountId ?? cards[0]?.id ?? "",
   );
+  const [dragBounds, setDragBounds] = useState({ left: 0, right: 0 });
   const resolvedSelectedAccountId = cards.some((card) => card.id === selectedAccountId)
     ? selectedAccountId
     : activeAccountId ?? cards[0]?.id ?? "";
+  const selectedCardIndex = Math.max(
+    cards.findIndex((card) => card.id === resolvedSelectedAccountId),
+    0,
+  );
+  const canScrollLeft = selectedCardIndex > 0;
+  const canScrollRight = selectedCardIndex < cards.length - 1;
   const selectedAccount =
     visibleAccounts.find((account) => account.id === resolvedSelectedAccountId) ??
     visibleAccounts.find((account) => account.id === activeAccountId) ??
@@ -1023,11 +1065,10 @@ export function AccountCardsSlider({
       return x.get();
     }
 
-    const scrollableWidth = getScrollableWidth(container);
-    const targetX =
-      container.clientWidth / 2 - card.offsetLeft - card.offsetWidth / 2;
+    const bounds = getCarouselBounds(container);
+    const targetX = getCenteredXForCard(container, card);
 
-    return Math.max(Math.min(targetX, 0), -scrollableWidth);
+    return clamp(targetX, bounds.left, bounds.right);
   }, [x]);
 
   const centerCardAtIndex = useCallback(
@@ -1042,11 +1083,41 @@ export function AccountCardsSlider({
     [getCenteredXForIndex, x],
   );
 
+  const getNearestCardIndex = useCallback(() => {
+    const container = containerRef.current;
+    const cardElements = getAccountCardElements(container);
+
+    if (!container || cardElements.length === 0) {
+      return selectedCardIndex;
+    }
+
+    const viewportCenter = -x.get() + container.clientWidth / 2;
+    return cardElements.reduce((nearestIndex, card, index) => {
+      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+      const nearestCard = cardElements[nearestIndex];
+      const nearestCenter = nearestCard.offsetLeft + nearestCard.offsetWidth / 2;
+
+      return Math.abs(cardCenter - viewportCenter) <
+        Math.abs(nearestCenter - viewportCenter)
+        ? index
+        : nearestIndex;
+    }, 0);
+  }, [selectedCardIndex, x]);
+
+  const snapToNearestCard = useCallback(() => {
+    const nearestIndex = getNearestCardIndex();
+    const nearestCard = cards[nearestIndex];
+
+    if (!nearestCard) {
+      return;
+    }
+
+    setSelectedAccountId(nearestCard.id);
+    centerCardAtIndex(nearestIndex);
+  }, [cards, centerCardAtIndex, getNearestCardIndex]);
+
   const scrollTo = (direction: "left" | "right") => {
-    const currentIndex = Math.max(
-      cards.findIndex((card) => card.id === resolvedSelectedAccountId),
-      0,
-    );
+    const currentIndex = getNearestCardIndex();
     const nextIndex =
       direction === "left"
         ? Math.max(currentIndex - 1, 0)
@@ -1067,6 +1138,7 @@ export function AccountCardsSlider({
     );
     if (selectedIndex < 0) return;
 
+    setDragBounds(getCarouselBounds(containerRef.current));
     centerCardAtIndex(selectedIndex);
   }, [cards, centerCardAtIndex, resolvedSelectedAccountId, width]);
 
@@ -1171,26 +1243,30 @@ export function AccountCardsSlider({
   return (
     <div className="flex min-w-0 max-w-full flex-col gap-5 overflow-hidden">
       <div className="group/slider relative min-w-0 max-w-full overflow-hidden p-0">
-        <div className="absolute left-2 top-1/2 z-20 -translate-y-1/2 opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/slider:opacity-100">
-          <button
-            onClick={() => scrollTo("left")}
-            type="button"
-            className="flex size-12 items-center justify-center rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-background active:scale-95"
-            aria-label="Ver cuentas anteriores"
-          >
-            <ChevronLeft className="size-6" />
-          </button>
-        </div>
-        <div className="absolute right-2 top-1/2 z-20 -translate-y-1/2 opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/slider:opacity-100">
-          <button
-            onClick={() => scrollTo("right")}
-            type="button"
-            className="flex size-12 items-center justify-center rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-background active:scale-95"
-            aria-label="Ver cuentas siguientes"
-          >
-            <ChevronRight className="size-6" />
-          </button>
-        </div>
+        {canScrollLeft ? (
+          <div className="absolute left-2 top-1/2 z-20 -translate-y-1/2 opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/slider:opacity-100">
+            <button
+              onClick={() => scrollTo("left")}
+              type="button"
+              className="flex size-12 items-center justify-center rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-background active:scale-95"
+              aria-label="Ver cuentas anteriores"
+            >
+              <ChevronLeft className="size-6" />
+            </button>
+          </div>
+        ) : null}
+        {canScrollRight ? (
+          <div className="absolute right-2 top-1/2 z-20 -translate-y-1/2 opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/slider:opacity-100">
+            <button
+              onClick={() => scrollTo("right")}
+              type="button"
+              className="flex size-12 items-center justify-center rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-background active:scale-95"
+              aria-label="Ver cuentas siguientes"
+            >
+              <ChevronRight className="size-6" />
+            </button>
+          </div>
+        ) : null}
 
         <motion.div
           ref={containerRef}
@@ -1200,8 +1276,9 @@ export function AccountCardsSlider({
           <motion.div
             data-account-track
             drag={isMobile ? false : "x"}
-            dragConstraints={{ right: 0, left: -width }}
+            dragConstraints={dragBounds}
             dragElastic={0.1}
+            onDragEnd={snapToNearestCard}
             style={{ x }}
             className="flex gap-6"
           >
