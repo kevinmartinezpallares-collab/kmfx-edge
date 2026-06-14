@@ -1834,7 +1834,7 @@ function renderCapitalReferenceSection(
           </Card>
 
           <Card className="border-border/70 bg-card/70">
-            <CardHeader>
+            <CardHeader className="pb-3">
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
                 <div>
                   <CardTitle>Equity global del portfolio</CardTitle>
@@ -1842,7 +1842,7 @@ function renderCapitalReferenceSection(
                     Evolución agregada del capital visible en el periodo seleccionado.
                   </CardDescription>
                 </div>
-                <div className="grid gap-3 lg:justify-items-end">
+                <div className="flex flex-col gap-3 lg:items-end xl:flex-row xl:items-center xl:justify-end">
                   <div className="grid gap-1 text-left text-sm lg:text-right">
                     <span
                       className={cn(
@@ -1861,60 +1861,62 @@ function renderCapitalReferenceSection(
                         : `${formatPercent(currentPeriodWinRate, 1)} win rate`}
                     </span>
                   </div>
-                  <ToggleGroup
-                    aria-label="Temporalidad del gráfico de equity"
-                    onValueChange={(value) => {
-                      const nextValue = value[0] as PortfolioPeriodOption | undefined;
+                  <div className="flex flex-wrap gap-2 lg:justify-end">
+                    <ToggleGroup
+                      aria-label="Temporalidad del gráfico de equity"
+                      onValueChange={(value) => {
+                        const nextValue = value[0] as PortfolioPeriodOption | undefined;
 
-                      if (nextValue) {
-                        dispatchPortfolioUi({
-                          type: "setPeriod",
-                          period: nextValue,
-                        });
-                      }
-                    }}
-                    size="sm"
-                    spacing={1}
-                    value={[portfolioPeriod]}
-                    variant="outline"
-                  >
-                    {PORTFOLIO_PERIOD_OPTIONS.map((period) => (
-                      <ToggleGroupItem className="h-11 min-w-11 sm:h-8 sm:min-w-10" key={period} value={period}>
-                        {period}
+                        if (nextValue) {
+                          dispatchPortfolioUi({
+                            type: "setPeriod",
+                            period: nextValue,
+                          });
+                        }
+                      }}
+                      size="sm"
+                      spacing={1}
+                      value={[portfolioPeriod]}
+                      variant="outline"
+                    >
+                      {PORTFOLIO_PERIOD_OPTIONS.map((period) => (
+                        <ToggleGroupItem className="h-11 min-w-11 sm:h-8 sm:min-w-10" key={period} value={period}>
+                          {period}
+                        </ToggleGroupItem>
+                      ))}
+                    </ToggleGroup>
+                    <ToggleGroup
+                      aria-label="Unidad del gráfico de equity"
+                      onValueChange={(value) => {
+                        const nextValue = value[0] as PortfolioDisplayMode | undefined;
+
+                        if (nextValue) {
+                          dispatchPortfolioUi({
+                            type: "setDisplayMode",
+                            displayMode: nextValue,
+                          });
+                        }
+                      }}
+                      size="sm"
+                      spacing={1}
+                      value={[portfolioDisplayMode]}
+                      variant="outline"
+                    >
+                      <ToggleGroupItem className="h-11 min-w-16 sm:h-8" value="capital">
+                        Capital
                       </ToggleGroupItem>
-                    ))}
-                  </ToggleGroup>
-                  <ToggleGroup
-                    aria-label="Unidad del gráfico de equity"
-                    onValueChange={(value) => {
-                      const nextValue = value[0] as PortfolioDisplayMode | undefined;
-
-                      if (nextValue) {
-                        dispatchPortfolioUi({
-                          type: "setDisplayMode",
-                          displayMode: nextValue,
-                        });
-                      }
-                    }}
-                    size="sm"
-                    spacing={1}
-                    value={[portfolioDisplayMode]}
-                    variant="outline"
-                  >
-                    <ToggleGroupItem className="h-11 min-w-16 sm:h-8" value="capital">
-                      Capital
-                    </ToggleGroupItem>
-                    <ToggleGroupItem className="h-11 min-w-11 sm:h-8 sm:min-w-10" value="percent">
-                      %
-                    </ToggleGroupItem>
-                  </ToggleGroup>
+                      <ToggleGroupItem className="h-11 min-w-11 sm:h-8 sm:min-w-10" value="percent">
+                        %
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="px-5 pb-5">
+            <CardContent className="px-5 pb-5 pt-0">
               {portfolioLivelineData.length >= 2 ? (
-                <div data-kmfx-liveline className="relative h-[360px] w-full md:h-[420px] xl:h-[460px]">
-                  <div className="pointer-events-none absolute left-[18px] top-4 z-10 font-mono text-xl font-semibold tracking-normal text-foreground/90 md:text-2xl">
+                <div data-kmfx-liveline className="relative h-[300px] w-full md:h-[340px] xl:h-[380px]">
+                  <div className="pointer-events-none absolute left-[18px] top-1 z-10 font-mono text-xl font-semibold tracking-normal text-foreground/90 md:text-2xl">
                     {portfolioDisplayMode === "capital"
                       ? formatCurrency(Number(portfolioChartLatest), baseCurrency)
                       : `${Number(portfolioChartLatest).toFixed(2)}%`}
@@ -1937,9 +1939,9 @@ function renderCapitalReferenceSection(
                     lineWidth={2.2}
                     momentum={false}
                     padding={livelinePadding(isMobile, {
-                      top: 96,
-                      right: 132,
-                      bottom: 34,
+                      top: 64,
+                      right: 116,
+                      bottom: 30,
                       left: 18,
                     })}
                     pulse
@@ -1958,7 +1960,7 @@ function renderCapitalReferenceSection(
                   />
                 </div>
               ) : (
-                <div className="grid h-[360px] place-items-center border border-dashed border-border/70 bg-background/30 text-sm text-muted-foreground md:h-[420px] xl:h-[460px]">
+                <div className="grid h-[300px] place-items-center border border-dashed border-border/70 bg-background/30 text-sm text-muted-foreground md:h-[340px] xl:h-[380px]">
                   Historial insuficiente para trazar curva de equity.
                 </div>
               )}
