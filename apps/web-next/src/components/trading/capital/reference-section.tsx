@@ -132,7 +132,16 @@ function portfolioUiReducer(
   }
 }
 const PORTFOLIO_FALLBACK_EPOCH_SECONDS = 1_777_593_600;
-const PORTFOLIO_SERIES_COLORS = ["#8b5cf6", "#22c55e", "#38bdf8", "#f59e0b", "#f43f5e"];
+const PORTFOLIO_SERIES_COLORS = [
+  "#8b5cf6",
+  "#22c55e",
+  "#38bdf8",
+  "#f59e0b",
+  "#f43f5e",
+  "#14b8a6",
+  "#a3e635",
+  "#f97316",
+];
 const PORTFOLIO_READINESS_STATUS_LABELS = {
   empty: "Sin cuentas",
   partial: "Reglas parciales",
@@ -892,7 +901,6 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     portfolioLivelineSource.at(-1)?.value ??
     (portfolioDisplayMode === "capital" ? totalEquity : portfolioReturnPct);
   const portfolioComparisonSources = allocationRows
-    .slice(0, 4)
     .reduce<Array<{
       account: (typeof allocationRows)[number]["account"];
       data: ReturnType<typeof getAccountPeriodCurve>;
