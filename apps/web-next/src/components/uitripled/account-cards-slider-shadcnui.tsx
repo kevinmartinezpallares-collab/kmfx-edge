@@ -1014,6 +1014,12 @@ export function AccountCardsSlider({
     visibleAccounts.find((account) => account.id === resolvedSelectedAccountId) ??
     visibleAccounts.find((account) => account.id === activeAccountId) ??
     visibleAccounts[0];
+  const selectedCardIndex = Math.max(
+    cards.findIndex((card) => card.id === resolvedSelectedAccountId),
+    0,
+  );
+  const canScrollLeft = selectedCardIndex > 0;
+  const canScrollRight = selectedCardIndex < cards.length - 1;
 
   const getCenteredXForIndex = useCallback((index: number) => {
     const container = containerRef.current;
@@ -1042,15 +1048,47 @@ export function AccountCardsSlider({
     [getCenteredXForIndex, x],
   );
 
-  const scrollTo = (direction: "left" | "right") => {
-    const currentIndex = Math.max(
-      cards.findIndex((card) => card.id === resolvedSelectedAccountId),
-      0,
+  const getNearestCardIndex = useCallback(() => {
+    const container = containerRef.current;
+    const cardElements = Array.from(
+      container?.querySelectorAll<HTMLElement>("[data-account-card]") ?? [],
     );
+
+    if (!container || cardElements.length === 0) {
+      return selectedCardIndex;
+    }
+
+    const viewportCenter = -x.get() + container.clientWidth / 2;
+    return cardElements.reduce((nearestIndex, card, index) => {
+      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+      const nearestCard = cardElements[nearestIndex];
+      const nearestCenter =
+        nearestCard.offsetLeft + nearestCard.offsetWidth / 2;
+
+      return Math.abs(cardCenter - viewportCenter) <
+        Math.abs(nearestCenter - viewportCenter)
+        ? index
+        : nearestIndex;
+    }, 0);
+  }, [selectedCardIndex, x]);
+
+  const snapToNearestCard = useCallback(() => {
+    const nearestIndex = getNearestCardIndex();
+    const nearestCard = cards[nearestIndex];
+
+    if (!nearestCard) {
+      return;
+    }
+
+    setSelectedAccountId(nearestCard.id);
+    centerCardAtIndex(nearestIndex);
+  }, [cards, centerCardAtIndex, getNearestCardIndex]);
+
+  const scrollTo = (direction: "left" | "right") => {
     const nextIndex =
       direction === "left"
-        ? Math.max(currentIndex - 1, 0)
-        : Math.min(currentIndex + 1, cards.length - 1);
+        ? Math.max(selectedCardIndex - 1, 0)
+        : Math.min(selectedCardIndex + 1, cards.length - 1);
     const nextCard = cards[nextIndex];
 
     if (!nextCard) {
@@ -1171,6 +1209,7 @@ export function AccountCardsSlider({
   return (
     <div className="flex min-w-0 max-w-full flex-col gap-5 overflow-hidden">
       <div className="group/slider relative min-w-0 max-w-full overflow-hidden p-0">
+        {canScrollLeft ? (
         <div className="absolute left-2 top-1/2 z-20 -translate-y-1/2 opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/slider:opacity-100">
           <button
             onClick={() => scrollTo("left")}
@@ -1181,6 +1220,8 @@ export function AccountCardsSlider({
             <ChevronLeft className="size-6" />
           </button>
         </div>
+        ) : null}
+        {canScrollRight ? (
         <div className="absolute right-2 top-1/2 z-20 -translate-y-1/2 opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/slider:opacity-100">
           <button
             onClick={() => scrollTo("right")}
@@ -1191,6 +1232,7 @@ export function AccountCardsSlider({
             <ChevronRight className="size-6" />
           </button>
         </div>
+        ) : null}
 
         <motion.div
           ref={containerRef}
@@ -1202,6 +1244,7 @@ export function AccountCardsSlider({
             drag={isMobile ? false : "x"}
             dragConstraints={{ right: 0, left: -width }}
             dragElastic={0.1}
+            onDragEnd={snapToNearestCard}
             style={{ x }}
             className="flex gap-6"
           >
