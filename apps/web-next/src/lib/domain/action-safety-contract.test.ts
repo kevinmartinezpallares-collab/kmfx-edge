@@ -82,10 +82,9 @@ describe("V1 action safety contract", () => {
 
     expect(proxySource).toContain("isMarketingPreviewDemoValue");
     expect(proxySource).toContain("isMarketingPreviewEmail(session.userEmail)");
-    expect(proxySource).toContain("hasExplicitDemoMode");
-    expect(proxySource).toContain('marketingUrl.searchParams.set("demo", "marketing")');
+    expect(proxySource).toContain("hasAllowedMarketingPreview");
+    expect(proxySource).not.toContain('marketingUrl.searchParams.set("demo", "marketing")');
     expect(workspaceSource).toContain('previewMode === "marketing"');
-    expect(workspaceSource).toContain('previewMode !== "live"');
     expect(workspaceSource).toContain("isMarketingPreviewEmail(userEmail)");
     expect(accessSource).toContain("KMFX_MARKETING_PREVIEW_EMAILS");
     expect(accessSource).toContain("kevinmartinezpallares@gmail.com");

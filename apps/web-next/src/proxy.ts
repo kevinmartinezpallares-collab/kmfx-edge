@@ -143,8 +143,12 @@ function subscriptionAccessReasonSearchValue(access: ConnectionAccess) {
   return "plan-required";
 }
 
-function hasExplicitDemoMode(request: NextRequest) {
-  return Boolean(request.nextUrl.searchParams.get("demo"));
+function hasAllowedMarketingPreview(request: NextRequest, session: Awaited<ReturnType<typeof updateSupabaseSession>>) {
+  return (
+    session.authenticated &&
+    isMarketingPreviewEmail(session.userEmail) &&
+    isMarketingPreviewDemoValue(request.nextUrl.searchParams.get("demo"))
+  );
 }
 
 async function resolveBlockedBillingAccess(accessToken: string | undefined) {
@@ -264,22 +268,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(dashboardUrl);
   }
 
-  if (
-    session.authenticated &&
-    isMarketingPreviewEmail(session.userEmail) &&
-    isBillingGuardedWorkspaceRoute(pathname) &&
-    !hasExplicitDemoMode(request)
-  ) {
-    const marketingUrl = request.nextUrl.clone();
-    marketingUrl.searchParams.set("demo", "marketing");
-    logProxyEvent("info", "marketing_preview_redirect", request);
-    return NextResponse.redirect(marketingUrl);
-  }
-
   const blockedBillingAccess =
     session.authenticated &&
     request.nextUrl.searchParams.get("demo") !== "1" &&
-    !isMarketingPreviewDemoValue(request.nextUrl.searchParams.get("demo")) &&
+    !hasAllowedMarketingPreview(request, session) &&
     !isMarketingPreviewEmail(session.userEmail) &&
     isBillingGuardedWorkspaceRoute(pathname)
       ? await resolveBlockedBillingAccess(session.accessToken)

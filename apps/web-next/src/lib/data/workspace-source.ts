@@ -25,7 +25,8 @@ type SearchParamsLike =
 const MARKETING_SNAPSHOT_ANCHOR_MS = Date.parse("2026-06-13T09:00:00Z");
 
 function resolveWorkspaceSourceMode(): WorkspaceSourceMode {
-  const normalized = String(process.env.KMFX_WAVE1_SOURCE || "fixture")
+  const defaultSourceMode = process.env.NODE_ENV === "production" ? "live" : "fixture";
+  const normalized = String(process.env.KMFX_WAVE1_SOURCE || defaultSourceMode)
     .trim()
     .toLowerCase();
 
@@ -180,10 +181,6 @@ export async function getWorkspaceStateForSearchParams(
   }
 
   if (previewMode === "marketing") {
-    return readMarketingWorkspaceState(activeAccountId);
-  }
-
-  if (previewMode !== "live") {
     const userEmail = await getAuthenticatedWorkspaceEmail();
     if (isMarketingPreviewEmail(userEmail)) {
       return readMarketingWorkspaceState(activeAccountId);

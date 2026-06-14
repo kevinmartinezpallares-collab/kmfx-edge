@@ -29,10 +29,11 @@ function readWorkspacePage(pagePath: string) {
 }
 
 describe("workspace source contract", () => {
-  it("keeps the one-year fixture as the default V1 source", () => {
+  it("keeps fixture as the local default and live as the production default", () => {
     const source = readWorkspaceSource();
 
-    expect(source).toContain('process.env.KMFX_WAVE1_SOURCE || "fixture"');
+    expect(source).toContain('process.env.NODE_ENV === "production" ? "live" : "fixture"');
+    expect(source).toContain("process.env.KMFX_WAVE1_SOURCE || defaultSourceMode");
     expect(source).toContain('if (sourceMode === "mock")');
     expect(source).toContain('if (sourceMode === "fixture")');
   });
@@ -101,7 +102,6 @@ describe("workspace source contract", () => {
     expect(source).toContain("previewMode");
     expect(source).toContain('previewMode === "mock"');
     expect(source).toContain('previewMode === "marketing"');
-    expect(source).toContain('previewMode !== "live"');
     expect(source).toContain("isMarketingPreviewEmail(userEmail)");
     expect(source).toContain("return readFixtureWorkspaceState(activeAccountId)");
     expect(source).toContain("return readMarketingWorkspaceState(activeAccountId)");
