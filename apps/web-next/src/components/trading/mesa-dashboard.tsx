@@ -704,18 +704,23 @@ function easeOutCubic(progress: number) {
   return 1 - Math.pow(1 - progress, 3);
 }
 
-function useAnimatedMetricNumber(value: number, durationMs = 850) {
+function useAnimatedMetricNumber(value: number, durationMs = 850, enabled = false) {
   const target = Number.isFinite(value) ? value : 0;
-  const [displayValue, setDisplayValue] = React.useState(0);
-  const latestValueRef = React.useRef(0);
+  const [displayValue, setDisplayValue] = React.useState(target);
+  const latestValueRef = React.useRef(target);
 
   React.useEffect(() => {
+    if (!enabled) {
+      latestValueRef.current = target;
+      return;
+    }
+
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     if (reduceMotion || durationMs <= 0) {
       latestValueRef.current = target;
       const frame = window.requestAnimationFrame(() => {
-        setDisplayValue(target);
+        setDisplayValue((current) => (Object.is(current, target) ? current : target));
       });
 
       return () => window.cancelAnimationFrame(frame);
@@ -744,7 +749,7 @@ function useAnimatedMetricNumber(value: number, durationMs = 850) {
     frame = window.requestAnimationFrame(tick);
 
     return () => window.cancelAnimationFrame(frame);
-  }, [durationMs, target]);
+  }, [durationMs, enabled, target]);
 
   return displayValue;
 }
@@ -758,6 +763,7 @@ export function MetricCard({
   caption,
   tone = "neutral",
   delta,
+  animateValue = false,
 }: {
   title: string;
   value: number;
@@ -767,6 +773,7 @@ export function MetricCard({
   caption: string;
   tone?: "neutral" | "positive" | "negative";
   delta?: MetricDelta;
+  animateValue?: boolean;
 }) {
   const deltaTone =
     delta?.tone ?? (delta && delta.value > 0 ? "positive" : delta && delta.value < 0 ? "negative" : "neutral");
@@ -783,7 +790,8 @@ export function MetricCard({
       : deltaTone === "negative"
         ? "bg-loss text-background"
         : "bg-muted text-muted-foreground";
-  const animatedValue = useAnimatedMetricNumber(value);
+  const animatedValue = useAnimatedMetricNumber(value, 850, animateValue);
+  const displayValue = animateValue ? animatedValue : value;
 
   return (
     <Card className="overflow-hidden border-border/70 bg-card/70 shadow-none">
@@ -798,7 +806,7 @@ export function MetricCard({
                 tone === "negative" && "text-loss",
               )}
             >
-              {formatMetricValue({ value: animatedValue, prefix, suffix, decimals })}
+              {formatMetricValue({ value: displayValue, prefix, suffix, decimals })}
             </p>
             {delta ? (
               <div className="flex min-w-0 items-center gap-1.5 text-xs leading-none">
@@ -2850,6 +2858,7 @@ function OverviewSection({ workspace }: { workspace: WorkspaceState }) {
           caption="Equity de la cuenta activa"
           tone="neutral"
           delta={metricDeltas.equity}
+          animateValue
         />
         <MetricCard
           title="PnL"
