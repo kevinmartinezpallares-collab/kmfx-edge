@@ -64,7 +64,6 @@ import {
   buildDashboardPerformance,
   buildDashboardSessionRows,
   buildDashboardSymbolRows,
-  resolveAccountMode,
   sessionLabel,
 } from "@/lib/domain/dashboard-selectors";
 import { buildStrategyRows } from "@/lib/domain/strategies-selectors";
@@ -964,10 +963,6 @@ function buildEquityChartData(
   ];
 }
 
-function panelSourceLabel(workspace: WorkspaceState) {
-  return workspace.meta.sourceMode === "live" ? "Lectura MT5" : "Lectura segura";
-}
-
 const SHORT_PANEL_TIME_LABEL_FORMATTER = new Intl.DateTimeFormat("es-ES", {
   day: "numeric",
   month: "short",
@@ -1266,9 +1261,6 @@ function EquityCurveCard({
               Evolución de la cuenta activa frente al balance de referencia.
             </CardDescription>
           </div>
-          <span className="text-xs font-medium text-muted-foreground">
-            {hasHistory ? panelSourceLabel(workspace) : "Historial insuficiente"}
-          </span>
         </div>
       </CardHeader>
       <CardContent className="px-3 pb-5 sm:px-6">
@@ -1422,73 +1414,6 @@ export function DrawdownRecentCard({
           <EmptyChartState label="Sin historial suficiente para drawdown." />
         )}
       </CardContent>
-    </Card>
-  );
-}
-
-function SummaryHeroCard({
-  workspace,
-  activeAccount,
-}: {
-  workspace: WorkspaceState;
-  activeAccount: TradingAccount | undefined;
-}) {
-  const mode = resolveAccountMode(activeAccount);
-
-  return (
-    <Card className="overflow-hidden border-border/55 bg-card/35 shadow-none">
-      <CardHeader className="px-4 py-2.5">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div className="flex min-w-0 flex-col gap-1.5 xl:flex-row xl:items-center xl:gap-5">
-            <div className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3 xl:max-w-[32rem]">
-              <CardTitle className="truncate text-sm tracking-tight">
-                {activeAccount?.label ?? "Sin cuenta conectada"}
-              </CardTitle>
-              <CardDescription className="truncate text-xs">
-                {activeAccount
-                  ? `${activeAccount.broker} / ${activeAccount.server} / MT5 ${activeAccount.login}`
-                  : "Conecta una cuenta para activar el Panel."}
-              </CardDescription>
-            </div>
-            {activeAccount ? (
-              <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span className="whitespace-nowrap">
-                  Modo{" "}
-                  <strong className="font-medium text-foreground">{mode}</strong>
-                </span>
-                <span className="whitespace-nowrap">
-                  Moneda{" "}
-                  <strong className="font-mono font-medium text-foreground">
-                    {activeAccount.baseCurrency}
-                  </strong>
-                </span>
-                <span className="whitespace-nowrap">
-                  Abiertas{" "}
-                  <strong className="font-mono font-medium text-foreground">
-                    {activeAccount.openPositionsCount}
-                  </strong>
-                </span>
-                <span className="whitespace-nowrap">
-                  Fuente{" "}
-                  <strong className="font-medium text-foreground">
-                    {panelSourceLabel(workspace)}
-                  </strong>
-                </span>
-              </div>
-            ) : null}
-          </div>
-          <Button
-            render={<Link href="/accounts" />}
-            nativeButton={false}
-            variant="outline"
-            size="sm"
-            className="h-8 justify-between lg:min-w-36"
-          >
-            Ver cuentas
-            <ChevronRight data-icon="inline-end" />
-          </Button>
-        </div>
-      </CardHeader>
     </Card>
   );
 }
@@ -2845,11 +2770,6 @@ function OverviewSection({ workspace }: { workspace: WorkspaceState }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <SummaryHeroCard
-        workspace={workspace}
-        activeAccount={activeAccount}
-      />
-
       <div className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Capital activo"
