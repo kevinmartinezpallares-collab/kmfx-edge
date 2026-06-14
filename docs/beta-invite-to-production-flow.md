@@ -9,6 +9,8 @@ Mantener `beta.kmfxedge.com` como acceso cerrado por invitacion y preparar una s
 - `beta.kmfxedge.com`: beta cerrada. La creacion de cuenta requiere codigo privado.
 - `kmfxedge.com`: dominio final del producto cuando salgamos de beta. No debe depender del codigo de beta.
 
+Durante la beta, si el dominio de produccion apunta accidentalmente al proyecto Next.js, el proxy redirige a `beta.kmfxedge.com`. Para abrir produccion hay que activar `KMFX_PRODUCTION_APP_ENABLED=1`.
+
 ## Flujo recomendado
 
 1. El usuario entra en `beta.kmfxedge.com/login`.
@@ -17,6 +19,7 @@ Mantener `beta.kmfxedge.com` como acceso cerrado por invitacion y preparar una s
 4. El plan beta se gestiona como entitlement temporal en billing.
 5. Un dia antes de vencer la beta, el dashboard muestra CTA hacia Stripe para contratar `Edge Unlimited` anual con descuento del 50%.
 6. Al acabar la beta, el usuario conserva su cuenta y datos. Solo cambia el dominio recomendado: `kmfxedge.com`.
+7. Para salir de beta, se apunta `kmfxedge.com` al deployment Next.js y se activa `KMFX_PRODUCTION_APP_ENABLED=1`.
 
 ## Stripe
 

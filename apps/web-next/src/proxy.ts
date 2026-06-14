@@ -49,6 +49,15 @@ function betaGateEnabled() {
   return Boolean(process.env.KMFX_BETA_GATE_PASSWORD?.trim());
 }
 
+function isProductionKmfxHost(host: string | null) {
+  const normalizedHost = (host || "").toLowerCase().split(":")[0];
+  return normalizedHost === "kmfxedge.com" || normalizedHost === "www.kmfxedge.com";
+}
+
+function isProductionAppEnabled() {
+  return process.env.KMFX_PRODUCTION_APP_ENABLED === "1";
+}
+
 function logProxyEvent(
   level: "info" | "warn",
   event: string,
@@ -173,6 +182,20 @@ async function resolveBlockedBillingAccess(accessToken: string | undefined) {
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  if (
+    isProductionKmfxHost(request.headers.get("host")) &&
+    !isProductionAppEnabled()
+  ) {
+    const betaUrl = request.nextUrl.clone();
+    betaUrl.protocol = "https:";
+    betaUrl.host = "beta.kmfxedge.com";
+    if (betaUrl.pathname === "/") {
+      betaUrl.pathname = "/login";
+    }
+    logProxyEvent("info", "production_domain_redirect_beta", request);
+    return NextResponse.redirect(betaUrl);
+  }
 
   if (isPublicKmfxRoute(pathname)) {
     return NextResponse.next();
