@@ -372,6 +372,7 @@ function useAuthPageModel(nextPath: string) {
                   ? {
                       data: {
                         kmfx_beta_invite_code: inviteCode.trim(),
+                        kmfx_beta_invite_started_at: new Date().toISOString(),
                       },
                     }
                   : {}),

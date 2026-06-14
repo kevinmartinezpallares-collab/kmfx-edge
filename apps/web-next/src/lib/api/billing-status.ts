@@ -5,21 +5,17 @@ import {
   billingPlanKeyFromPayload,
   type BillingPlanKey,
 } from "@/lib/billing/billing-plan-key";
+import type {
+  BillingAccessNotice,
+  BillingBetaOffer,
+  BillingStatusSummary,
+} from "@/lib/billing/billing-status-summary";
 
-export type BillingAccessNotice =
-  | "billing_paused"
-  | "billing_attention"
-  | "plan_limit"
-  | "plan_required"
-  | "trial_expired";
-
-export type BillingStatusSummary = {
-  accessNotice: BillingAccessNotice | null;
-  currentPeriodEndsAt: string;
-  planKey: BillingPlanKey | null;
-  status: string;
-  trialEndsAt: string;
-};
+export type {
+  BillingAccessNotice,
+  BillingBetaOffer,
+  BillingStatusSummary,
+} from "@/lib/billing/billing-status-summary";
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
@@ -34,6 +30,34 @@ function hasDatePassed(value: string) {
 
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) && timestamp <= Date.now();
+}
+
+function betaOfferFromPayload(payload: unknown): BillingBetaOffer | null {
+  const data = asRecord(payload);
+  const offer = asRecord(data.betaOffer);
+  const plan = billingPlanKeyFromPayload({ billing: { plan: offer.plan } });
+  const interval = asString(offer.interval);
+  const discountPercent =
+    typeof offer.discountPercent === "number" ? offer.discountPercent : 0;
+
+  if (
+    offer.active !== true ||
+    !plan ||
+    (interval !== "monthly" && interval !== "yearly") ||
+    discountPercent <= 0
+  ) {
+    return null;
+  }
+
+  return {
+    active: true,
+    discountPercent,
+    expiresAt: asString(offer.expiresAt),
+    id: asString(offer.id),
+    interval,
+    plan,
+    reason: asString(offer.reason),
+  };
 }
 
 function accessNoticeFromPayload(payload: unknown): BillingAccessNotice | null {
@@ -90,6 +114,7 @@ export async function requestBillingStatusSummary(): Promise<BillingStatusSummar
 
     return {
       accessNotice: result.ok ? accessNoticeFromPayload(payload) : null,
+      betaOffer: result.ok ? betaOfferFromPayload(payload) : null,
       currentPeriodEndsAt: asString(billing.currentPeriodEndsAt),
       planKey: result.ok ? billingPlanKeyFromPayload(payload) : null,
       status: asString(billing.status),
@@ -98,6 +123,7 @@ export async function requestBillingStatusSummary(): Promise<BillingStatusSummar
   } catch {
     return {
       accessNotice: null,
+      betaOffer: null,
       currentPeriodEndsAt: "",
       planKey: null,
       status: "",

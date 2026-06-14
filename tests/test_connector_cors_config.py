@@ -7,6 +7,7 @@ import os
 import tempfile
 import time
 import urllib.error
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from io import BytesIO
 from unittest.mock import patch
@@ -2052,6 +2053,71 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertNotIn("payment_method_collection", params)
         self.assertEqual("comunidad100", params["metadata"]["kmfx_promotion_code"])
         self.assertEqual("true", params["metadata"]["kmfx_vip_promotion"])
+
+    def test_billing_checkout_applies_beta_expiry_offer_without_public_code(self) -> None:
+        request = self._request(
+            headers={"authorization": "Bearer billing-token"},
+            json_body={
+                "interval": "monthly",
+                "offer": "beta_unlimited_yearly_50",
+                "plan": "core",
+            },
+        )
+        user_id = "11111111-1111-4111-8111-111111111111"
+        signup = datetime.now(timezone.utc) - timedelta(days=6, hours=3)
+        with patch.dict(
+            os.environ,
+            {
+                "KMFX_INVITE_CODES": "discord-beta",
+                "KMFX_INVITE_TRIAL_DAYS": "7",
+                "KMFX_INVITE_TRIAL_PLAN": "unlimited",
+                "KMFX_STRIPE_BETA_ANNUAL_50_COUPON_ID": "coupon_beta_50",
+            },
+            clear=False,
+        ), patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "billing@example.com",
+                "app_metadata": {"plan": "free"},
+                "user_metadata": {
+                    "kmfx_beta_invite_code": "discord-beta",
+                    "kmfx_beta_invite_started_at": signup.isoformat(),
+                },
+            },
+        ), patch.object(
+            connector_api,
+            "resolve_stripe_price_reference",
+            return_value={"price_id": "price_unlimited_yearly", "lookup_key": "kmfx_unlimited_yearly"},
+        ) as price_mock, patch.object(
+            connector_api,
+            "ensure_billing_customer",
+            return_value="cus_123",
+        ), patch.object(
+            connector_api,
+            "existing_kmfx_subscription_for_checkout",
+            return_value={},
+        ), patch.object(
+            connector_api,
+            "stripe_api_request",
+            return_value={"id": "cs_123", "url": "https://checkout.stripe.test/session"},
+        ) as stripe_mock:
+            response = asyncio.run(connector_api.billing_checkout(request))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["ok"])
+        price_mock.assert_called_once_with("unlimited", "yearly")
+        _, path, params = stripe_mock.call_args.args
+        self.assertEqual("/checkout/sessions", path)
+        self.assertEqual([{"coupon": "coupon_beta_50"}], params["discounts"])
+        self.assertFalse(params["allow_promotion_codes"])
+        self.assertNotIn("trial_period_days", params["subscription_data"])
+        self.assertNotIn("payment_method_collection", params)
+        self.assertEqual("beta_unlimited_yearly_50", params["metadata"]["kmfx_offer"])
+        self.assertEqual("true", params["metadata"]["kmfx_beta_expiry_offer"])
+        self.assertEqual("", params["metadata"]["kmfx_promotion_code"])
 
     def test_billing_checkout_rejects_unknown_explicit_promotion_code(self) -> None:
         request = self._request(

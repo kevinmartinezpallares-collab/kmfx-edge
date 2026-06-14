@@ -1711,6 +1711,7 @@ def resolve_authenticated_identity(request: Request) -> dict[str, str]:
             "email": email,
             "user_id": user_id or email,
             "source": "verified_bearer",
+            "created_at": safe_str(claims.get("created_at") or claims.get("createdAt")),
             "app_metadata": ensure_dict(claims.get("app_metadata")),
             "user_metadata": ensure_dict(claims.get("user_metadata")),
         }
@@ -1723,6 +1724,7 @@ def resolve_authenticated_identity(request: Request) -> dict[str, str]:
             "email": preview_email,
             "user_id": preview_user_id or preview_email,
             "source": "preview_bearer",
+            "created_at": safe_str(preview_claims.get("created_at") or preview_claims.get("createdAt")),
             "app_metadata": ensure_dict(preview_claims.get("app_metadata")),
             "user_metadata": {},
         }
@@ -1752,6 +1754,7 @@ def build_admin_context(request: Request) -> dict[str, Any]:
         "email": email,
         "user_id": user_id,
         "source": identity["source"],
+        "created_at": safe_str(identity.get("created_at")),
         "app_metadata": app_metadata,
         "user_metadata": user_metadata,
         "is_admin": is_admin,
@@ -1909,6 +1912,44 @@ def beta_invite_access_for_context(context: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def beta_expiry_offer_window_hours() -> int:
+    configured = _env_value("KMFX_BETA_EXPIRY_OFFER_WINDOW_HOURS", "BETA_EXPIRY_OFFER_WINDOW_HOURS")
+    if not configured:
+        return 24
+    try:
+        parsed = int(configured)
+    except ValueError:
+        return 24
+    return max(1, parsed)
+
+
+def beta_expiry_offer_payload(beta_access: dict[str, Any], *, has_commercial_access: bool) -> dict[str, Any]:
+    if has_commercial_access:
+        return {}
+    if not beta_access or beta_access.get("active") is not True:
+        return {}
+
+    ends_at = _parse_datetime(beta_access.get("endsAt"))
+    if ends_at is None:
+        return {}
+
+    remaining = ends_at - datetime.now(timezone.utc)
+    if remaining.total_seconds() <= 0:
+        return {}
+    if remaining > timedelta(hours=beta_expiry_offer_window_hours()):
+        return {}
+
+    return {
+        "active": True,
+        "id": "beta_unlimited_yearly_50",
+        "plan": "unlimited",
+        "interval": "yearly",
+        "discountPercent": 50,
+        "expiresAt": ends_at.isoformat().replace("+00:00", "Z"),
+        "reason": "beta_expires_soon",
+    }
+
+
 def entitlement_account_limit(entitlements: dict[str, Any], context: dict[str, Any], *, authenticated: bool) -> int | str:
     if not authenticated:
         return 0
@@ -1990,6 +2031,7 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
     status = billing_status_from_metadata(app_metadata, plan)
     beta_access = beta_invite_access_for_context(context)
     has_commercial_access = plan != "free" and status in {"trialing", "active"}
+    beta_offer = beta_expiry_offer_payload(beta_access, has_commercial_access=has_commercial_access)
     if beta_access and not context.get("is_admin") and not has_commercial_access:
         beta_plan = normalize_plan_key(beta_access.get("plan"))
         if beta_access.get("active"):
@@ -2063,6 +2105,7 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
             "connectionKeyLimit": connection_key_limit,
         },
         "betaAccess": beta_access,
+        "betaOffer": beta_offer,
         "is_admin": bool(context.get("is_admin")),
         "scope_user_id": user_id,
         "source": billing_source,
@@ -2404,6 +2447,62 @@ def resolve_stripe_promotion_code_id(value: Any) -> str:
     if not promotion_code_id:
         raise RuntimeError("promotion_code_not_found")
     return promotion_code_id
+
+
+def normalize_checkout_offer(value: Any) -> str:
+    return safe_str(value).strip().lower()
+
+
+def requested_beta_expiry_offer(payload: dict[str, Any]) -> str:
+    return normalize_checkout_offer(
+        payload.get("offer")
+        or payload.get("offerId")
+        or payload.get("offer_id")
+        or payload.get("billingOffer")
+        or payload.get("billing_offer")
+    )
+
+
+def beta_expiry_offer_discount() -> list[dict[str, str]]:
+    promotion_code_id = _env_value(
+        "KMFX_STRIPE_BETA_ANNUAL_50_PROMOTION_CODE_ID",
+        "STRIPE_BETA_ANNUAL_50_PROMOTION_CODE_ID",
+    )
+    if promotion_code_id:
+        return [{"promotion_code": promotion_code_id}]
+
+    coupon_id = _env_value(
+        "KMFX_STRIPE_BETA_ANNUAL_50_COUPON_ID",
+        "STRIPE_BETA_ANNUAL_50_COUPON_ID",
+    )
+    if coupon_id:
+        return [{"coupon": coupon_id}]
+
+    raise RuntimeError("beta_offer_discount_not_configured")
+
+
+def beta_expiry_offer_for_checkout(context: dict[str, Any], offer_id: str) -> dict[str, Any]:
+    if offer_id != "beta_unlimited_yearly_50":
+        raise ValueError("invalid_checkout_offer")
+    if context.get("is_admin"):
+        raise RuntimeError("beta_offer_not_eligible")
+
+    app_metadata = ensure_dict(context.get("app_metadata"))
+    plan = normalize_plan_key(
+        app_metadata.get("kmfx_plan")
+        or app_metadata.get("plan")
+        or app_metadata.get("billing_plan")
+        or connection_plan_for_context(context)
+    )
+    status = billing_status_from_metadata(app_metadata, plan)
+    has_commercial_access = plan != "free" and status in {"trialing", "active"}
+    offer = beta_expiry_offer_payload(
+        beta_invite_access_for_context(context),
+        has_commercial_access=has_commercial_access,
+    )
+    if not offer:
+        raise RuntimeError("beta_offer_not_eligible")
+    return offer
 
 
 def stripe_secret_key() -> str:
@@ -8876,8 +8975,12 @@ async def billing_checkout(request: Request) -> JSONResponse:
     )
     if rate_limited is not None:
         return rate_limited
+    offer_id = requested_beta_expiry_offer(payload)
     plan = normalize_plan_key(payload.get("plan") or payload.get("plan_key") or payload.get("planKey") or "pro")
     interval = safe_str(payload.get("interval") or payload.get("cadence") or "monthly").lower()
+    if offer_id == "beta_unlimited_yearly_50":
+        plan = "unlimited"
+        interval = "yearly"
     if interval not in {"monthly", "yearly"}:
         return billing_json_response({"ok": False, "reason": "invalid_interval", "error": "invalid_interval"}, status_code=400)
     if plan not in {"core", "pro", "unlimited"}:
@@ -8887,14 +8990,16 @@ async def billing_checkout(request: Request) -> JSONResponse:
         customer_id = ensure_billing_customer(context)
         user_id = safe_str(context.get("user_id")).lower()
         email = safe_str(context.get("email")).lower()
+        offer = beta_expiry_offer_for_checkout(context, offer_id) if offer_id else {}
+        offer_discounts = beta_expiry_offer_discount() if offer else []
         promotion_code = normalize_promotion_code(
             payload.get("promotionCode")
             or payload.get("promotion_code")
             or payload.get("couponCode")
             or payload.get("coupon_code")
-        )
+        ) if not offer else ""
         promotion_code_id = resolve_stripe_promotion_code_id(promotion_code) if promotion_code else ""
-        skip_trial = promotion_code_skips_trial(promotion_code)
+        skip_trial = bool(offer) or promotion_code_skips_trial(promotion_code)
         price_reference = resolve_stripe_price_reference(plan, interval)
         existing_subscription = existing_kmfx_subscription_for_checkout(context, customer_id)
         if existing_subscription:
@@ -8946,6 +9051,8 @@ async def billing_checkout(request: Request) -> JSONResponse:
             "price_lookup_key": price_reference.get("lookup_key") or "",
             "kmfx_promotion_code": promotion_code,
             "kmfx_vip_promotion": "true" if skip_trial else "false",
+            "kmfx_offer": safe_str(offer.get("id")),
+            "kmfx_beta_expiry_offer": "true" if offer else "false",
         }
         subscription_data: dict[str, Any] = {
             "metadata": {
@@ -8960,6 +9067,8 @@ async def billing_checkout(request: Request) -> JSONResponse:
                 "interval": interval,
                 "kmfx_promotion_code": promotion_code,
                 "kmfx_vip_promotion": "true" if skip_trial else "false",
+                "kmfx_offer": safe_str(offer.get("id")),
+                "kmfx_beta_expiry_offer": "true" if offer else "false",
             },
         }
         trial_days = billing_trial_period_days()
@@ -8977,7 +9086,7 @@ async def billing_checkout(request: Request) -> JSONResponse:
             "client_reference_id": user_id,
             "success_url": billing_safe_return_url(payload.get("success_url") or payload.get("successUrl"), billing_success_url()),
             "cancel_url": billing_safe_return_url(payload.get("cancel_url") or payload.get("cancelUrl"), billing_cancel_url()),
-            "allow_promotion_codes": False if promotion_code_id else _env_flag("STRIPE_ALLOW_PROMOTION_CODES", default=True),
+            "allow_promotion_codes": False if (promotion_code_id or offer_discounts) else _env_flag("STRIPE_ALLOW_PROMOTION_CODES", default=True),
             "line_items": [
                 {
                     "price": price_reference["price_id"],
@@ -8989,21 +9098,23 @@ async def billing_checkout(request: Request) -> JSONResponse:
         }
         if promotion_code_id:
             checkout_params["discounts"] = [{"promotion_code": promotion_code_id}]
+        if offer_discounts:
+            checkout_params["discounts"] = offer_discounts
         if trial_days > 0 and not skip_trial and not billing_trial_requires_card():
             checkout_params["payment_method_collection"] = "if_required"
         session = stripe_api_request(
             "POST",
             "/checkout/sessions",
             checkout_params,
-            idempotency_key=stripe_idempotency_key("kmfx_checkout", user_id, plan, interval, promotion_code),
+            idempotency_key=stripe_idempotency_key("kmfx_checkout", user_id, plan, interval, promotion_code, offer_id),
         )
     except ValueError as exc:
         return billing_json_response({"ok": False, "reason": safe_str(exc) or "invalid_request", "error": safe_str(exc) or "invalid_request"}, status_code=400)
     except RuntimeError as exc:
         reason = safe_str(exc) or "billing_checkout_failed"
-        if reason in {"promotion_code_not_found"}:
+        if reason in {"promotion_code_not_found", "beta_offer_not_eligible"}:
             status_code = 400
-        elif reason in {"stripe_not_configured", "supabase_service_role_not_configured", "price_not_configured"}:
+        elif reason in {"stripe_not_configured", "supabase_service_role_not_configured", "price_not_configured", "beta_offer_discount_not_configured"}:
             status_code = 503
         else:
             status_code = 502

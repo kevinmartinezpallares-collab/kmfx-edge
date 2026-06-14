@@ -39,6 +39,35 @@ class BetaInviteAccessTests(TestCase):
         self.assertEqual(payload["limits"]["connectionKeyLimit"], "custom")
         self.assertEqual(payload["source"], "beta_invite")
         self.assertTrue(payload["betaAccess"]["active"])
+        self.assertEqual({}, payload["betaOffer"])
+
+    def test_invite_code_returns_annual_unlimited_offer_when_beta_expires_soon(self):
+        signup = datetime.now(timezone.utc) - timedelta(days=6, hours=2)
+        with patch.dict(
+            os.environ,
+            {
+                "KMFX_INVITE_CODES": "discord-beta",
+                "KMFX_INVITE_TRIAL_DAYS": "7",
+                "KMFX_INVITE_TRIAL_PLAN": "unlimited",
+            },
+            clear=False,
+        ):
+            payload = self.billing_payload(signup.isoformat())
+
+        self.assertEqual(payload["source"], "beta_invite")
+        self.assertEqual("trialing", payload["billing"]["status"])
+        self.assertEqual(
+            {
+                "active": True,
+                "discountPercent": 50,
+                "expiresAt": payload["betaAccess"]["endsAt"],
+                "id": "beta_unlimited_yearly_50",
+                "interval": "yearly",
+                "plan": "unlimited",
+                "reason": "beta_expires_soon",
+            },
+            payload["betaOffer"],
+        )
 
     def test_expired_invite_keeps_plan_visible_but_restricts_access(self):
         old_signup = datetime.now(timezone.utc) - timedelta(days=9)
@@ -60,3 +89,4 @@ class BetaInviteAccessTests(TestCase):
         self.assertEqual(payload["limits"]["connectionKeyLimit"], 0)
         self.assertEqual(payload["source"], "beta_invite_expired")
         self.assertFalse(payload["betaAccess"]["active"])
+        self.assertEqual({}, payload["betaOffer"])

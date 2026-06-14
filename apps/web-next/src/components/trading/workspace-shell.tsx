@@ -60,8 +60,10 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import type { WorkspaceState } from "@/lib/contracts/workspace-state";
+import type { BillingStatusSummary } from "@/lib/billing/billing-status-summary";
 
 type WorkspaceShellProps = {
+  billingStatus?: BillingStatusSummary;
   children: React.ReactNode;
   workspace: WorkspaceState;
 };
@@ -159,6 +161,83 @@ function useLocationSearchParams() {
   );
 
   return React.useMemo(() => new URLSearchParams(search), [search]);
+}
+
+function BetaExpiryOfferNotice({
+  billingStatus,
+}: {
+  billingStatus: BillingStatusSummary | undefined;
+}) {
+  const router = useRouter();
+  const offer = billingStatus?.betaOffer;
+  const [status, setStatus] = React.useState<"idle" | "pending" | "error">("idle");
+
+  if (!offer?.active) return null;
+
+  async function startDiscountCheckout() {
+    if (!offer) return;
+
+    setStatus("pending");
+
+    try {
+      const response = await fetch("/api/kmfx/billing/checkout", {
+        body: JSON.stringify({
+          cancelUrl: "/subscription?checkout=cancelled&offer=beta",
+          interval: "yearly",
+          offer: offer.id,
+          plan: "unlimited",
+          successUrl: "/subscription?checkout=success&offer=beta&session_id={CHECKOUT_SESSION_ID}",
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (response.status === 401 || payload?.auth_required) {
+        router.push("/login?next=/subscription");
+        return;
+      }
+
+      if (!response.ok || payload?.ok === false || !payload?.url) {
+        throw new Error(payload?.reason || payload?.error || "checkout_failed");
+      }
+
+      window.location.assign(payload.url);
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  return (
+    <section className="flex flex-col gap-3 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.08] p-4 text-sm shadow-[0_18px_45px_-34px_rgba(16,185,129,0.55)] backdrop-blur-xl md:flex-row md:items-center md:justify-between">
+      <div className="min-w-0">
+        <p className="font-semibold text-foreground">
+          Tu beta termina pronto
+        </p>
+        <p className="mt-1 leading-6 text-muted-foreground">
+          Activa Edge Unlimited anual con un {offer.discountPercent}% de descuento
+          antes de que termine la prueba. El descuento se aplica en Stripe.
+        </p>
+        {status === "error" ? (
+          <p className="mt-2 text-xs font-medium text-destructive">
+            No se pudo abrir Checkout con descuento. Recarga y vuelve a intentarlo.
+          </p>
+        ) : null}
+      </div>
+      <Button
+        className="shrink-0"
+        disabled={status === "pending"}
+        onClick={() => void startDiscountCheckout()}
+        size="sm"
+        type="button"
+      >
+        <CreditCard data-icon="inline-start" />
+        {status === "pending" ? "Abriendo..." : "Activar anual -50%"}
+      </Button>
+    </section>
+  );
 }
 
 function getPromoNotifications(): PromoNotification[] {
@@ -1045,7 +1124,11 @@ function WorkspaceSidebar({
   );
 }
 
-export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
+export function WorkspaceShell({
+  billingStatus,
+  children,
+  workspace,
+}: WorkspaceShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useLocationSearchParams();
@@ -1217,6 +1300,7 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
                   </div>
                 </div>
               ) : null}
+              <BetaExpiryOfferNotice billingStatus={billingStatus} />
               <WorkspaceProvider workspace={selectedWorkspace}>
                 {children}
               </WorkspaceProvider>
