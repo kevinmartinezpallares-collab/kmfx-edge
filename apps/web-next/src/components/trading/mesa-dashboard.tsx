@@ -700,6 +700,55 @@ function formatMetricValue({
   })}${suffix}`;
 }
 
+function easeOutCubic(progress: number) {
+  return 1 - Math.pow(1 - progress, 3);
+}
+
+function useAnimatedMetricNumber(value: number, durationMs = 850) {
+  const target = Number.isFinite(value) ? value : 0;
+  const [displayValue, setDisplayValue] = React.useState(0);
+  const latestValueRef = React.useRef(0);
+
+  React.useEffect(() => {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduceMotion || durationMs <= 0) {
+      latestValueRef.current = target;
+      const frame = window.requestAnimationFrame(() => {
+        setDisplayValue(target);
+      });
+
+      return () => window.cancelAnimationFrame(frame);
+    }
+
+    const startValue = latestValueRef.current;
+    const delta = target - startValue;
+    const startedAt = performance.now();
+    let frame = 0;
+
+    function tick(now: number) {
+      const progress = Math.min(1, (now - startedAt) / durationMs);
+      const nextValue = startValue + delta * easeOutCubic(progress);
+
+      setDisplayValue(nextValue);
+
+      if (progress < 1) {
+        frame = window.requestAnimationFrame(tick);
+        return;
+      }
+
+      latestValueRef.current = target;
+      setDisplayValue(target);
+    }
+
+    frame = window.requestAnimationFrame(tick);
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [durationMs, target]);
+
+  return displayValue;
+}
+
 export function MetricCard({
   title,
   value,
@@ -734,6 +783,7 @@ export function MetricCard({
       : deltaTone === "negative"
         ? "bg-loss text-background"
         : "bg-muted text-muted-foreground";
+  const animatedValue = useAnimatedMetricNumber(value);
 
   return (
     <Card className="overflow-hidden border-border/70 bg-card/70 shadow-none">
@@ -748,7 +798,7 @@ export function MetricCard({
                 tone === "negative" && "text-loss",
               )}
             >
-              {formatMetricValue({ value, prefix, suffix, decimals })}
+              {formatMetricValue({ value: animatedValue, prefix, suffix, decimals })}
             </p>
             {delta ? (
               <div className="flex min-w-0 items-center gap-1.5 text-xs leading-none">
@@ -981,6 +1031,52 @@ function buildDrawdownRows(points: EquityChartPoint[]) {
       displayLabel: point.label,
       label: point.label,
       time: point.time,
+    };
+  });
+}
+
+function buildSmoothedDrawdownLivelineRows(
+  rows: ReturnType<typeof buildDrawdownRows>,
+) {
+  if (rows.length < 5) {
+    return rows.map((row) => ({
+      time: row.time,
+      value: -row.drawdownPct,
+    }));
+  }
+
+  return rows.map((row, index) => {
+    const previous = rows[index - 1];
+    const next = rows[index + 1];
+
+    if (!previous || !next || index === rows.length - 1) {
+      return {
+        time: row.time,
+        value: -row.drawdownPct,
+      };
+    }
+
+    const neighborAverage = (previous.drawdownPct + next.drawdownPct) / 2;
+    const isMeaningfulRiskSpike =
+      row.drawdownPct >= previous.drawdownPct &&
+      row.drawdownPct >= next.drawdownPct &&
+      row.drawdownPct - neighborAverage >= 1.25;
+
+    if (isMeaningfulRiskSpike) {
+      return {
+        time: row.time,
+        value: -row.drawdownPct,
+      };
+    }
+
+    const smoothedDrawdown =
+      previous.drawdownPct * 0.22 +
+      row.drawdownPct * 0.56 +
+      next.drawdownPct * 0.22;
+
+    return {
+      time: row.time,
+      value: -smoothedDrawdown,
     };
   });
 }
@@ -1241,15 +1337,13 @@ export function DrawdownRecentCard({
   const maxDrawdown = rows.reduce((max, row) => Math.max(max, row.drawdownPct), 0);
   const currentDrawdown = rows.at(-1)?.drawdownPct ?? 0;
   const labelByTime = new Map(rows.map((row) => [row.time, row.displayLabel || shortPanelTimeLabel(row.time)]));
+  const drawdownLineColor = chartTheme.isLight ? "#404040" : chartTheme.accent;
   const livelineRows = prepareHistoricalLivelineCurve(
-    rows.map((row) => ({
-      time: row.time,
-      value: -row.drawdownPct,
-    })),
+    buildSmoothedDrawdownLivelineRows(rows),
     {
-      maxPoints: 54,
-      minPoints: 18,
-      minStepSecs: 300,
+      maxPoints: 42,
+      minPoints: 20,
+      minStepSecs: 900,
     },
   );
   const dataSpanSecs =
@@ -1288,19 +1382,20 @@ export function DrawdownRecentCard({
           <div
             data-kmfx-liveline
             className={cn(PANEL_MICRO_CHART_SURFACE_CLASS, "w-full")}
-            style={chartTheme.isLight ? { filter: "contrast(1.12)" } : undefined}
+            style={chartTheme.isLight ? { filter: "contrast(1.04)" } : undefined}
           >
             <Liveline
               badge
               badgeTail={!isMobile}
               badgeVariant="minimal"
-              color={chartTheme.accent}
+              color={drawdownLineColor}
               data={livelineRows}
               fill
               formatTime={(time) => labelByTime.get(time) ?? shortPanelTimeLabel(time)}
               formatValue={(value) => formatPercent(Math.abs(Number(value)), 2)}
               grid
-              lineWidth={1.55}
+              lerpSpeed={0.06}
+              lineWidth={1.2}
               momentum={false}
               padding={livelinePadding(isMobile, {
                 bottom: 32,
@@ -1808,13 +1903,29 @@ export function AverageWinLossCard({
 }) {
   const avgWinAbs = Math.abs(avgWin);
   const avgLossAbs = Math.abs(avgLoss);
-  const maxValue = Math.max(1, avgWinAbs, avgLossAbs);
   const ratio = avgLossAbs > 0 ? avgWinAbs / avgLossAbs : 0;
-  const maxSegments = 22;
-  const trackerRows = [
-    { label: "Pérdida media", value: avgLossAbs, displayValue: formatCurrency(-avgLossAbs, currency) },
-    { label: "Ganancia media", value: avgWinAbs, displayValue: formatCurrency(avgWinAbs, currency) },
-  ];
+  const totalAverageMove = avgWinAbs + avgLossAbs;
+  const winSharePct = totalAverageMove > 0 ? (avgWinAbs / totalAverageMove) * 100 : 0;
+  const halfDonutData = totalAverageMove > 0
+    ? [
+        {
+          color: "color-mix(in oklab, var(--muted-foreground) 62%, transparent)",
+          label: "Pérdida media",
+          value: avgLossAbs,
+        },
+        {
+          color: "var(--foreground)",
+          label: "Ganancia media",
+          value: avgWinAbs,
+        },
+      ]
+    : [
+        {
+          color: "color-mix(in oklab, var(--muted) 70%, transparent)",
+          label: "Sin datos",
+          value: 1,
+        },
+      ];
 
   return (
     <Card className={cn(PANEL_CARD_CLASS, PANEL_MICRO_CHART_CARD_CLASS, className)}>
@@ -1835,88 +1946,68 @@ export function AverageWinLossCard({
               {ratio.toLocaleString("es-ES", { maximumFractionDigits: 2 })}
             </p>
           </div>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">Peso ganador</p>
+            <p className="mt-1 font-mono text-sm font-semibold text-foreground">
+              {winSharePct.toLocaleString("es-ES", { maximumFractionDigits: 0 })}%
+            </p>
+          </div>
         </div>
 
-        <div className={cn(PANEL_MICRO_CHART_SURFACE_CLASS, "relative overflow-hidden px-1 pb-4 pt-1")}>
-          <div
-            aria-hidden="true"
-            className="absolute inset-x-0 bottom-12 top-4 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:50%_100%,100%_33.33%] opacity-20"
-          />
-          <div
-            aria-hidden="true"
-            className="absolute bottom-12 left-1/2 top-4 w-px -translate-x-1/2 bg-border/80"
-          />
-          <span className="absolute left-1/2 top-1 z-10 -translate-x-1/2 rounded-full bg-card px-2 font-mono text-[10px] font-medium text-muted-foreground">
-            {ratio.toLocaleString("es-ES", { maximumFractionDigits: 2 })}x
-          </span>
-          <div className="relative z-0 grid h-full grid-rows-[1fr_auto]">
-            <div className="grid grid-cols-2 items-center">
-              {trackerRows.map((row, rowIndex) => {
-                const activeSegments = Math.max(
-                  row.value > 0 ? 1 : 0,
-                  Math.round((row.value / maxValue) * maxSegments),
-                );
-                const isLoss = rowIndex === 0;
-
-                return (
-                  <div
-                    className={cn(
-                      "group flex items-center gap-1",
-                      isLoss ? "justify-end pr-4" : "justify-start pl-4",
-                    )}
-                    key={row.label}
-                    title={`${row.label} / ${row.displayValue}`}
-                  >
-                    {isLoss
-                      ? Array.from({ length: maxSegments }, (_, segmentIndex) => {
-                          const isFilled = segmentIndex >= maxSegments - activeSegments;
-
-                          return (
-                            <span
-                              aria-hidden="true"
-                              className={cn(
-                                "h-9 w-1.5 rounded-[2px] transition-all duration-200 group-hover:h-12",
-                                isFilled
-                                  ? "bg-muted-foreground/55 group-hover:bg-muted-foreground/70"
-                                  : "bg-transparent",
-                              )}
-                              key={segmentIndex}
-                            />
-                          );
-                        })
-                      : Array.from({ length: maxSegments }, (_, segmentIndex) => {
-                          const isFilled = segmentIndex < activeSegments;
-
-                          return (
-                            <span
-                              aria-hidden="true"
-                              className={cn(
-                                "h-9 w-1.5 rounded-[2px] transition-all duration-200 group-hover:h-12",
-                                isFilled
-                                  ? "bg-foreground/80 group-hover:bg-foreground"
-                                  : "bg-transparent",
-                              )}
-                              key={segmentIndex}
-                            />
-                          );
-                        })}
-                  </div>
-                );
-              })}
+        <div className={cn(PANEL_MICRO_CHART_SURFACE_CLASS, "grid grid-rows-[1fr_auto] overflow-hidden pb-4")}>
+          <div className="relative mx-auto h-32 w-full max-w-64 overflow-hidden">
+            <PieChart
+              className="absolute left-1/2 top-2 -translate-x-1/2"
+              cornerRadius={12}
+              data={halfDonutData}
+              endAngle={Math.PI / 2}
+              enterStaggerScale={0.35}
+              hoverOffset={2}
+              innerRadius={74}
+              padAngle={0.035}
+              size={228}
+              startAngle={-Math.PI / 2}
+            >
+              <PieSlice
+                hoverEffect="none"
+                index={0}
+                showGlow={false}
+              />
+              {totalAverageMove > 0 ? (
+                <PieSlice
+                  hoverEffect="none"
+                  index={1}
+                  showGlow={false}
+                />
+              ) : null}
+            </PieChart>
+            <div className="absolute inset-x-0 top-[72px] text-center">
+              <p className="font-mono text-sm font-semibold text-foreground">
+                {ratio.toLocaleString("es-ES", { maximumFractionDigits: 2 })}x
+              </p>
+              <p className="mt-0.5 text-[10px] font-medium text-muted-foreground">
+                ganancia / pérdida
+              </p>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div className="text-right">
-                <p className="text-muted-foreground">Pérdida media</p>
-                <p className="mt-1 font-mono font-semibold text-foreground">
-                  {formatCurrency(-avgLossAbs, currency)}
-                </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4 border-t border-border/60 pt-3 text-xs">
+            <div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <span className="h-1.5 w-5 rounded-full bg-muted-foreground/55" />
+                <span>Pérdida media</span>
               </div>
-              <div>
-                <p className="text-muted-foreground">Ganancia media</p>
-                <p className="mt-1 font-mono font-semibold text-foreground">
-                  {formatCurrency(avgWinAbs, currency)}
-                </p>
+              <p className="mt-1 font-mono font-semibold text-foreground">
+                {formatCurrency(-avgLossAbs, currency)}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="flex items-center justify-end gap-1.5 text-muted-foreground">
+                <span>Ganancia media</span>
+                <span className="h-1.5 w-5 rounded-full bg-foreground/85" />
               </div>
+              <p className="mt-1 font-mono font-semibold text-foreground">
+                {formatCurrency(avgWinAbs, currency)}
+              </p>
             </div>
           </div>
         </div>

@@ -164,8 +164,13 @@ export type RawLiveSnapshotAccount = {
 
 export type RawLiveAccountsSnapshot = {
   accounts?: RawLiveSnapshotAccount[];
+  auth_avatar_url?: string;
   auth_email?: string;
+  auth_picture?: string;
+  avatar_url?: string;
+  picture?: string;
   user_id?: string;
+  user_avatar_url?: string;
   scope_user_id?: string;
   is_admin?: boolean;
   summary_only?: boolean;

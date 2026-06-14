@@ -5,10 +5,15 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
+  BookOpenCheck,
   ChevronDown,
   CreditCard,
   ExternalLink,
+  HelpCircle,
+  ListChecks,
   LogOut,
+  PlugZap,
+  Route,
   Settings2,
   UserRound,
   WalletCards,
@@ -23,6 +28,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -36,6 +50,9 @@ import {
   routeTitles,
   type NavigationItem,
 } from "@/lib/domain/navigation";
+import { getAccountsOverview } from "@/lib/domain/accounts-selectors";
+import { buildReviewPriorityRows } from "@/lib/domain/review-selectors";
+import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -78,6 +95,7 @@ type PromoNotification = {
 };
 
 const LOCATION_SEARCH_CHANGE_EVENT = "kmfx-location-search-change";
+const BETA_ONBOARDING_STORAGE_KEY = "kmfx-beta-onboarding-v1";
 const ORION_FUNDED_REFERRAL_URL =
   process.env.NEXT_PUBLIC_ORION_FUNDED_REFERRAL_URL ??
   "https://shop.orionfunded.com/?ref=10578";
@@ -189,9 +207,32 @@ function getPromoNotifications(): PromoNotification[] {
 function getNavBadge(
   href: string | undefined,
   item: NavigationItem,
+  workspace: WorkspaceState,
 ) {
   if (!item.enabled) return item.badge ?? "Próximamente";
   if (!href) return item.badge;
+
+  const accountsOverview = getAccountsOverview(workspace);
+
+  if (href === "/dashboard") return "Activo";
+  if (href === "/accounts") return String(accountsOverview.totalCount);
+  if (href === "/capital") {
+    return accountsOverview.fundedCount > 0
+      ? `${accountsOverview.fundedCount}F`
+      : String(accountsOverview.totalCount);
+  }
+  if (href === "/analytics") return workspace.analytics.currentPeriod;
+  if (href === "/trades") {
+    return String(countClosedTradeExecutions(workspace.trades));
+  }
+  if (href === "/notes") {
+    const reviewCount = buildReviewPriorityRows(workspace).length;
+    return reviewCount > 0 ? String(reviewCount) : item.badge;
+  }
+  if (href === "/calendar") {
+    const activeDays = workspace.analytics.daily.length;
+    return activeDays > 0 ? String(activeDays) : item.badge;
+  }
 
   return item.badge;
 }
@@ -244,11 +285,13 @@ function NavigationGroupMenu({
   pathname,
   router,
   selectedAccountId,
+  workspace,
 }: {
   items: NavigationItem[];
   pathname: string;
   router: ReturnType<typeof useRouter>;
   selectedAccountId: string | null;
+  workspace: WorkspaceState;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
 
@@ -269,7 +312,7 @@ function NavigationGroupMenu({
         const href = item.href;
         const hasActiveChild = item.children?.some((child) => isHrefActive(pathname, child.href)) ?? false;
         const isActive = href ? isHrefActive(pathname, href) || hasActiveChild : hasActiveChild;
-        const badge = getNavBadge(href, item);
+        const badge = getNavBadge(href, item, workspace);
         const showChildren = Boolean(item.children?.length) && (isActive || pathname === href);
         const targetHref = href && item.enabled
           ? hrefWithActiveAccount(href, selectedAccountId)
@@ -498,6 +541,136 @@ function profileInitials(displayName: string) {
   return initials || "KM";
 }
 
+function getBetaOnboardingStorageKey(userEmail: string | undefined) {
+  const identity = String(userEmail || "anonymous").trim().toLowerCase();
+  return `${BETA_ONBOARDING_STORAGE_KEY}:${identity}`;
+}
+
+const betaOnboardingSteps = [
+  {
+    icon: PlugZap,
+    title: "Conecta tu cuenta MT5",
+    body: "En Cuentas, añade la cuenta que quieres revisar y copia la KMFXKey en el conector. Cuando sincronice, el dashboard deja de usar datos de ejemplo.",
+  },
+  {
+    icon: ListChecks,
+    title: "Confirma el punto de partida",
+    body: "Revisa balance, equity, servidor, estado de conexión y última sincronización antes de tomar decisiones con la cuenta activa.",
+  },
+  {
+    icon: Route,
+    title: "Recorre las vistas clave",
+    body: "Panel para lectura rápida, Portfolio para capital, Trades para ejecución, Calendario para contexto e Insights para patrones.",
+  },
+  {
+    icon: BookOpenCheck,
+    title: "Cierra el bucle diario",
+    body: "Añade notas, revisa alertas y deja marcada la siguiente acción: corregir riesgo, esperar sesión o preparar la próxima operación.",
+  },
+];
+
+function BetaOnboardingDialog({
+  onOpenChange,
+  open,
+  selectedAccountId,
+}: {
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+  selectedAccountId: string | null;
+}) {
+  const router = useRouter();
+
+  function closeAndNavigate(href: string) {
+    onOpenChange(false);
+    router.push(href);
+  }
+
+  const accountsHref = selectedAccountId
+    ? `/accounts?account=${encodeURIComponent(selectedAccountId)}`
+    : "/accounts";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[calc(100svh-1rem)] overflow-y-auto p-0 sm:max-w-2xl">
+        <DialogHeader className="border-b border-border/70 px-4 pb-4 pt-5 pr-12 sm:px-6 sm:pt-6">
+          <div className="mb-1 flex items-center gap-2">
+            <Badge variant="outline" className="bg-background">
+              Beta cerrada
+            </Badge>
+            <span className="text-xs font-medium text-muted-foreground">
+              Primer recorrido
+            </span>
+          </div>
+          <DialogTitle className="text-xl leading-tight sm:text-2xl">
+            Bienvenido a KMFX Edge
+          </DialogTitle>
+          <DialogDescription className="max-w-xl leading-6">
+            Empieza conectando una cuenta y usa este orden para entender el
+            dashboard sin perderte entre métricas.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-4 px-4 py-4 sm:px-6">
+          <div className="rounded-lg border border-border/70 bg-muted/35 p-4">
+            <p className="text-sm font-medium text-foreground">
+              Ruta recomendada para empezar
+            </p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              La beta está pensada para una rutina sencilla: conectar MT5,
+              validar que los datos llegan bien, revisar el estado operativo y
+              decidir la siguiente acción.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {betaOnboardingSteps.map((step, index) => (
+              <div
+                key={step.title}
+                className="rounded-lg border border-border/70 bg-card/70 p-4"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background">
+                    <step.icon className="size-4 text-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-primary">
+                        Paso {index + 1}
+                      </span>
+                    </div>
+                    <h2 className="mt-1 text-sm font-semibold text-foreground">
+                      {step.title}
+                    </h2>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      {step.body}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <DialogFooter className="mx-0 mb-0 rounded-none rounded-b-xl px-4 py-3 sm:px-6">
+          <DialogClose render={<Button variant="outline" />}>
+            Ahora no
+          </DialogClose>
+          <Button
+            variant="outline"
+            onClick={() => closeAndNavigate("/dashboard")}
+          >
+            Ver panel
+          </Button>
+          <Button onClick={() => closeAndNavigate(accountsHref)}>
+            <PlugZap data-icon="inline-start" />
+            Conectar cuenta
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function AccountSwitcher({
   workspace,
   activeAccount,
@@ -614,13 +787,20 @@ function AccountSwitcher({
   );
 }
 
-function SidebarUserMenu({ workspace }: { workspace: WorkspaceState }) {
+function SidebarUserMenu({
+  onOpenOnboarding,
+  workspace,
+}: {
+  onOpenOnboarding: () => void;
+  workspace: WorkspaceState;
+}) {
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
   const profileName = profileNameFromEmail(workspace.meta.userEmail);
   const roleLabel = workspace.meta.userRoleLabel ?? "Usuario";
   const initials = profileInitials(profileName);
   const secondaryLabel = workspace.meta.userEmail ?? roleLabel;
+  const profileAvatarUrl = workspace.meta.userAvatarUrl ?? "";
 
   function navigateTo(pathname: string) {
     if (isMobile) {
@@ -659,6 +839,9 @@ function SidebarUserMenu({ workspace }: { workspace: WorkspaceState }) {
             }
           >
             <Avatar className="size-8">
+              {profileAvatarUrl ? (
+                <AvatarImage src={profileAvatarUrl} alt={`Foto de ${profileName}`} />
+              ) : null}
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
@@ -679,6 +862,9 @@ function SidebarUserMenu({ workspace }: { workspace: WorkspaceState }) {
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="size-9">
+                    {profileAvatarUrl ? (
+                      <AvatarImage src={profileAvatarUrl} alt={`Foto de ${profileName}`} />
+                    ) : null}
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
@@ -701,6 +887,17 @@ function SidebarUserMenu({ workspace }: { workspace: WorkspaceState }) {
               <DropdownMenuItem onClick={() => navigateTo("/accounts")}>
                 <WalletCards data-icon="inline-start" />
                 Cuentas conectadas
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  if (isMobile) {
+                    setOpenMobile(false);
+                  }
+                  onOpenOnboarding();
+                }}
+              >
+                <HelpCircle data-icon="inline-start" />
+                Ver guía inicial
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigateTo("/subscription")}>
                 <CreditCard data-icon="inline-start" />
@@ -969,12 +1166,14 @@ function TopbarNotifications({
 function WorkspaceSidebar({
   activePromo,
   onDismissPromo,
+  onOpenOnboarding,
   remainingPromoCount,
   selectedAccountId,
   workspace,
 }: {
   activePromo: PromoNotification | undefined;
   onDismissPromo: (promoId: string) => void;
+  onOpenOnboarding: () => void;
   remainingPromoCount: number;
   selectedAccountId: string | null;
   workspace: WorkspaceState;
@@ -1024,6 +1223,7 @@ function WorkspaceSidebar({
                     pathname={pathname}
                     router={router}
                     selectedAccountId={selectedAccountId}
+                    workspace={workspace}
                   />
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -1038,7 +1238,10 @@ function WorkspaceSidebar({
           remainingCount={remainingPromoCount}
           onDismiss={onDismissPromo}
         />
-        <SidebarUserMenu workspace={workspace} />
+        <SidebarUserMenu
+          onOpenOnboarding={onOpenOnboarding}
+          workspace={workspace}
+        />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
@@ -1072,6 +1275,7 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
     [],
   );
   const [dismissedPromoIds, setDismissedPromoIds] = React.useState<string[]>([]);
+  const [betaOnboardingOpen, setBetaOnboardingOpen] = React.useState(false);
   const activePromo = promoNotifications.find(
     (promo) => !dismissedPromoIds.includes(promo.id),
   );
@@ -1082,6 +1286,28 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
     () => getWorkspacePrefetchHrefs(pathname, selectedAccountId),
     [pathname, selectedAccountId],
   );
+  const betaOnboardingStorageKey = React.useMemo(
+    () => getBetaOnboardingStorageKey(workspace.meta.userEmail),
+    [workspace.meta.userEmail],
+  );
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      if (window.localStorage.getItem(betaOnboardingStorageKey) === "seen") {
+        return;
+      }
+    } catch {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setBetaOnboardingOpen(true);
+    }, 450);
+
+    return () => window.clearTimeout(timer);
+  }, [betaOnboardingStorageKey]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1134,12 +1360,34 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
     setDismissedPromoIds((current) => current.filter((id) => id !== promoId));
   }
 
+  function setOnboardingSeen() {
+    if (typeof window === "undefined") return;
+
+    try {
+      window.localStorage.setItem(betaOnboardingStorageKey, "seen");
+    } catch {
+      // Storage can be unavailable in hardened browsers; the modal still works.
+    }
+  }
+
+  function handleBetaOnboardingOpenChange(open: boolean) {
+    setBetaOnboardingOpen(open);
+    if (!open) {
+      setOnboardingSeen();
+    }
+  }
+
+  function openBetaOnboarding() {
+    setBetaOnboardingOpen(true);
+  }
+
   return (
     <SidebarProvider defaultOpen>
       <CloseMobileSidebarOnRouteChange />
       <WorkspaceSidebar
         activePromo={activePromo}
         onDismissPromo={dismissPromo}
+        onOpenOnboarding={openBetaOnboarding}
         remainingPromoCount={remainingPromoCount}
         selectedAccountId={selectedAccountId}
         workspace={workspace}
@@ -1181,7 +1429,6 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
             </div>
           </div>
         </header>
-
         <main className="relative min-w-0 overflow-x-hidden">
           <div className="h-[calc(100svh-4rem)] overflow-x-hidden overflow-y-auto">
             <div className="grid w-full min-w-0 max-w-full grid-cols-[minmax(0,1fr)] gap-4 overflow-x-hidden p-4 md:p-6">
@@ -1224,6 +1471,11 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
           </div>
         </main>
       </SidebarInset>
+      <BetaOnboardingDialog
+        onOpenChange={handleBetaOnboardingOpenChange}
+        open={betaOnboardingOpen}
+        selectedAccountId={selectedAccountId}
+      />
     </SidebarProvider>
   );
 }

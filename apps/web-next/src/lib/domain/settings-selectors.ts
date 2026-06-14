@@ -27,6 +27,7 @@ export type SettingsProfile = {
   email: string | null;
   role: string;
   initials: string;
+  avatarUrl?: string;
   activeAccountLabel: string;
   activeAccountMeta: string;
 };
@@ -194,6 +195,7 @@ export function getSettingsOverview(workspace: WorkspaceState): SettingsOverview
       email: profileEmail,
       role: workspace.meta.userRoleLabel ?? "Usuario",
       initials: profileInitials(profileDisplayName),
+      avatarUrl: workspace.meta.userAvatarUrl,
       activeAccountLabel: activeAccount?.label ?? "Sin cuenta activa",
       activeAccountMeta: activeAccount
         ? `${activeAccount.broker} / ${activeAccount.server}`

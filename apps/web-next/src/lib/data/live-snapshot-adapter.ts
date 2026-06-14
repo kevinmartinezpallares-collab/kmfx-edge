@@ -170,11 +170,24 @@ function userRoleLabelFromSnapshot(snapshot: RawLiveAccountsSnapshot) {
   return undefined;
 }
 
+function userAvatarUrlFromSnapshot(snapshot: RawLiveAccountsSnapshot) {
+  return String(
+    snapshot.auth_avatar_url ||
+      snapshot.auth_picture ||
+      snapshot.user_avatar_url ||
+      snapshot.avatar_url ||
+      snapshot.picture ||
+      "",
+  ).trim();
+}
+
 function userMetaFromSnapshot(snapshot: RawLiveAccountsSnapshot) {
   const userEmail = String(snapshot.auth_email || "").trim();
   const userRoleLabel = userRoleLabelFromSnapshot(snapshot);
+  const userAvatarUrl = userAvatarUrlFromSnapshot(snapshot);
 
   return {
+    ...(userAvatarUrl ? { userAvatarUrl } : {}),
     ...(userEmail ? { userEmail } : {}),
     ...(userRoleLabel ? { userRoleLabel } : {}),
   };

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Bell,
+  Camera,
   CheckCircle2,
   CircleDollarSign,
   CreditCard,
@@ -19,6 +20,7 @@ import {
   ReceiptText,
   ShieldCheck,
   Sparkles,
+  Trash2,
   UserRound,
   WalletCards,
 } from "lucide-react";
@@ -32,6 +34,7 @@ import {
 import {
   Avatar,
   AvatarFallback,
+  AvatarImage,
 } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -303,7 +306,40 @@ function preferenceLabelToTheme(value: string) {
   return "dark";
 }
 
+const PROFILE_AVATAR_MAX_BYTES = 1_500_000;
+const PROFILE_AVATAR_STORAGE_PREFIX = "kmfx-edge:profile-avatar";
+const PROFILE_AVATAR_ACCEPT = "image/jpeg,image/png,image/webp";
+const PROFILE_AVATAR_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const PROFILE_AVATAR_ALLOWED_EXTENSION_PATTERN = /\.(jpe?g|png|webp)$/i;
+
+function profileAvatarStorageKey(email: string) {
+  const normalizedEmail = email.trim().toLocaleLowerCase("en-US");
+  return `${PROFILE_AVATAR_STORAGE_PREFIX}:${normalizedEmail || "local"}`;
+}
+
+function readProfileAvatarFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.addEventListener("load", () => {
+      if (typeof reader.result !== "string") {
+        reject(new Error("No se pudo leer la imagen."));
+        return;
+      }
+
+      resolve(reader.result);
+    });
+
+    reader.addEventListener("error", () => {
+      reject(new Error("No se pudo leer la imagen."));
+    });
+
+    reader.readAsDataURL(file);
+  });
+}
+
 type SettingsProfileView = {
+  avatarUrl: string;
   displayName: string;
   email: string;
 };
@@ -312,6 +348,7 @@ type SettingsUiState = {
   profileDialogOpen: boolean;
   profileDraft: SettingsProfileView;
   profileView: SettingsProfileView;
+  profileAvatarError: string | null;
   settingsValues: Record<string, string>;
   signOutDialogOpen: boolean;
   statusMessage: string | null;
@@ -322,6 +359,9 @@ type SettingsUiAction =
   | { type: "openProfileDialog" }
   | { type: "setProfileDraft"; profileDraft: SettingsProfileView }
   | { type: "setProfileDraftField"; field: keyof SettingsProfileView; value: string }
+  | { type: "setProfileAvatar"; avatarUrl: string; statusMessage: string | null }
+  | { type: "setProfileAvatarError"; error: string | null }
+  | { type: "removeProfileAvatar" }
   | { type: "setSetting"; label: string; value: string }
   | { type: "setSignOutDialogOpen"; open: boolean }
   | { type: "saveProfile"; profile: SettingsProfileView };
@@ -349,6 +389,40 @@ function settingsUiReducer(
           [action.field]: action.value,
         },
       };
+    case "setProfileAvatar":
+      return {
+        ...state,
+        profileAvatarError: null,
+        profileDraft: {
+          ...state.profileDraft,
+          avatarUrl: action.avatarUrl,
+        },
+        profileView: {
+          ...state.profileView,
+          avatarUrl: action.avatarUrl,
+        },
+        statusMessage: action.statusMessage,
+      };
+    case "setProfileAvatarError":
+      return {
+        ...state,
+        profileAvatarError: action.error,
+        statusMessage: action.error ? null : state.statusMessage,
+      };
+    case "removeProfileAvatar":
+      return {
+        ...state,
+        profileAvatarError: null,
+        profileDraft: {
+          ...state.profileDraft,
+          avatarUrl: "",
+        },
+        profileView: {
+          ...state.profileView,
+          avatarUrl: "",
+        },
+        statusMessage: "Foto eliminada",
+      };
     case "setSetting":
       return {
         ...state,
@@ -364,6 +438,7 @@ function settingsUiReducer(
       return {
         ...state,
         profileDialogOpen: false,
+        profileDraft: action.profile,
         profileView: action.profile,
         statusMessage: "Perfil actualizado",
       };
@@ -382,17 +457,27 @@ type SettingsAccessRow = {
 };
 
 function SettingsProfileCard({
+  avatarError,
+  canRemoveProfileAvatar,
   onOpenProfileDialog,
   onOpenSignOutDialog,
+  onOpenAvatarPicker,
+  onRemoveProfileAvatar,
   profile,
+  profileAvatarUrl,
   profileInitials,
   profileView,
   statusMessage,
   visibleEmail,
 }: {
+  avatarError: string | null;
+  canRemoveProfileAvatar: boolean;
   onOpenProfileDialog: () => void;
   onOpenSignOutDialog: () => void;
+  onOpenAvatarPicker: () => void;
+  onRemoveProfileAvatar: () => void;
   profile: SettingsProfile;
+  profileAvatarUrl: string;
   profileInitials: string;
   profileView: SettingsProfileView;
   statusMessage: string | null;
@@ -402,8 +487,27 @@ function SettingsProfileCard({
     <Card className="col-span-full border-border/70 bg-card/70">
       <CardContent className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
         <div className="flex min-w-0 items-center gap-4">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-background/50 text-base font-semibold text-foreground">
-            {profileInitials}
+          <div className="group relative shrink-0">
+            <Avatar className="size-14 rounded-xl border border-border/70 bg-background/50">
+              {profileAvatarUrl ? (
+                <AvatarImage
+                  src={profileAvatarUrl}
+                  alt={`Foto de ${profileView.displayName}`}
+                  className="rounded-xl"
+                />
+              ) : null}
+              <AvatarFallback className="rounded-xl bg-background/50 text-base font-semibold text-foreground">
+                {profileInitials}
+              </AvatarFallback>
+            </Avatar>
+            <button
+              type="button"
+              aria-label={profileAvatarUrl ? "Cambiar foto de perfil" : "Subir foto de perfil"}
+              className="absolute -bottom-2 -right-2 flex size-8 items-center justify-center rounded-full border border-border/70 bg-background text-foreground shadow-sm transition-colors hover:bg-muted"
+              onClick={onOpenAvatarPicker}
+            >
+              <Camera className="size-4" />
+            </button>
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
@@ -424,9 +528,24 @@ function SettingsProfileCard({
                 {statusMessage}
               </p>
             ) : null}
+            {avatarError ? (
+              <p className="mt-2 text-xs text-destructive" aria-live="polite">
+                {avatarError}
+              </p>
+            ) : null}
           </div>
         </div>
         <div className="flex flex-wrap gap-2 md:justify-end">
+          <Button variant="outline" onClick={onOpenAvatarPicker}>
+            <Camera data-icon="inline-start" />
+            {profileAvatarUrl ? "Cambiar foto" : "Subir foto"}
+          </Button>
+          {canRemoveProfileAvatar ? (
+            <Button variant="outline" onClick={onRemoveProfileAvatar}>
+              <Trash2 data-icon="inline-start" />
+              Quitar foto
+            </Button>
+          ) : null}
           <Button variant="outline" onClick={onOpenProfileDialog}>
             <UserRound data-icon="inline-start" />
             Editar perfil
@@ -1734,6 +1853,7 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
   const { setTheme, theme } = useTheme();
   const settingsOverview = getSettingsOverview(workspace);
   const { profile } = settingsOverview;
+  const profileAvatarInputRef = React.useRef<HTMLInputElement>(null);
   const [settingsUiState, dispatchSettingsUi] = React.useReducer(
     settingsUiReducer,
     { profile, preferences: settingsOverview.preferences, theme },
@@ -1745,6 +1865,7 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
         ]),
       ) as Record<string, string>;
       const profileView = {
+        avatarUrl: initialProfile.avatarUrl ?? "",
         displayName: initialProfile.displayName,
         email: initialProfile.email ?? "",
       };
@@ -1753,6 +1874,7 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
 
       return {
         profileDialogOpen: false,
+        profileAvatarError: null,
         profileDraft: profileView,
         profileView,
         settingsValues: initialValues,
@@ -1763,6 +1885,7 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
   );
   const {
     profileDialogOpen,
+    profileAvatarError,
     profileDraft,
     profileView,
     settingsValues,
@@ -1771,6 +1894,14 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
   } = settingsUiState;
   const visibleEmail = profileView.email.trim() || "Email pendiente";
   const profileInitials = getProfileInitials(profileView.displayName);
+  const profileAvatarUrl = profileView.avatarUrl.trim();
+  const canRemoveProfileAvatar = Boolean(
+    profileAvatarUrl && profileAvatarUrl !== (profile.avatarUrl ?? ""),
+  );
+  const profileAvatarKey = React.useMemo(
+    () => profileAvatarStorageKey(profileView.email),
+    [profileView.email],
+  );
   const selectedLanguage = settingsValues.Idioma ?? "Español";
   const accessRows = [
     {
@@ -1797,6 +1928,27 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
     document.documentElement.lang = selectedLanguage === "English" ? "en" : "es";
   }, [selectedLanguage]);
 
+  React.useEffect(() => {
+    if (profile.avatarUrl) {
+      dispatchSettingsUi({
+        type: "setProfileAvatar",
+        avatarUrl: profile.avatarUrl,
+        statusMessage: null,
+      });
+      return;
+    }
+
+    const storedAvatarUrl = window.localStorage.getItem(profileAvatarKey);
+
+    if (storedAvatarUrl) {
+      dispatchSettingsUi({
+        type: "setProfileAvatar",
+        avatarUrl: storedAvatarUrl,
+        statusMessage: null,
+      });
+    }
+  }, [profile.avatarUrl, profileAvatarKey]);
+
   function openProfileDialog() {
     dispatchSettingsUi({ type: "openProfileDialog" });
   }
@@ -1822,6 +1974,59 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
     });
   }
 
+  function openProfileAvatarPicker() {
+    profileAvatarInputRef.current?.click();
+  }
+
+  async function handleProfileAvatarChange(
+    event: React.ChangeEvent<HTMLInputElement> | React.FormEvent<HTMLInputElement>,
+  ) {
+    const file = event.currentTarget.files?.[0] ?? null;
+    event.currentTarget.value = "";
+
+    if (!file) return;
+
+    const hasAllowedType = PROFILE_AVATAR_ALLOWED_TYPES.includes(file.type);
+    const hasAllowedExtension = PROFILE_AVATAR_ALLOWED_EXTENSION_PATTERN.test(file.name);
+
+    if (!hasAllowedType && !hasAllowedExtension) {
+      dispatchSettingsUi({
+        type: "setProfileAvatarError",
+        error: "Sube una imagen JPG, PNG o WebP.",
+      });
+      return;
+    }
+
+    if (file.size > PROFILE_AVATAR_MAX_BYTES) {
+      dispatchSettingsUi({
+        type: "setProfileAvatarError",
+        error: "La foto debe pesar menos de 1,5 MB.",
+      });
+      return;
+    }
+
+    try {
+      const avatarUrl = await readProfileAvatarFile(file);
+
+      window.localStorage.setItem(profileAvatarKey, avatarUrl);
+      dispatchSettingsUi({
+        type: "setProfileAvatar",
+        avatarUrl,
+        statusMessage: "Foto de perfil actualizada",
+      });
+    } catch {
+      dispatchSettingsUi({
+        type: "setProfileAvatarError",
+        error: "No se pudo cargar la foto. Inténtalo de nuevo.",
+      });
+    }
+  }
+
+  function removeProfileAvatar() {
+    window.localStorage.removeItem(profileAvatarKey);
+    dispatchSettingsUi({ type: "removeProfileAvatar" });
+  }
+
   function setSignOutDialogOpen(open: boolean) {
     dispatchSettingsUi({ type: "setSignOutDialogOpen", open });
   }
@@ -1842,6 +2047,7 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
   function saveProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextProfile = {
+      avatarUrl: profileDraft.avatarUrl.trim(),
       displayName: profileDraft.displayName.trim() || profile.displayName,
       email: profileDraft.email.trim(),
     };
@@ -1853,13 +2059,27 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
     <PageMotion>
       <div className="grid max-w-5xl gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
         <SettingsProfileCard
+          avatarError={profileAvatarError}
+          canRemoveProfileAvatar={canRemoveProfileAvatar}
+          onOpenAvatarPicker={openProfileAvatarPicker}
           onOpenProfileDialog={openProfileDialog}
           onOpenSignOutDialog={() => setSignOutDialogOpen(true)}
+          onRemoveProfileAvatar={removeProfileAvatar}
           profile={profile}
+          profileAvatarUrl={profileAvatarUrl}
           profileInitials={profileInitials}
           profileView={profileView}
           statusMessage={statusMessage}
           visibleEmail={visibleEmail}
+        />
+        <input
+          ref={profileAvatarInputRef}
+          accept={PROFILE_AVATAR_ACCEPT}
+          aria-label="Subir foto de perfil"
+          className="sr-only"
+          type="file"
+          onChange={handleProfileAvatarChange}
+          onInput={handleProfileAvatarChange}
         />
 
         <SettingsPreferencesCard
