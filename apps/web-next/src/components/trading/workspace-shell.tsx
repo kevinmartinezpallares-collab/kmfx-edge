@@ -36,6 +36,9 @@ import {
   routeTitles,
   type NavigationItem,
 } from "@/lib/domain/navigation";
+import { getAccountsOverview } from "@/lib/domain/accounts-selectors";
+import { buildReviewPriorityRows } from "@/lib/domain/review-selectors";
+import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -189,9 +192,32 @@ function getPromoNotifications(): PromoNotification[] {
 function getNavBadge(
   href: string | undefined,
   item: NavigationItem,
+  workspace: WorkspaceState,
 ) {
   if (!item.enabled) return item.badge ?? "Próximamente";
   if (!href) return item.badge;
+
+  const accountsOverview = getAccountsOverview(workspace);
+
+  if (href === "/dashboard") return "Activo";
+  if (href === "/accounts") return String(accountsOverview.totalCount);
+  if (href === "/capital") {
+    return accountsOverview.fundedCount > 0
+      ? `${accountsOverview.fundedCount}F`
+      : String(accountsOverview.totalCount);
+  }
+  if (href === "/analytics") return workspace.analytics.currentPeriod;
+  if (href === "/trades") {
+    return String(countClosedTradeExecutions(workspace.trades));
+  }
+  if (href === "/notes") {
+    const reviewCount = buildReviewPriorityRows(workspace).length;
+    return reviewCount > 0 ? String(reviewCount) : item.badge;
+  }
+  if (href === "/calendar") {
+    const activeDays = workspace.analytics.daily.length;
+    return activeDays > 0 ? String(activeDays) : item.badge;
+  }
 
   return item.badge;
 }
@@ -244,11 +270,13 @@ function NavigationGroupMenu({
   pathname,
   router,
   selectedAccountId,
+  workspace,
 }: {
   items: NavigationItem[];
   pathname: string;
   router: ReturnType<typeof useRouter>;
   selectedAccountId: string | null;
+  workspace: WorkspaceState;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
 
@@ -269,7 +297,7 @@ function NavigationGroupMenu({
         const href = item.href;
         const hasActiveChild = item.children?.some((child) => isHrefActive(pathname, child.href)) ?? false;
         const isActive = href ? isHrefActive(pathname, href) || hasActiveChild : hasActiveChild;
-        const badge = getNavBadge(href, item);
+        const badge = getNavBadge(href, item, workspace);
         const showChildren = Boolean(item.children?.length) && (isActive || pathname === href);
         const targetHref = href && item.enabled
           ? hrefWithActiveAccount(href, selectedAccountId)
@@ -1024,6 +1052,7 @@ function WorkspaceSidebar({
                     pathname={pathname}
                     router={router}
                     selectedAccountId={selectedAccountId}
+                    workspace={workspace}
                   />
                 </SidebarGroupContent>
               </SidebarGroup>
