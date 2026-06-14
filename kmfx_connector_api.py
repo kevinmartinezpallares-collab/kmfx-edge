@@ -402,6 +402,7 @@ BILLING_STATUS_VALUES = {
     *BILLING_RESTRICTED_STATUSES,
 }
 DEFAULT_VIP_PROMOTION_CODES = {"comunidad100"}
+DEFAULT_BETA_INVITE_TRIAL_DAYS = 7
 CONNECTION_RATE_LIMIT_WINDOW_SECONDS = 60
 CONNECTION_RATE_LIMIT_BUCKETS: dict[str, tuple[float, int]] = {}
 SENSITIVE_RATE_LIMIT_WINDOW_SECONDS = 60
@@ -571,6 +572,41 @@ def build_post_trade_review_store():
 
 
 post_trade_review_store = build_post_trade_review_store()
+
+
+def normalize_invite_code(value: Any) -> str:
+    return safe_str(value).strip().lower()
+
+
+def beta_invite_codes() -> set[str]:
+    raw_values = [
+        _env_value("KMFX_INVITE_CODE"),
+        _env_value("KMFX_INVITE_CODES"),
+    ]
+    codes: set[str] = set()
+    for raw_value in raw_values:
+        for code in safe_str(raw_value).split(","):
+            normalized = normalize_invite_code(code)
+            if normalized:
+                codes.add(normalized)
+    return codes
+
+
+def beta_invite_signup_enabled() -> bool:
+    return _env_flag("KMFX_INVITE_ONLY_SIGNUP", default=False) or bool(beta_invite_codes())
+
+
+def beta_invite_trial_days() -> int:
+    return max(1, _env_int("KMFX_INVITE_TRIAL_DAYS", default=DEFAULT_BETA_INVITE_TRIAL_DAYS))
+
+
+def beta_invite_plan() -> str:
+    return normalize_plan_key(_env_value("KMFX_INVITE_TRIAL_PLAN") or "unlimited")
+
+
+def beta_invite_code_allowed(value: Any) -> bool:
+    code = normalize_invite_code(value)
+    return bool(code and code in beta_invite_codes())
 
 # 1003 is our sync validation error bucket:
 # the request reached the API, but some required structural field was invalid
@@ -1840,6 +1876,39 @@ def billing_cancel_at_period_end(app_metadata: dict[str, Any]) -> bool:
     return False
 
 
+def beta_invite_access_for_context(context: dict[str, Any]) -> dict[str, Any]:
+    if not beta_invite_signup_enabled():
+        return {}
+
+    app_metadata = ensure_dict(context.get("app_metadata"))
+    user_metadata = ensure_dict(context.get("user_metadata"))
+    invite_code = (
+        app_metadata.get("kmfx_beta_invite_code")
+        or app_metadata.get("beta_invite_code")
+        or user_metadata.get("kmfx_beta_invite_code")
+        or user_metadata.get("beta_invite_code")
+    )
+    if not beta_invite_code_allowed(invite_code):
+        return {}
+
+    started_at = (
+        _parse_datetime(context.get("created_at"))
+        or _parse_datetime(app_metadata.get("kmfx_beta_invite_started_at"))
+        or _parse_datetime(user_metadata.get("kmfx_beta_invite_started_at"))
+    )
+    if started_at is None:
+        return {}
+
+    ends_at = started_at + timedelta(days=beta_invite_trial_days())
+    active = datetime.now(timezone.utc) < ends_at
+    return {
+        "active": active,
+        "endsAt": ends_at.isoformat().replace("+00:00", "Z"),
+        "plan": beta_invite_plan(),
+        "source": "invite_code",
+    }
+
+
 def entitlement_account_limit(entitlements: dict[str, Any], context: dict[str, Any], *, authenticated: bool) -> int | str:
     if not authenticated:
         return 0
@@ -1919,6 +1988,22 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
         or plan
     )
     status = billing_status_from_metadata(app_metadata, plan)
+    beta_access = beta_invite_access_for_context(context)
+    has_commercial_access = plan != "free" and status in {"trialing", "active"}
+    if beta_access and not context.get("is_admin") and not has_commercial_access:
+        beta_plan = normalize_plan_key(beta_access.get("plan"))
+        if beta_access.get("active"):
+            plan = beta_plan
+            status = "trialing"
+            billing_source = "beta_invite"
+        else:
+            # Keep the commercial-looking beta plan visible, but restrict access
+            # after the invitation window has ended.
+            plan = beta_plan
+            status = "paused"
+            billing_source = "beta_invite_expired"
+        app_metadata["kmfx_trial_end"] = safe_str(beta_access.get("endsAt"))
+        app_metadata["billing_trial_end"] = safe_str(beta_access.get("endsAt"))
     effective_plan = "free" if status in BILLING_RESTRICTED_STATUSES else plan
     if context.get("is_admin"):
         effective_plan = "unlimited"
@@ -1977,6 +2062,7 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
             "liveMt5Accounts": account_limit,
             "connectionKeyLimit": connection_key_limit,
         },
+        "betaAccess": beta_access,
         "is_admin": bool(context.get("is_admin")),
         "scope_user_id": user_id,
         "source": billing_source,

@@ -99,6 +99,7 @@ function isAuthRoute(pathname: string) {
 
 function isPublicKmfxRoute(pathname: string) {
   return (
+    pathname === "/api/kmfx/invite/validate" ||
     pathname === "/api/kmfx/public-auth-config" ||
     pathname === "/api/kmfx/version"
   );

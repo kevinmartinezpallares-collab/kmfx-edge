@@ -85,12 +85,14 @@ type AuthConfigStatus = "idle" | "loading" | "failed";
 type AuthStatus = "idle" | "loading";
 
 type AuthPublicConfig = BrowserSupabasePublicConfig & {
+  inviteOnlySignup: boolean;
   turnstileSiteKey: string;
 };
 
 type AuthFormState = {
   authMode: AuthMode;
   email: string;
+  inviteCode: string;
   message: string;
   password: string;
   status: AuthStatus;
@@ -99,6 +101,7 @@ type AuthFormState = {
 type AuthFormAction =
   | { type: "clearMessage" }
   | { type: "setEmail"; email: string }
+  | { type: "setInviteCode"; inviteCode: string }
   | { type: "setMessage"; message: string }
   | { type: "setMode"; authMode: AuthMode }
   | { type: "setPassword"; password: string }
@@ -107,6 +110,7 @@ type AuthFormAction =
 const INITIAL_AUTH_FORM_STATE: AuthFormState = {
   authMode: "sign-in",
   email: "",
+  inviteCode: "",
   message: "",
   password: "",
   status: "idle",
@@ -116,6 +120,7 @@ const FALLBACK_TURNSTILE_SITE_KEY = "0x4AAAAAACxJdw3wjMn7Jm0K";
 
 function getInitialAuthPublicConfig(): AuthPublicConfig {
   return {
+    inviteOnlySignup: false,
     supabasePublishableKey: resolveSupabasePublishableKey(),
     supabaseUrl: resolveSupabaseUrl(),
     turnstileSiteKey:
@@ -141,6 +146,8 @@ function authFormReducer(
       return state.message ? { ...state, message: "" } : state;
     case "setEmail":
       return { ...state, email: action.email };
+    case "setInviteCode":
+      return { ...state, inviteCode: action.inviteCode };
     case "setMessage":
       return { ...state, message: action.message };
     case "setMode":
@@ -158,7 +165,7 @@ function useAuthPageModel(nextPath: string) {
     authFormReducer,
     INITIAL_AUTH_FORM_STATE,
   );
-  const { authMode, email, message, password, status } = authForm;
+  const { authMode, email, inviteCode, message, password, status } = authForm;
   const captchaTokenRef = React.useRef("");
   const turnstileContainerRef = React.useRef<HTMLDivElement | null>(null);
   const turnstileWidgetIdRef = React.useRef<string | null>(null);
@@ -174,10 +181,6 @@ function useAuthPageModel(nextPath: string) {
     publicAuthConfig.turnstileSiteKey || FALLBACK_TURNSTILE_SITE_KEY;
 
   React.useEffect(() => {
-    if (authConfigured) {
-      return;
-    }
-
     let cancelled = false;
 
     async function loadPublicConfig() {
@@ -196,6 +199,7 @@ function useAuthPageModel(nextPath: string) {
         }
 
         const nextConfig: AuthPublicConfig = {
+          inviteOnlySignup: payload.inviteOnlySignup === true,
           supabasePublishableKey: readString(payload.supabasePublishableKey),
           supabaseUrl: readString(payload.supabaseUrl),
           turnstileSiteKey:
@@ -216,7 +220,7 @@ function useAuthPageModel(nextPath: string) {
     return () => {
       cancelled = true;
     };
-  }, [authConfigured]);
+  }, []);
 
   const writeCaptchaToken = React.useCallback((token: string) => {
     captchaTokenRef.current = token;
@@ -332,15 +336,46 @@ function useAuthPageModel(nextPath: string) {
     dispatchAuthForm({ type: "setStatus", status: "loading" });
 
     try {
+      if (authMode === "sign-up" && publicAuthConfig.inviteOnlySignup) {
+        const inviteResponse = await fetch("/api/kmfx/invite/validate", {
+          body: JSON.stringify({ code: inviteCode }),
+          cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        });
+        const invitePayload = (await inviteResponse
+          .json()
+          .catch(() => ({}))) as Record<string, unknown>;
+
+        if (!inviteResponse.ok || invitePayload.ok !== true) {
+          dispatchAuthForm({
+            type: "setMessage",
+            message:
+              readString(invitePayload.message) ||
+              "Necesitas un código de invitación válido para crear cuenta.",
+          });
+          resetTurnstile();
+          return;
+        }
+      }
+
       const supabase = createBrowserSupabaseClient(publicAuthConfig);
       const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
       const { data, error } =
         authMode === "sign-up"
           ? await supabase.auth.signUp({
               email,
-              options: captchaToken
-                ? { captchaToken, emailRedirectTo }
-                : { emailRedirectTo },
+              options: {
+                ...(captchaToken ? { captchaToken } : {}),
+                emailRedirectTo,
+                ...(publicAuthConfig.inviteOnlySignup
+                  ? {
+                      data: {
+                        kmfx_beta_invite_code: inviteCode.trim(),
+                      },
+                    }
+                  : {}),
+              },
               password,
             })
           : await supabase.auth.signInWithPassword({
@@ -447,6 +482,13 @@ function useAuthPageModel(nextPath: string) {
     });
   }, []);
 
+  const setInviteCode = React.useCallback((nextInviteCode: string) => {
+    dispatchAuthForm({
+      type: "setInviteCode",
+      inviteCode: nextInviteCode,
+    });
+  }, []);
+
   const setPassword = React.useCallback((nextPassword: string) => {
     dispatchAuthForm({
       type: "setPassword",
@@ -459,11 +501,14 @@ function useAuthPageModel(nextPath: string) {
     authMode,
     email,
     handlePasswordAuth,
+    inviteCode,
+    inviteOnlySignup: publicAuthConfig.inviteOnlySignup,
     message,
     messageIsSuccess,
     password,
     setAuthMode,
     setEmail,
+    setInviteCode,
     setPassword,
     signInWithProvider,
     status,
@@ -527,9 +572,21 @@ function AuthHero() {
 }
 
 function ProviderButtons({
+  authMode,
+  inviteOnlySignup,
   signInWithProvider,
   status,
-}: Pick<AuthPageModel, "signInWithProvider" | "status">) {
+}: Pick<AuthPageModel, "authMode" | "inviteOnlySignup" | "signInWithProvider" | "status">) {
+  if (inviteOnlySignup) {
+    return (
+      <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm leading-6 text-muted-foreground">
+        {authMode === "sign-up"
+          ? "La beta cerrada se crea con email y código de invitación."
+          : "Durante la beta cerrada, entra con email y contraseña para mantener el acceso controlado."}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <Button
@@ -599,10 +656,13 @@ function EmailPasswordForm({
   authMode,
   email,
   handlePasswordAuth,
+  inviteCode,
+  inviteOnlySignup,
   message,
   messageIsSuccess,
   password,
   setEmail,
+  setInviteCode,
   setPassword,
   status,
   turnstileContainerRef,
@@ -613,10 +673,13 @@ function EmailPasswordForm({
   | "authMode"
   | "email"
   | "handlePasswordAuth"
+  | "inviteCode"
+  | "inviteOnlySignup"
   | "message"
   | "messageIsSuccess"
   | "password"
   | "setEmail"
+  | "setInviteCode"
   | "setPassword"
   | "status"
   | "turnstileContainerRef"
@@ -666,6 +729,29 @@ function EmailPasswordForm({
             />
           </InputGroup>
         </Field>
+        {authMode === "sign-up" && inviteOnlySignup ? (
+          <Field>
+            <FieldLabel htmlFor="invite-code">Código de invitación</FieldLabel>
+            <InputGroup className="h-10 rounded-xl">
+              <InputGroupAddon align="inline-start">
+                <ShieldCheckIcon className="size-4" />
+              </InputGroupAddon>
+              <InputGroupInput
+                autoComplete="one-time-code"
+                disabled={status === "loading"}
+                id="invite-code"
+                onChange={(event) => setInviteCode(event.target.value)}
+                placeholder="Código privado"
+                required
+                type="text"
+                value={inviteCode}
+              />
+            </InputGroup>
+            <FieldDescription>
+              Solo se usa para validar el acceso a la beta cerrada.
+            </FieldDescription>
+          </Field>
+        ) : null}
       </FieldGroup>
 
       {message ? (
@@ -732,7 +818,9 @@ function AuthPanel(model: AuthPageModel) {
             </h2>
             <p className="text-sm text-muted-foreground">
               {authMode === "sign-up"
-                ? "Regístrate con un email nuevo para probar la beta."
+                ? model.inviteOnlySignup
+                  ? "Regístrate con tu invitación para activar 7 días de beta cerrada."
+                  : "Regístrate con un email nuevo para probar la beta."
                 : "Accede a tu panel de trading y gestión de cuentas."}
             </p>
           </div>
