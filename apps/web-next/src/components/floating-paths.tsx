@@ -1,5 +1,3 @@
-"use client";
-
 export function FloatingPaths({ position }: { position: number }) {
 	const paths = Array.from({ length: 36 }, (_, i) => ({
 		id: i,
@@ -10,32 +8,24 @@ export function FloatingPaths({ position }: { position: number }) {
 		} ${343 - i * 6}C${616 - i * 5 * position} ${470 - i * 6} ${
 			684 - i * 5 * position
 		} ${875 - i * 6} ${684 - i * 5 * position} ${875 - i * 6}`,
-		color: `rgba(15,23,42,${Math.min(0.86, 0.1 + i * 0.03)})`,
 		width: 0.5 + i * 0.03,
 	}));
 
 	return (
-		<div className="pointer-events-none absolute inset-0">
+		<div aria-hidden="true" className="pointer-events-none absolute inset-0">
 			<svg
 				className="h-full w-full text-primary"
 				fill="none"
 				viewBox="0 0 696 316"
 			>
-				<title>Background Paths</title>
 				{paths.map((path) => (
 					<path
-						className="kmfx-floating-path"
 						d={path.d}
 						key={path.id}
 						stroke="currentColor"
-						strokeDasharray="0.22 0.78"
 						strokeLinecap="round"
-						strokeOpacity={Math.min(0.86, 0.1 + path.id * 0.03)}
+						strokeOpacity={0.025 + path.id * 0.003}
 						strokeWidth={path.width}
-						style={{
-							animationDelay: `${path.id * -0.42}s`,
-							animationDuration: `${20 + (path.id % 7) * 1.25}s`,
-						}}
 					/>
 				))}
 			</svg>
