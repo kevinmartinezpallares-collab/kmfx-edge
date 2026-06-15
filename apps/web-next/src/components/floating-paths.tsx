@@ -20,18 +20,12 @@ export function FloatingPaths({ position }: { position: number }) {
 			>
 				{paths.map((path) => (
 					<path
-						className="kmfx-floating-path"
 						d={path.d}
 						key={path.id}
 						stroke="currentColor"
-						strokeDasharray="0.22 0.78"
 						strokeLinecap="round"
-						strokeOpacity={Math.min(0.68, 0.08 + path.id * 0.018)}
+						strokeOpacity={0.025 + path.id * 0.003}
 						strokeWidth={path.width}
-						style={{
-							animationDelay: `${path.id * -0.42}s`,
-							animationDuration: `${22 + (path.id % 7) * 1.35}s`,
-						}}
 					/>
 				))}
 			</svg>
