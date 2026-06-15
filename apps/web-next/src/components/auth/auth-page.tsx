@@ -118,13 +118,24 @@ const INITIAL_AUTH_FORM_STATE: AuthFormState = {
 
 const FALLBACK_TURNSTILE_SITE_KEY = "0x4AAAAAACxJdw3wjMn7Jm0K";
 
-function getInitialAuthPublicConfig(): AuthPublicConfig {
-  return {
+function getInitialAuthPublicConfig(
+  initialPublicConfig?: Partial<AuthPublicConfig>,
+): AuthPublicConfig {
+  const fallbackConfig: AuthPublicConfig = {
     betaInviteRequired: false,
     supabasePublishableKey: resolveSupabasePublishableKey(),
     supabaseUrl: resolveSupabaseUrl(),
     turnstileSiteKey:
       process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ||
+      FALLBACK_TURNSTILE_SITE_KEY,
+  };
+
+  return {
+    ...fallbackConfig,
+    ...initialPublicConfig,
+    turnstileSiteKey:
+      initialPublicConfig?.turnstileSiteKey ||
+      fallbackConfig.turnstileSiteKey ||
       FALLBACK_TURNSTILE_SITE_KEY,
   };
 }
@@ -163,7 +174,10 @@ function authFormReducer(
   }
 }
 
-function useAuthPageModel(nextPath: string) {
+function useAuthPageModel(
+  nextPath: string,
+  initialPublicConfig?: Partial<AuthPublicConfig>,
+) {
   const router = useRouter();
   const [authForm, dispatchAuthForm] = React.useReducer(
     authFormReducer,
@@ -173,12 +187,16 @@ function useAuthPageModel(nextPath: string) {
   const captchaTokenRef = React.useRef("");
   const turnstileContainerRef = React.useRef<HTMLDivElement | null>(null);
   const turnstileWidgetIdRef = React.useRef<string | null>(null);
+  const initialConfig = React.useMemo(
+    () => getInitialAuthPublicConfig(initialPublicConfig),
+    [initialPublicConfig],
+  );
   const [publicAuthConfig, setPublicAuthConfig] = React.useState<AuthPublicConfig>(
-    getInitialAuthPublicConfig,
+    initialConfig,
   );
   const [authConfigStatus, setAuthConfigStatus] =
     React.useState<AuthConfigStatus>(() =>
-      hasAuthPublicConfig(getInitialAuthPublicConfig()) ? "idle" : "loading",
+      hasAuthPublicConfig(initialConfig) ? "idle" : "loading",
     );
   const authConfigured = hasAuthPublicConfig(publicAuthConfig);
   const turnstileSiteKey =
@@ -218,7 +236,6 @@ function useAuthPageModel(nextPath: string) {
           return;
         }
 
-        const initialConfig = getInitialAuthPublicConfig();
         const nextConfig: AuthPublicConfig = {
           betaInviteRequired: readBoolean(payload.betaInviteRequired),
           supabasePublishableKey:
@@ -243,7 +260,7 @@ function useAuthPageModel(nextPath: string) {
     return () => {
       cancelled = true;
     };
-  }, [authConfigured]);
+  }, [authConfigured, initialConfig]);
 
   const writeCaptchaToken = React.useCallback((token: string) => {
     captchaTokenRef.current = token;
@@ -868,8 +885,14 @@ function AuthPanel(model: AuthPageModel) {
   );
 }
 
-export function AuthPage({ nextPath = "/dashboard" }: { nextPath?: string }) {
-  const model = useAuthPageModel(nextPath);
+export function AuthPage({
+  initialPublicConfig,
+  nextPath = "/dashboard",
+}: {
+  initialPublicConfig?: Partial<AuthPublicConfig>;
+  nextPath?: string;
+}) {
+  const model = useAuthPageModel(nextPath, initialPublicConfig);
 
   return (
     <main className="relative min-h-svh overflow-hidden bg-background text-foreground lg:grid lg:grid-cols-[1.05fr_0.95fr]">
