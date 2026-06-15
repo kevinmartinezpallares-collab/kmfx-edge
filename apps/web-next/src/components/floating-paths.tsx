@@ -12,7 +12,12 @@ export function FloatingPaths({ position }: { position: number }) {
 	}));
 
 	return (
-		<div aria-hidden="true" className="pointer-events-none absolute inset-0">
+		<div
+			aria-hidden="true"
+			className={`kmfx-floating-paths pointer-events-none absolute inset-0 ${
+				position > 0 ? "kmfx-floating-paths-forward" : "kmfx-floating-paths-reverse"
+			}`}
+		>
 			<svg
 				className="h-full w-full text-primary"
 				fill="none"
