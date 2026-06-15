@@ -231,4 +231,30 @@
     }
   }
 
+  .kmfx-floating-path {
+    animation-name: kmfx-floating-path;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    will-change: opacity, stroke-dashoffset;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kmfx-floating-path {
+      animation: none;
+    }
+  }
+
+}
+
+@keyframes kmfx-floating-path {
+  0%,
+  100% {
+    opacity: 0.38;
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    opacity: 0.72;
+    stroke-dashoffset: 1.15;
+  }
 }
