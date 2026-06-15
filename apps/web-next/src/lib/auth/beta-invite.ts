@@ -17,7 +17,10 @@ export function isBetaInviteHost(host: string | null | undefined) {
 }
 
 export function isBetaInviteRequiredForHost(host: string | null | undefined) {
-  const override = readEnv("KMFX_BETA_INVITE_REQUIRED").toLowerCase();
+  const override = readEnv(
+    "KMFX_BETA_INVITE_REQUIRED",
+    "KMFX_INVITE_ONLY_SIGNUP",
+  ).toLowerCase();
   if (override === "1" || override === "true" || override === "yes") {
     return true;
   }
@@ -29,7 +32,12 @@ export function isBetaInviteRequiredForHost(host: string | null | undefined) {
 }
 
 export function getConfiguredBetaInviteCodes() {
-  return readEnv("KMFX_BETA_INVITE_CODES", "KMFX_BETA_INVITE_CODE")
+  return readEnv(
+    "KMFX_BETA_INVITE_CODES",
+    "KMFX_BETA_INVITE_CODE",
+    "KMFX_INVITE_CODES",
+    "KMFX_INVITE_CODE",
+  )
     .split(/[,\n;]/)
     .map(normalizeInviteCode)
     .filter(Boolean);

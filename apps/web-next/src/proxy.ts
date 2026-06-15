@@ -54,8 +54,13 @@ function isProductionKmfxHost(host: string | null) {
   return normalizedHost === "kmfxedge.com" || normalizedHost === "www.kmfxedge.com";
 }
 
-function isProductionAppEnabled() {
-  return process.env.KMFX_PRODUCTION_APP_ENABLED === "1";
+function isBetaKmfxHost(host: string | null) {
+  const normalizedHost = (host || "").toLowerCase().split(":")[0];
+  return normalizedHost === "beta.kmfxedge.com";
+}
+
+function shouldRedirectBetaToProduction() {
+  return process.env.KMFX_REDIRECT_BETA_TO_PRODUCTION !== "0";
 }
 
 function logProxyEvent(
@@ -187,18 +192,25 @@ async function resolveBlockedBillingAccess(accessToken: string | undefined) {
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  if (isProductionKmfxHost(request.headers.get("host")) && pathname === "/") {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    logProxyEvent("info", "production_domain_redirect_login", request);
+    return NextResponse.redirect(loginUrl);
+  }
+
   if (
-    isProductionKmfxHost(request.headers.get("host")) &&
-    !isProductionAppEnabled()
+    isBetaKmfxHost(request.headers.get("host")) &&
+    shouldRedirectBetaToProduction()
   ) {
-    const betaUrl = request.nextUrl.clone();
-    betaUrl.protocol = "https:";
-    betaUrl.host = "beta.kmfxedge.com";
-    if (betaUrl.pathname === "/") {
-      betaUrl.pathname = "/login";
+    const productionUrl = request.nextUrl.clone();
+    productionUrl.protocol = "https:";
+    productionUrl.host = "kmfxedge.com";
+    if (productionUrl.pathname === "/") {
+      productionUrl.pathname = "/login";
     }
-    logProxyEvent("info", "production_domain_redirect_beta", request);
-    return NextResponse.redirect(betaUrl);
+    logProxyEvent("info", "beta_domain_redirect_production", request);
+    return NextResponse.redirect(productionUrl);
   }
 
   if (isPublicKmfxRoute(pathname)) {
