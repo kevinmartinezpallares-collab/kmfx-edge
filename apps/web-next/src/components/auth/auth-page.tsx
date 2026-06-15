@@ -869,7 +869,36 @@ function AuthPanel(model: AuthPageModel) {
 }
 
 export function AuthPage({ nextPath = "/dashboard" }: { nextPath?: string }) {
+  const [hasMounted, setHasMounted] = React.useState(false);
   const model = useAuthPageModel(nextPath);
+
+  React.useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setHasMounted(true);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  if (!hasMounted) {
+    return (
+      <main className="relative grid min-h-svh place-items-center bg-background text-foreground">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <LogoMark
+            className="size-12 rounded-full ring-1 ring-border"
+            priority
+            sizes="48px"
+          />
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">
+              Preparando acceso seguro
+            </p>
+            <p className="text-xs text-muted-foreground/75">KMFX Edge</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="relative min-h-svh overflow-hidden bg-background text-foreground lg:grid lg:grid-cols-[1.05fr_0.95fr]">
