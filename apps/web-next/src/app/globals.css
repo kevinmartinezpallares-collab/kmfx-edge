@@ -230,4 +230,29 @@
       min-height: 2.75rem;
     }
   }
+
+  .kmfx-floating-path {
+    animation-name: kmfx-floating-path;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kmfx-floating-path {
+      animation: none;
+    }
+  }
+}
+
+@keyframes kmfx-floating-path {
+  0%,
+  100% {
+    opacity: 0.32;
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    opacity: 0.62;
+    stroke-dashoffset: -1;
+  }
 }
