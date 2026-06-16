@@ -231,43 +231,33 @@
     }
   }
 
-  .kmfx-floating-paths {
-    animation: kmfx-floating-paths-drift 28s cubic-bezier(0.25, 1, 0.5, 1)
-      infinite alternate;
-    opacity: 0.9;
-    transform: translate3d(0, 0, 0) scale(1.01);
-    transform-origin: center;
-    will-change: opacity, transform;
-  }
-
-  .kmfx-floating-paths-reverse {
-    animation-delay: -14s;
-    animation-duration: 34s;
+  .kmfx-floating-path {
+    animation: kmfx-floating-path var(--path-duration) linear infinite;
+    animation-delay: var(--path-delay);
+    will-change: opacity, stroke-dashoffset;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .kmfx-floating-paths {
+    .kmfx-floating-path {
       animation: none;
-      opacity: 0.84;
-      transform: none;
     }
   }
 
 }
 
-@keyframes kmfx-floating-paths-drift {
+@keyframes kmfx-floating-path {
   0% {
-    opacity: 0.72;
-    transform: translate3d(-1.4%, 0.8%, 0) scale(1.01);
+    opacity: 0.32;
+    stroke-dashoffset: 0;
   }
 
   50% {
-    opacity: 0.98;
-    transform: translate3d(0.6%, -0.5%, 0) scale(1.018);
+    opacity: 0.62;
+    stroke-dashoffset: -0.55;
   }
 
   100% {
-    opacity: 0.78;
-    transform: translate3d(1.2%, -0.9%, 0) scale(1.012);
+    opacity: 0.32;
+    stroke-dashoffset: -1;
   }
 }
