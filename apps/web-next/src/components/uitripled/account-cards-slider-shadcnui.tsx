@@ -33,6 +33,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { animate, m as motion, useMotionValue } from "motion/react";
 import {
   ChevronLeft,
@@ -87,44 +95,76 @@ interface AccountCardData {
 
 type AccountGradientTheme = Omit<CustomConfig, "preset" | "speed">;
 
-function getAccountCardElements(element: HTMLElement | null) {
-  return Array.from(
-    element?.querySelectorAll<HTMLElement>("[data-account-card]") ?? [],
-  );
-}
+type AccountProfileFormValue =
+  | "auto"
+  | "own"
+  | "real"
+  | "demo"
+  | "challenge"
+  | "phase_1"
+  | "phase_2"
+  | "funded";
 
-function getCenteredXForCard(container: HTMLElement, card: HTMLElement) {
-  return container.clientWidth / 2 - card.offsetLeft - card.offsetWidth / 2;
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function getCarouselBounds(element: HTMLElement | null) {
-  if (!element) {
-    return { left: 0, right: 0 };
-  }
-
-  const cards = getAccountCardElements(element);
-  const lastCard = cards[cards.length - 1];
-
-  if (!lastCard) {
-    return {
-      left: -Math.max(0, element.scrollWidth - element.offsetWidth),
-      right: 0,
-    };
-  }
-
-  return {
-    left: Math.min(0, getCenteredXForCard(element, lastCard)),
-    right: 0,
-  };
-}
+const ACCOUNT_PROFILE_OPTIONS: Array<{
+  description: string;
+  label: string;
+  value: AccountProfileFormValue;
+}> = [
+  {
+    description: "Mantiene la detección por broker, firma o nombre.",
+    label: "Automático",
+    value: "auto",
+  },
+  {
+    description: "Cuenta personal sin reto de fondeo.",
+    label: "Cuenta propia",
+    value: "own",
+  },
+  {
+    description: "Cuenta real de broker, no prop firm.",
+    label: "Cuenta real",
+    value: "real",
+  },
+  {
+    description: "Cuenta demo o simulación.",
+    label: "Demo",
+    value: "demo",
+  },
+  {
+    description: "Reto activo sin fase concreta.",
+    label: "Reto",
+    value: "challenge",
+  },
+  {
+    description: "Primera fase del reto.",
+    label: "Fase 1",
+    value: "phase_1",
+  },
+  {
+    description: "Segunda fase o verificación.",
+    label: "Fase 2",
+    value: "phase_2",
+  },
+  {
+    description: "Cuenta ya fondeada.",
+    label: "Cuenta fondeada",
+    value: "funded",
+  },
+];
 
 function getScrollableWidth(element: HTMLElement | null) {
-  const bounds = getCarouselBounds(element);
-  return Math.abs(bounds.left);
+  if (!element) return 0;
+
+  const cards = element.querySelectorAll<HTMLElement>("[data-account-card]");
+  const lastCard = cards[cards.length - 1];
+  if (lastCard) {
+    return Math.max(
+      0,
+      lastCard.offsetLeft + lastCard.offsetWidth - element.clientWidth,
+    );
+  }
+
+  return Math.max(0, element.scrollWidth - element.offsetWidth);
 }
 
 function useScrollableWidth(containerRef: RefObject<HTMLDivElement | null>) {
@@ -341,6 +381,10 @@ function planAccessLabel(account: AccountRow) {
 }
 
 function accountCategoryLabel(account: AccountRow) {
+  if (account.profile?.source === "manual" && account.profile.badgeLabel) {
+    return fundingPhaseLabel(account.profile.badgeLabel);
+  }
+
   const rawLabel = account.funding?.phaseLabel ?? account.accountKindLabel;
 
   return fundingPhaseLabel(rawLabel);
@@ -351,9 +395,85 @@ function fundingPhaseLabel(rawLabel: string) {
 
   if (normalized === "phase 1") return "Fase 1";
   if (normalized === "phase 2") return "Fase 2";
-  if (normalized.includes("funded")) return "Cuenta fondeada";
+  if (normalized.includes("funded") || normalized.includes("fondeada")) {
+    return "Cuenta fondeada";
+  }
 
   return rawLabel;
+}
+
+function accountProfileValue(account: AccountRow): AccountProfileFormValue {
+  if (account.profile?.source !== "manual") return "auto";
+
+  const normalizedLabel = account.profile.badgeLabel.trim().toLowerCase();
+  if (account.profile.accountClass === "evaluation" || normalizedLabel.includes("fase 2")) {
+    return "phase_2";
+  }
+  if (normalizedLabel.includes("fase 1")) return "phase_1";
+
+  switch (account.profile.accountClass) {
+    case "challenge":
+      return "challenge";
+    case "demo":
+      return "demo";
+    case "funded":
+      return "funded";
+    case "own":
+      return "own";
+    case "real":
+      return "real";
+    default:
+      return "auto";
+  }
+}
+
+function accountProfilePayload(value: AccountProfileFormValue) {
+  const option = ACCOUNT_PROFILE_OPTIONS.find((item) => item.value === value);
+  if (!option || value === "auto") {
+    return {
+      accountProfile: null,
+      fundingProfile: null,
+    };
+  }
+
+  const accountClass =
+    value === "phase_1" ? "challenge" : value === "phase_2" ? "evaluation" : value;
+  const accountProfile = {
+    account_class: accountClass,
+    badge_label: option.label,
+    source: "manual",
+  };
+
+  if (["challenge", "phase_1", "phase_2", "funded"].includes(value)) {
+    return {
+      accountProfile,
+      fundingProfile: {
+        account_type: accountClass,
+        phase_label: option.label,
+      },
+    };
+  }
+
+  return {
+    accountProfile,
+    fundingProfile: null,
+  };
+}
+
+function optimisticAccountProfile(
+  value: AccountProfileFormValue,
+): AccountRow["profile"] | undefined {
+  const option = ACCOUNT_PROFILE_OPTIONS.find((item) => item.value === value);
+  if (!option || value === "auto") return undefined;
+
+  const accountClass: NonNullable<AccountRow["profile"]>["accountClass"] =
+    value === "phase_1" ? "challenge" : value === "phase_2" ? "evaluation" : value;
+
+  return {
+    accountClass,
+    badgeLabel: option.label,
+    source: "manual",
+  };
 }
 
 function playbookLabel(rawLabel: string) {
@@ -755,12 +875,14 @@ type RenameDialogState = {
   account: AccountRow | null;
   error: string;
   pendingAccountId: string | null;
+  profileValue: AccountProfileFormValue;
   value: string;
 };
 
 type RenameDialogAction =
   | { type: "open"; account: AccountRow }
   | { type: "close" }
+  | { type: "setProfileValue"; value: AccountProfileFormValue }
   | { type: "setValue"; value: string }
   | { type: "setError"; error: string }
   | { type: "startSaving"; accountId: string }
@@ -771,6 +893,7 @@ const INITIAL_RENAME_DIALOG_STATE: RenameDialogState = {
   account: null,
   error: "",
   pendingAccountId: null,
+  profileValue: "auto",
   value: "",
 };
 
@@ -784,12 +907,15 @@ function renameDialogReducer(
         account: action.account,
         error: "",
         pendingAccountId: null,
+        profileValue: accountProfileValue(action.account),
         value: action.account.label,
       };
     case "close":
       return state.pendingAccountId ? state : INITIAL_RENAME_DIALOG_STATE;
     case "setValue":
       return { ...state, value: action.value };
+    case "setProfileValue":
+      return { ...state, profileValue: action.value };
     case "setError":
       return { ...state, error: action.error };
     case "startSaving":
@@ -892,7 +1018,7 @@ function AccountCardSlide({
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onOpenRenameDialog(card.account)}>
                     <Pencil />
-                    Renombrar cuenta
+                    Editar cuenta
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
@@ -1015,6 +1141,9 @@ export function AccountCardsSlider({
   const [optimisticAccountLabels, setOptimisticAccountLabels] = useState<
     Record<string, string>
   >({});
+  const [optimisticAccountProfiles, setOptimisticAccountProfiles] = useState<
+    Record<string, AccountRow["profile"] | null>
+  >({});
   const [renameState, dispatchRename] = useReducer(
     renameDialogReducer,
     INITIAL_RENAME_DIALOG_STATE,
@@ -1023,6 +1152,7 @@ export function AccountCardsSlider({
     account: renamingAccount,
     error: renameError,
     pendingAccountId: renamingAccountId,
+    profileValue: renameProfileValue,
     value: renameValue,
   } = renameState;
   const x = useMotionValue(0);
@@ -1030,9 +1160,19 @@ export function AccountCardsSlider({
     () =>
       accounts.map((account) => {
         const label = optimisticAccountLabels[account.id];
-        return label ? { ...account, label } : account;
+        const profileOverride = optimisticAccountProfiles[account.id];
+        const nextAccount = label ? { ...account, label } : account;
+
+        if (Object.hasOwn(optimisticAccountProfiles, account.id)) {
+          return {
+            ...nextAccount,
+            profile: profileOverride ?? undefined,
+          };
+        }
+
+        return nextAccount;
       }),
-    [accounts, optimisticAccountLabels],
+    [accounts, optimisticAccountLabels, optimisticAccountProfiles],
   );
   const cards = useMemo(
     () => buildCards(visibleAccounts, activeAccountId),
@@ -1042,20 +1182,19 @@ export function AccountCardsSlider({
   const [selectedAccountId, setSelectedAccountId] = useState(
     activeAccountId ?? cards[0]?.id ?? "",
   );
-  const [dragBounds, setDragBounds] = useState({ left: 0, right: 0 });
   const resolvedSelectedAccountId = cards.some((card) => card.id === selectedAccountId)
     ? selectedAccountId
     : activeAccountId ?? cards[0]?.id ?? "";
+  const selectedAccount =
+    visibleAccounts.find((account) => account.id === resolvedSelectedAccountId) ??
+    visibleAccounts.find((account) => account.id === activeAccountId) ??
+    visibleAccounts[0];
   const selectedCardIndex = Math.max(
     cards.findIndex((card) => card.id === resolvedSelectedAccountId),
     0,
   );
   const canScrollLeft = selectedCardIndex > 0;
   const canScrollRight = selectedCardIndex < cards.length - 1;
-  const selectedAccount =
-    visibleAccounts.find((account) => account.id === resolvedSelectedAccountId) ??
-    visibleAccounts.find((account) => account.id === activeAccountId) ??
-    visibleAccounts[0];
 
   const getCenteredXForIndex = useCallback((index: number) => {
     const container = containerRef.current;
@@ -1065,10 +1204,11 @@ export function AccountCardsSlider({
       return x.get();
     }
 
-    const bounds = getCarouselBounds(container);
-    const targetX = getCenteredXForCard(container, card);
+    const scrollableWidth = getScrollableWidth(container);
+    const targetX =
+      container.clientWidth / 2 - card.offsetLeft - card.offsetWidth / 2;
 
-    return clamp(targetX, bounds.left, bounds.right);
+    return Math.max(Math.min(targetX, 0), -scrollableWidth);
   }, [x]);
 
   const centerCardAtIndex = useCallback(
@@ -1085,7 +1225,9 @@ export function AccountCardsSlider({
 
   const getNearestCardIndex = useCallback(() => {
     const container = containerRef.current;
-    const cardElements = getAccountCardElements(container);
+    const cardElements = Array.from(
+      container?.querySelectorAll<HTMLElement>("[data-account-card]") ?? [],
+    );
 
     if (!container || cardElements.length === 0) {
       return selectedCardIndex;
@@ -1095,7 +1237,8 @@ export function AccountCardsSlider({
     return cardElements.reduce((nearestIndex, card, index) => {
       const cardCenter = card.offsetLeft + card.offsetWidth / 2;
       const nearestCard = cardElements[nearestIndex];
-      const nearestCenter = nearestCard.offsetLeft + nearestCard.offsetWidth / 2;
+      const nearestCenter =
+        nearestCard.offsetLeft + nearestCard.offsetWidth / 2;
 
       return Math.abs(cardCenter - viewportCenter) <
         Math.abs(nearestCenter - viewportCenter)
@@ -1117,11 +1260,10 @@ export function AccountCardsSlider({
   }, [cards, centerCardAtIndex, getNearestCardIndex]);
 
   const scrollTo = (direction: "left" | "right") => {
-    const currentIndex = getNearestCardIndex();
     const nextIndex =
       direction === "left"
-        ? Math.max(currentIndex - 1, 0)
-        : Math.min(currentIndex + 1, cards.length - 1);
+        ? Math.max(selectedCardIndex - 1, 0)
+        : Math.min(selectedCardIndex + 1, cards.length - 1);
     const nextCard = cards[nextIndex];
 
     if (!nextCard) {
@@ -1138,7 +1280,6 @@ export function AccountCardsSlider({
     );
     if (selectedIndex < 0) return;
 
-    setDragBounds(getCarouselBounds(containerRef.current));
     centerCardAtIndex(selectedIndex);
   }, [cards, centerCardAtIndex, resolvedSelectedAccountId, width]);
 
@@ -1196,10 +1337,11 @@ export function AccountCardsSlider({
 
     dispatchRename({ type: "startSaving", accountId: renamingAccount.id });
     try {
+      const profilePayload = accountProfilePayload(renameProfileValue);
       const response = await fetch(
         `/api/kmfx/accounts/${encodeURIComponent(renamingAccount.id)}`,
         {
-          body: JSON.stringify({ alias }),
+          body: JSON.stringify({ alias, ...profilePayload }),
           headers: { "Content-Type": "application/json" },
           method: "PATCH",
         },
@@ -1218,6 +1360,10 @@ export function AccountCardsSlider({
       setOptimisticAccountLabels((current) => ({
         ...current,
         [renamingAccount.id]: alias,
+      }));
+      setOptimisticAccountProfiles((current) => ({
+        ...current,
+        [renamingAccount.id]: optimisticAccountProfile(renameProfileValue) ?? null,
       }));
       dispatchRename({ type: "saved" });
       router.refresh();
@@ -1244,28 +1390,28 @@ export function AccountCardsSlider({
     <div className="flex min-w-0 max-w-full flex-col gap-5 overflow-hidden">
       <div className="group/slider relative min-w-0 max-w-full overflow-hidden p-0">
         {canScrollLeft ? (
-          <div className="absolute left-2 top-1/2 z-20 -translate-y-1/2 opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/slider:opacity-100">
-            <button
-              onClick={() => scrollTo("left")}
-              type="button"
-              className="flex size-12 items-center justify-center rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-background active:scale-95"
-              aria-label="Ver cuentas anteriores"
-            >
-              <ChevronLeft className="size-6" />
-            </button>
-          </div>
+        <div className="absolute left-2 top-1/2 z-20 -translate-y-1/2 opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/slider:opacity-100">
+          <button
+            onClick={() => scrollTo("left")}
+            type="button"
+            className="flex size-12 items-center justify-center rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-background active:scale-95"
+            aria-label="Ver cuentas anteriores"
+          >
+            <ChevronLeft className="size-6" />
+          </button>
+        </div>
         ) : null}
         {canScrollRight ? (
-          <div className="absolute right-2 top-1/2 z-20 -translate-y-1/2 opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/slider:opacity-100">
-            <button
-              onClick={() => scrollTo("right")}
-              type="button"
-              className="flex size-12 items-center justify-center rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-background active:scale-95"
-              aria-label="Ver cuentas siguientes"
-            >
-              <ChevronRight className="size-6" />
-            </button>
-          </div>
+        <div className="absolute right-2 top-1/2 z-20 -translate-y-1/2 opacity-100 transition-opacity duration-300 md:opacity-0 md:group-hover/slider:opacity-100">
+          <button
+            onClick={() => scrollTo("right")}
+            type="button"
+            className="flex size-12 items-center justify-center rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-background active:scale-95"
+            aria-label="Ver cuentas siguientes"
+          >
+            <ChevronRight className="size-6" />
+          </button>
+        </div>
         ) : null}
 
         <motion.div
@@ -1276,7 +1422,7 @@ export function AccountCardsSlider({
           <motion.div
             data-account-track
             drag={isMobile ? false : "x"}
-            dragConstraints={dragBounds}
+            dragConstraints={{ right: 0, left: -width }}
             dragElastic={0.1}
             onDragEnd={snapToNearestCard}
             style={{ x }}
@@ -1311,9 +1457,9 @@ export function AccountCardsSlider({
         <DialogContent className="sm:max-w-md">
           <form onSubmit={renameAccount} className="grid gap-4">
             <DialogHeader>
-              <DialogTitle>Renombrar cuenta</DialogTitle>
+              <DialogTitle>Editar cuenta</DialogTitle>
               <DialogDescription>
-                Este nombre se mostrará en cuentas, selector y detalle. No cambia el login ni la KMFX Key.
+                Ajusta el nombre y la etiqueta de la card. No cambia el login ni la KMFX Key.
               </DialogDescription>
             </DialogHeader>
 
@@ -1344,6 +1490,54 @@ export function AccountCardsSlider({
               ) : null}
             </div>
 
+            <div className="grid gap-2">
+              <label
+                htmlFor="account-profile"
+                className="text-sm font-medium text-foreground"
+              >
+                Etiqueta de la card
+              </label>
+              <Select
+                value={renameProfileValue}
+                onValueChange={(value) =>
+                  dispatchRename({
+                    type: "setProfileValue",
+                    value: value as AccountProfileFormValue,
+                  })
+                }
+              >
+                <SelectTrigger
+                  id="account-profile"
+                  className="h-11 w-full border-border/70 bg-background/40 sm:h-9"
+                >
+                  <SelectValue>
+                    {
+                      ACCOUNT_PROFILE_OPTIONS.find(
+                        (option) => option.value === renameProfileValue,
+                      )?.label
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent align="start">
+                  <SelectGroup>
+                    {ACCOUNT_PROFILE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <span className="grid gap-0.5">
+                          <span>{option.label}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {option.description}
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                En automático, KMFX intentará leerlo del broker, firma o nombre.
+              </p>
+            </div>
+
             <DialogFooter>
               <Button
                 type="button"
@@ -1360,7 +1554,7 @@ export function AccountCardsSlider({
                 type="submit"
                 disabled={Boolean(renamingAccountId) || !renameValue.trim()}
               >
-                {renamingAccountId ? "Guardando..." : "Guardar nombre"}
+                {renamingAccountId ? "Guardando..." : "Guardar cambios"}
               </Button>
             </DialogFooter>
           </form>

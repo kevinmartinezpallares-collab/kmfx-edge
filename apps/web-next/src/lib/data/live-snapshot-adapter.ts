@@ -2,6 +2,7 @@ import type { TradingAccount } from "@/lib/contracts/account";
 import type { DashboardModel, MetricPoint } from "@/lib/contracts/dashboard-model";
 import type {
   RawLiveAccountsSnapshot,
+  RawLiveAccountProfile,
   RawLiveDashboardPayload,
   RawLiveSnapshotAccount,
   RawLiveTrade,
@@ -677,7 +678,78 @@ function inferPlanAccess(
     : "limited";
 }
 
+function normalizeAccountClass(
+  value: string | undefined,
+): NonNullable<TradingAccount["profile"]>["accountClass"] | null {
+  switch (String(value || "").trim()) {
+    case "own":
+    case "real":
+    case "demo":
+    case "challenge":
+    case "evaluation":
+    case "funded":
+      return value as NonNullable<TradingAccount["profile"]>["accountClass"];
+    default:
+      return null;
+  }
+}
+
+function defaultAccountProfileLabel(
+  accountClass: NonNullable<TradingAccount["profile"]>["accountClass"],
+) {
+  const labels: Record<
+    NonNullable<TradingAccount["profile"]>["accountClass"],
+    string
+  > = {
+    challenge: "Reto",
+    demo: "Demo",
+    evaluation: "Fase 2",
+    funded: "Cuenta fondeada",
+    own: "Cuenta propia",
+    real: "Cuenta real",
+  };
+
+  return labels[accountClass];
+}
+
+function rawAccountProfileFromPayload(
+  payload: RawLiveDashboardPayload,
+): RawLiveAccountProfile | undefined {
+  return payload.accountProfile || payload.account_profile;
+}
+
+function mapAccountProfile(account: RawLiveSnapshotAccount): TradingAccount["profile"] {
+  const rawProfile = rawAccountProfileFromPayload(account.dashboard_payload || {});
+  const accountClass = normalizeAccountClass(
+    rawProfile?.accountClass || rawProfile?.account_class,
+  );
+
+  if (!accountClass) return undefined;
+
+  const badgeLabel = String(
+    rawProfile?.badgeLabel ||
+      rawProfile?.badge_label ||
+      defaultAccountProfileLabel(accountClass),
+  ).trim();
+
+  return {
+    accountClass,
+    badgeLabel: badgeLabel || defaultAccountProfileLabel(accountClass),
+    source: rawProfile?.source === "manual" ? "manual" : "auto",
+  };
+}
+
 function inferIsFunded(account: RawLiveSnapshotAccount) {
+  const profile = mapAccountProfile(account);
+  if (profile?.source === "manual") {
+    if (["challenge", "evaluation", "funded"].includes(profile.accountClass)) {
+      return true;
+    }
+    if (["own", "real", "demo"].includes(profile.accountClass)) {
+      return false;
+    }
+  }
+
   const source = accountIdentityText(account);
   return [
     "challenge",
@@ -713,6 +785,7 @@ function normalizeIdentityText(value: string | null | undefined) {
 function accountIdentityText(account: RawLiveSnapshotAccount) {
   const payload = account.dashboard_payload || {};
   const fundingProfile = payload.fundingProfile;
+  const accountProfile = rawAccountProfileFromPayload(payload);
 
   return normalizeIdentityText([
     account.display_name,
@@ -726,6 +799,10 @@ function accountIdentityText(account: RawLiveSnapshotAccount) {
     fundingProfile?.phase_label,
     fundingProfile?.playbook_label,
     fundingProfile?.account_type,
+    accountProfile?.badge_label,
+    accountProfile?.badgeLabel,
+    accountProfile?.account_class,
+    accountProfile?.accountClass,
   ].filter(Boolean).join(" "));
 }
 
@@ -938,6 +1015,14 @@ function inferFundingIdentity(account: RawLiveSnapshotAccount): InferredFundingI
 function mapFundingProfile(account: RawLiveSnapshotAccount) {
   const payload = account.dashboard_payload || {};
   const fundingProfile = payload.fundingProfile;
+  const manualProfile = mapAccountProfile(account);
+  if (
+    manualProfile?.source === "manual" &&
+    ["own", "real", "demo"].includes(manualProfile.accountClass)
+  ) {
+    return undefined;
+  }
+
   const inferredIdentity = inferFundingIdentity(account);
   const isFunded = inferIsFunded(account);
 
@@ -1083,6 +1168,7 @@ function mapAccount(account: RawLiveSnapshotAccount): TradingAccount {
     lastSyncLabel: formatSyncLabel(account.last_sync_at),
     isFunded: inferIsFunded(account),
     planAccess: inferPlanAccess(account),
+    profile: mapAccountProfile(account),
     equityHistory: mapEquitySeries(payload),
     funding: mapFundingProfile(account),
   };

@@ -52,6 +52,14 @@ export type RawLiveTrade = {
   comment?: string;
 };
 
+export type RawLiveAccountProfile = {
+  accountClass?: "own" | "real" | "demo" | "challenge" | "evaluation" | "funded";
+  account_class?: "own" | "real" | "demo" | "challenge" | "evaluation" | "funded";
+  badgeLabel?: string;
+  badge_label?: string;
+  source?: "auto" | "manual" | string;
+};
+
 export type RawLiveDashboardPayload = {
   payloadSource?: string;
   accountName?: string;
@@ -95,6 +103,8 @@ export type RawLiveDashboardPayload = {
     bestWinningStreak?: number;
     bestLosingStreak?: number;
   };
+  accountProfile?: RawLiveAccountProfile;
+  account_profile?: RawLiveAccountProfile;
   fundingProfile?: {
     firm?: string;
     account_type?: "challenge" | "funded" | "evaluation";

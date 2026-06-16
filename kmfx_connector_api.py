@@ -7550,25 +7550,38 @@ async def update_own_account(account_id: str, request: Request) -> JSONResponse:
         or payload.get("display_name")
         or payload.get("name"),
     )
-    if not alias:
+    has_account_profile = "accountProfile" in payload or "account_profile" in payload
+    has_funding_profile = "fundingProfile" in payload or "funding_profile" in payload
+    if not alias and not has_account_profile and not has_funding_profile:
         return connector_json_response(
             {
                 "ok": False,
-                "reason": "missing_alias",
-                "details": {"field": "alias"},
+                "reason": "missing_account_update",
+                "details": {"fields": ["alias", "accountProfile"]},
                 "timestamp": now_iso(),
             },
             status_code=400,
         )
 
     try:
-        updated = account_service.rename_account(normalized_account_id, alias)
+        account_profile = payload.get("accountProfile", payload.get("account_profile"))
+        funding_profile = payload.get("fundingProfile", payload.get("funding_profile"))
+        updated = account_service.update_account_display_profile(
+            normalized_account_id,
+            alias=alias if alias else None,
+            account_profile=account_profile if isinstance(account_profile, dict) else None,
+            clear_account_profile=has_account_profile and account_profile is None,
+            funding_profile=funding_profile if isinstance(funding_profile, dict) else None,
+            clear_funding_profile=has_funding_profile and funding_profile is None,
+        )
     except ValueError as exc:
+        reason = str(exc) or "invalid_account_update"
+        field = "alias" if reason in {"invalid_alias", "missing_alias"} else "accountProfile"
         return connector_json_response(
             {
                 "ok": False,
-                "reason": str(exc) or "invalid_alias",
-                "details": {"field": "alias", "max_length": 80},
+                "reason": reason,
+                "details": {"field": field, "max_length": 80},
                 "timestamp": now_iso(),
             },
             status_code=400,
@@ -7582,7 +7595,7 @@ async def update_own_account(account_id: str, request: Request) -> JSONResponse:
 
     remember_live_account_snapshot(updated)
     emit_audit_event(
-        "rename_account",
+        "update_account_display_profile",
         context=auth_context,
         user_id=scope_user_id,
         account_id=updated.account_id,
