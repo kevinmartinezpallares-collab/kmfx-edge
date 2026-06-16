@@ -21,7 +21,7 @@ RENDER_API_BASE = "https://api.render.com/v1"
 DEFAULT_RENDER_SERVICE_ID = "srv-d79k3b75r7bs73fspuu0"
 DEFAULT_API_BASE_URL = "https://kmfx-edge-api.onrender.com"
 DEFAULT_WORKER_BASE_URL = "https://mt5-api.kmfxedge.com"
-DEFAULT_NEXT_BASE_URL = "https://beta.kmfxedge.com"
+DEFAULT_NEXT_BASE_URL = "https://kmfxedge.com"
 
 
 def env_value(*names: str) -> str:

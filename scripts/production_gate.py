@@ -68,7 +68,7 @@ def build_checks(*, full_tests: bool, next_beta: bool) -> list[Check]:
         smoke_command.extend(
             [
                 "--frontend-url",
-                "https://beta.kmfxedge.com",
+                "https://kmfxedge.com",
                 "--profile",
                 "next-beta",
                 "--downloads-mode",

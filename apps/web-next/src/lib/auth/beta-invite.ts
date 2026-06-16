@@ -14,7 +14,6 @@ function normalizeInviteCode(code: string) {
 export function isBetaInviteHost(host: string | null | undefined) {
   const normalizedHost = (host || "").toLowerCase().split(":")[0];
   return (
-    normalizedHost === "beta.kmfxedge.com" ||
     normalizedHost === "kmfxedge.com" ||
     normalizedHost === "www.kmfxedge.com"
   );

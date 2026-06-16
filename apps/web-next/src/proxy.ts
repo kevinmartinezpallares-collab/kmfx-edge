@@ -54,15 +54,6 @@ function isProductionKmfxHost(host: string | null) {
   return normalizedHost === "kmfxedge.com" || normalizedHost === "www.kmfxedge.com";
 }
 
-function isBetaKmfxHost(host: string | null) {
-  const normalizedHost = (host || "").toLowerCase().split(":")[0];
-  return normalizedHost === "beta.kmfxedge.com";
-}
-
-function shouldRedirectBetaToProduction() {
-  return process.env.KMFX_REDIRECT_BETA_TO_PRODUCTION !== "0";
-}
-
 function logProxyEvent(
   level: "info" | "warn",
   event: string,
@@ -197,20 +188,6 @@ export async function proxy(request: NextRequest) {
     loginUrl.pathname = "/login";
     logProxyEvent("info", "production_domain_redirect_login", request);
     return NextResponse.redirect(loginUrl);
-  }
-
-  if (
-    isBetaKmfxHost(request.headers.get("host")) &&
-    shouldRedirectBetaToProduction()
-  ) {
-    const productionUrl = request.nextUrl.clone();
-    productionUrl.protocol = "https:";
-    productionUrl.host = "kmfxedge.com";
-    if (productionUrl.pathname === "/") {
-      productionUrl.pathname = "/login";
-    }
-    logProxyEvent("info", "beta_domain_redirect_production", request);
-    return NextResponse.redirect(productionUrl);
   }
 
   if (isPublicKmfxRoute(pathname)) {

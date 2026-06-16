@@ -22,7 +22,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 PRIVATE_ENV = Path.home() / ".kmfx-beta-monitor.env"
-DEFAULT_FRONTEND_URL = "https://beta.kmfxedge.com"
+DEFAULT_FRONTEND_URL = "https://kmfxedge.com"
 DEFAULT_BACKEND_URL = "https://kmfx-edge-api.onrender.com"
 DEFAULT_MT5_API_URL = "https://mt5-api.kmfxedge.com"
 LATENCY_WARNING_MS = 2500

@@ -6,6 +6,16 @@ function env(name: string) {
   return process.env[name]?.trim() ?? "";
 }
 
+function deploymentId() {
+  return (
+    env("VERCEL_DEPLOYMENT_ID") ||
+    env("VERCEL_URL") ||
+    env("NEXT_PUBLIC_VERCEL_URL") ||
+    env("VERCEL_GIT_COMMIT_SHA").slice(0, 12) ||
+    "local"
+  );
+}
+
 export function GET() {
   return NextResponse.json(
     {
@@ -14,7 +24,7 @@ export function GET() {
       environment: env("VERCEL_ENV") || env("NODE_ENV"),
       commit: env("VERCEL_GIT_COMMIT_SHA"),
       branch: env("VERCEL_GIT_COMMIT_REF"),
-      deploymentId: env("VERCEL_DEPLOYMENT_ID"),
+      deploymentId: deploymentId(),
       region: env("VERCEL_REGION"),
     },
     {
