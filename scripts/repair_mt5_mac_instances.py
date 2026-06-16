@@ -91,7 +91,7 @@ def _copy_profiles(source_program: Path, target_program: Path, stamp: str) -> li
 
     target_profiles.mkdir(parents=True, exist_ok=True)
 
-    if target_default.exists() and not _same_tree(target_default, source_default):
+    if target_default.exists() and not _default_profile_is_healthy(target_default):
         backup = _backup_path(target_default, stamp)
         shutil.move(str(target_default), str(backup))
         actions.append(f"backup_default={backup.name}")
@@ -154,16 +154,11 @@ def _write_app_shortcut(prefix: Path, program_dir: Path, name: str) -> Path:
     macos_dir.mkdir(parents=True, exist_ok=True)
     resources_dir.mkdir(parents=True, exist_ok=True)
     executable = macos_dir / name
-    icon_source = MAC_MAIN_APP / "Contents" / "Resources" / "AppIcon.icns"
+    icon_source = MAIN_APP / "Contents" / "Resources" / "AppIcon.icns"
     if icon_source.exists():
         shutil.copy2(icon_source, resources_dir / "AppIcon.icns")
-    if name == "MT5-Orion":
-        window_match = (
-            'windowName contains "80571774" or windowName contains "OGMInternational" '
-            'or windowName contains "OGM International"'
-        )
-    else:
-        window_match = 'windowName contains "MetaTrader"'
+    window_terms = _window_terms_for_instance(name)
+    window_match = " or ".join(f'windowName contains "{term}"' for term in window_terms)
     executable.write_text(
         "\n".join(
             [
@@ -248,6 +243,23 @@ def _write_app_shortcut(prefix: Path, program_dir: Path, name: str) -> Path:
         encoding="utf-8",
     )
     return app_path
+
+
+def _window_terms_for_instance(name: str) -> list[str]:
+    lowered = name.lower()
+    if "orion" in lowered:
+        return ["80571774", "OGMInternational", "OGM International"]
+    if "darwinex" in lowered:
+        return ["Darwinex", "Tradeslide", "4000082126"]
+    if "icm" in lowered or "icmarket" in lowered:
+        return ["ICMarkets", "ICMarketsSC", "Raw Trading"]
+    if "ftmo" in lowered:
+        return ["FTMO"]
+    if "wsf" in lowered:
+        return ["WSF"]
+    if "bot" in lowered:
+        return ["BOT", "MetaTrader"]
+    return ["MetaTrader"]
 
 
 def repair(dry_run: bool = False) -> int:
