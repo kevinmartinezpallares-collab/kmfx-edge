@@ -254,14 +254,25 @@ function buildNavigationBadgeSnapshot(
   workspace: WorkspaceState,
 ): NavigationBadgeSnapshot {
   const accountsOverview = getAccountsOverview(workspace);
+  const navigationBadges = workspace.meta.navigationBadges;
+  const activeAccountBadges =
+    navigationBadges?.accounts?.[workspace.activeAccountId];
+  const activeTradeCount = countClosedTradeExecutions(workspace.trades);
 
   return {
     accountCount: accountsOverview.totalCount,
     fundedCount: accountsOverview.fundedCount,
     analyticsPeriod: workspace.analytics.currentPeriod,
-    tradeCount: countClosedTradeExecutions(workspace.trades),
+    tradeCount: Math.max(
+      activeAccountBadges?.tradeCount ?? 0,
+      activeTradeCount,
+      workspace.analytics.performance.totalTrades,
+    ),
     reviewCount: countReviewCandidates(workspace),
-    activeDays: workspace.analytics.daily.length,
+    activeDays: Math.max(
+      activeAccountBadges?.activeDays ?? 0,
+      workspace.analytics.daily.length,
+    ),
   };
 }
 
@@ -1449,7 +1460,7 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
         onOpenOnboarding={openBetaOnboarding}
         remainingPromoCount={remainingPromoCount}
         selectedAccountId={selectedAccountId}
-        workspace={workspace}
+        workspace={selectedWorkspace}
       />
       <SidebarInset className="min-h-svh min-w-0 overflow-x-hidden bg-background">
         <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--foreground)_4%,transparent),transparent_320px)]" />

@@ -585,6 +585,11 @@ describe("createWorkspaceFromLiveSnapshot", () => {
     expect(workspace.accounts[0]?.label).toBe("Darwinex Zero 100K Allocation");
     expect(workspace.trades.length).toBeGreaterThan(100);
     expect(workspace.analytics.performance.totalTrades).toBeGreaterThan(100);
+    expect(workspace.meta.navigationBadges?.tradeCount).toBeGreaterThan(600);
+    expect(
+      workspace.meta.navigationBadges?.accounts?.[workspace.activeAccountId]
+        ?.tradeCount,
+    ).toBe(countClosedTradeExecutions(workspace.trades));
   });
 
   it("builds daily and hourly buckets from the one-year close-time history", () => {
@@ -595,6 +600,16 @@ describe("createWorkspaceFromLiveSnapshot", () => {
 
     expect(workspace.trades).toHaveLength(213);
     expect(workspace.analytics.daily).toHaveLength(148);
+    expect(
+      workspace.meta.navigationBadges?.accounts?.[workspace.activeAccountId]
+        ?.tradeCount,
+    ).toBe(
+      countClosedTradeExecutions(workspace.trades),
+    );
+    expect(
+      workspace.meta.navigationBadges?.accounts?.[workspace.activeAccountId]
+        ?.activeDays,
+    ).toBe(148);
     expect(workspace.analytics.daily[0]?.tradingDayKey).toBe("2025-05-23");
     expect(workspace.analytics.daily.at(-1)?.tradingDayKey).toBe("2026-05-22");
     expect(workspace.analytics.hourly.map((hour) => hour.hour)).toEqual([

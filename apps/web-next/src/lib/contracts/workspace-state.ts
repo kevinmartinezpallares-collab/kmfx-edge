@@ -91,5 +91,16 @@ export type WorkspaceState = {
     userAvatarUrl?: string;
     userEmail?: string;
     userRoleLabel?: string;
+    navigationBadges?: {
+      tradeCount?: number;
+      activeDays?: number;
+      accounts?: Record<
+        string,
+        {
+          tradeCount?: number;
+          activeDays?: number;
+        }
+      >;
+    };
   };
 };

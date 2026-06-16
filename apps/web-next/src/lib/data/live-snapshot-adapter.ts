@@ -474,6 +474,49 @@ function buildTradeBuckets(trades: ClosedTrade[]) {
   };
 }
 
+function countClosedTradeExecutions(trades: ClosedTrade[]) {
+  return trades.reduce(
+    (sum, trade) => sum + Math.max(1, trade.executions.length),
+    0,
+  );
+}
+
+function buildNavigationBadges(rawAccounts: RawLiveSnapshotAccount[]) {
+  const accountBadges = rawAccounts.reduce<
+    Record<string, { tradeCount: number; activeDays: number }>
+  >((badges, account) => {
+    const accountId = String(account.account_id || "").trim();
+    if (!accountId) return badges;
+
+    const payload = account.dashboard_payload || {};
+    const trades = mapTrades(payload);
+    const tradeBuckets = buildTradeBuckets(trades);
+    const reportedTrades = Math.round(
+      toFiniteNumber(
+        payload.reportMetrics?.totalTrades,
+        toFiniteNumber(payload.totalTrades),
+      ),
+    );
+
+    badges[accountId] = {
+      tradeCount: Math.max(countClosedTradeExecutions(trades), reportedTrades),
+      activeDays: tradeBuckets.daily.length,
+    };
+
+    return badges;
+  }, {});
+  const allTrades = rawAccounts.flatMap((account) =>
+    mapTrades(account.dashboard_payload || {}),
+  );
+  const allTradeBuckets = buildTradeBuckets(allTrades);
+
+  return {
+    tradeCount: countClosedTradeExecutions(allTrades),
+    activeDays: allTradeBuckets.daily.length,
+    accounts: accountBadges,
+  };
+}
+
 function mapTrades(payload: RawLiveDashboardPayload): ClosedTrade[] {
   const rows = Array.isArray(payload.trades) ? payload.trades : [];
   const grouped = new Map<string, ClosedTrade>();
@@ -1447,6 +1490,7 @@ export function createWorkspaceFromLiveSnapshot(
   const activePayload = activeRawAccount.dashboard_payload || {};
   const trades = mapTrades(activePayload);
   const tradeBuckets = buildTradeBuckets(trades);
+  const navigationBadges = buildNavigationBadges(rawAccounts);
   const risk = mapRisk(activePayload);
   const activeAnalytics = mapAnalytics(activePayload);
 
@@ -1470,6 +1514,7 @@ export function createWorkspaceFromLiveSnapshot(
     meta: {
       sourceMode,
       sourceLabel: sourceMode === "live" ? "Lectura MT5" : "Lectura preparada",
+      navigationBadges,
       ...userMetaFromSnapshot(snapshot),
     },
   };
