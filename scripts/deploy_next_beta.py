@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import argparse
+import json
+import re
 import shutil
 import subprocess
 import sys
@@ -12,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WEB_NEXT = ROOT / "apps" / "web-next"
 VERCEL_PROJECT = WEB_NEXT / ".vercel" / "project.json"
+PRODUCTION_ALIASES = ("kmfxedge.com", "www.kmfxedge.com")
 
 
 def run(
@@ -30,6 +33,24 @@ def run(
 
 def output(command: list[str], *, cwd: Path = ROOT) -> str:
     return subprocess.check_output(command, cwd=cwd, text=True).strip()
+
+
+def deploy_url_from_output(raw_output: str) -> str:
+    try:
+        parsed = json.loads(raw_output)
+    except json.JSONDecodeError:
+        parsed = None
+
+    if isinstance(parsed, dict):
+        url = parsed.get("url") or parsed.get("deployment", {}).get("url")
+        if isinstance(url, str) and url:
+            return url.removeprefix("https://")
+
+    match = re.search(r"https://([a-zA-Z0-9.-]+\\.vercel\\.app)", raw_output)
+    if match:
+        return match.group(1)
+
+    raise RuntimeError("missing_deployment_url")
 
 
 def parse_args() -> argparse.Namespace:
@@ -73,7 +94,34 @@ def main() -> int:
 
         print(f"deploying_ref={args.ref}")
         print(f"deploying_commit={commit}")
-        run(["npx", "--yes", "vercel@latest", "deploy", "--prod"], cwd=deploy_web_next)
+        deploy_output = output(
+            [
+                "npx",
+                "--yes",
+                "vercel@latest",
+                "deploy",
+                "--prod",
+                "--skip-domain",
+                "--format",
+                "json",
+            ],
+            cwd=deploy_web_next,
+        )
+        print(deploy_output)
+        deploy_url = deploy_url_from_output(deploy_output)
+        for alias in PRODUCTION_ALIASES:
+            run(
+                [
+                    "npx",
+                    "--yes",
+                    "vercel@latest",
+                    "alias",
+                    "set",
+                    deploy_url,
+                    alias,
+                ],
+                cwd=deploy_web_next,
+            )
         print("next_beta_deploy_complete")
         return 0
     finally:
