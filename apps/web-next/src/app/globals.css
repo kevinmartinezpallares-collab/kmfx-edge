@@ -232,42 +232,42 @@
   }
 
   .kmfx-floating-paths {
-    animation: kmfx-floating-paths-drift 28s cubic-bezier(0.25, 1, 0.5, 1)
-      infinite alternate;
-    opacity: 0.9;
-    transform: translate3d(0, 0, 0) scale(1.01);
-    transform-origin: center;
-    will-change: opacity, transform;
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
   }
 
-  .kmfx-floating-paths-reverse {
-    animation-delay: -14s;
-    animation-duration: 34s;
+  .kmfx-floating-path-line {
+    animation: kmfx-floating-path-line var(--path-duration) linear infinite;
+    animation-delay: var(--path-delay);
+    opacity: var(--path-opacity-low);
+    stroke-dasharray: 0.32 0.68;
+    stroke-dashoffset: 0;
+    will-change: opacity, stroke-dashoffset;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .kmfx-floating-paths {
+    .kmfx-floating-path-line {
       animation: none;
-      opacity: 0.84;
-      transform: none;
+      opacity: var(--path-opacity-low);
+      stroke-dasharray: none;
     }
   }
 
 }
 
-@keyframes kmfx-floating-paths-drift {
+@keyframes kmfx-floating-path-line {
   0% {
-    opacity: 0.72;
-    transform: translate3d(-1.4%, 0.8%, 0) scale(1.01);
+    opacity: var(--path-opacity-low);
+    stroke-dashoffset: 0;
   }
 
   50% {
-    opacity: 0.98;
-    transform: translate3d(0.6%, -0.5%, 0) scale(1.018);
+    opacity: var(--path-opacity-high);
+    stroke-dashoffset: var(--path-offset-mid);
   }
 
   100% {
-    opacity: 0.78;
-    transform: translate3d(1.2%, -0.9%, 0) scale(1.012);
+    opacity: var(--path-opacity-low);
+    stroke-dashoffset: var(--path-offset-end);
   }
 }
