@@ -563,7 +563,7 @@ function useAuthPageModel(
 
 type AuthPageModel = ReturnType<typeof useAuthPageModel>;
 
-function AuthHero() {
+const AuthHero = React.memo(function AuthHero() {
   return (
     <section className="relative hidden min-h-svh overflow-hidden border-r border-border/70 bg-[radial-gradient(circle_at_20%_20%,hsl(var(--muted))_0,transparent_32%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted)/0.28))] lg:flex">
       <FloatingPaths position={1} />
@@ -613,7 +613,7 @@ function AuthHero() {
       </div>
     </section>
   );
-}
+});
 
 function ProviderButtons({
   betaInviteRequired,
