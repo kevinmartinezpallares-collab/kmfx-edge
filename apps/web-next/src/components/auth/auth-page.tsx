@@ -675,7 +675,7 @@ const AuthHero = React.memo(function AuthHero() {
           <h1 className="max-w-xl text-4xl leading-tight font-semibold tracking-tight text-balance xl:text-6xl">
             Entra, revisa tu cuenta y decide sin ruido.
           </h1>
-          <p className="mt-5 max-w-lg text-base leading-7 font-normal text-white/75 xl:text-lg">
+          <p className="mt-5 max-w-lg text-base leading-7 font-light text-white/85 xl:text-lg">
             KMFX centraliza cuenta, calendario, trades, portfolio e insights para que
             el trader vea lo importante antes de tocar el botón de entrada.
           </p>
