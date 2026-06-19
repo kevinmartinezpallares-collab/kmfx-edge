@@ -11,7 +11,7 @@ export const FX_SYMBOLS = [
   "EURGBP",
 ] as const;
 
-export type InstrumentKind = "fx" | "metal" | "index";
+export type InstrumentKind = "fx" | "metal" | "index" | "custom";
 
 export type InstrumentProfile = {
   symbol: string;
@@ -105,6 +105,7 @@ export type LotSizingInput = {
   stopPips: number;
   baseAmount?: number;
   valuePerUnitPerLot?: number | null;
+  applySafeCap?: boolean;
 };
 
 export type LotSizingResult = {
@@ -169,8 +170,43 @@ export function parsePair(symbol: string): FxPair | null {
 
 export function getInstrumentProfile(symbol: string): InstrumentProfile {
   const value = String(symbol || "").trim().toUpperCase();
+  if (!value) {
+    return {
+      symbol: "",
+      label: "",
+      kind: "fx",
+      quoteCurrency: "USD",
+      unitLabel: "pip",
+      defaultStopUnits: 15,
+      defaultValuePerUnitPerLot: null,
+      valueSourceLabel: "Escribe un instrumento",
+    };
+  }
   const cfdProfile = CFD_INSTRUMENT_PROFILES.find((profile) => profile.symbol === value);
   if (cfdProfile) return cfdProfile;
+
+  const compactValue = value.replace(/[^A-Z0-9]/g, "");
+  if (compactValue.includes("XAU")) {
+    const goldProfile = CFD_INSTRUMENT_PROFILES.find((profile) => profile.symbol === "XAUUSD");
+    if (goldProfile) {
+      return {
+        ...goldProfile,
+        symbol: value,
+        label: value,
+      };
+    }
+  }
+
+  const indexPreset = CFD_INSTRUMENT_PROFILES.find((profile) =>
+    compactValue.includes(profile.symbol),
+  );
+  if (indexPreset) {
+    return {
+      ...indexPreset,
+      symbol: value,
+      label: value,
+    };
+  }
 
   const pair = parsePair(value);
   if (pair) {
@@ -189,12 +225,12 @@ export function getInstrumentProfile(symbol: string): InstrumentProfile {
   return {
     symbol: value || "EURUSD",
     label: value || "EURUSD",
-    kind: "fx",
+    kind: "custom",
     quoteCurrency: "USD",
-    unitLabel: "pip",
-    defaultStopUnits: 15,
-    defaultValuePerUnitPerLot: null,
-    valueSourceLabel: "Instrumento no soportado",
+    unitLabel: "1 punto",
+    defaultStopUnits: 100,
+    defaultValuePerUnitPerLot: 1,
+    valueSourceLabel: "Instrumento personalizado: edita valor punto/lote",
   };
 }
 
@@ -267,6 +303,7 @@ export function calculateFxLotSize({
   stopPips,
   baseAmount,
   valuePerUnitPerLot,
+  applySafeCap = true,
 }: LotSizingInput): LotSizingResult {
   const accountCurrency = normalizeCurrency(account?.baseCurrency, "USD");
   const equity = Math.max(baseAmount ?? account?.equity ?? 0, 0);
@@ -276,7 +313,8 @@ export function calculateFxLotSize({
         Math.max(account.funding.dailyRoomLeftPct, 0),
       )
     : null;
-  const appliedRiskPct = safeCapPct !== null ? Math.min(riskPct, safeCapPct) : riskPct;
+  const appliedRiskPct =
+    applySafeCap && safeCapPct !== null ? Math.min(riskPct, safeCapPct) : riskPct;
   const requestedRiskMoney = equity * (riskPct / 100);
   const appliedRiskMoney = equity * (appliedRiskPct / 100);
   const instrument = getInstrumentProfile(symbol);

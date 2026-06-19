@@ -94,6 +94,7 @@ Se anade oro e indices porque es esencial para el usuario y Myfxbook ya trata XA
 - No cards dentro de cards.
 - No usar specs MT5 como verdad unica si el objetivo es estilo Myfxbook.
 - Para oro/indices, no ocultar que el valor punto/lote es editable y broker-dependent.
+- El `risk %` escrito por el usuario calcula ese risk; el cap recomendado avisa, no recorta el lotaje manual.
 - Valores de riesgo fuera de limite deben destacar con color de estado.
 - Separadores con `/`, no puntos medios.
 

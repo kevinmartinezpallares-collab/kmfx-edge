@@ -45,6 +45,22 @@ describe("lot sizing", () => {
     expect(result.riskPerLot).toBeGreaterThan(0);
   });
 
+  it("can calculate the requested risk without forcing the recommended cap", () => {
+    const account = wave1Workspace.accounts.find((item) => item.funding) ?? null;
+    const result = calculateFxLotSize({
+      account,
+      symbol: "EURUSD",
+      riskPct: 1,
+      stopPips: 10,
+      applySafeCap: false,
+    });
+
+    expect(result.safeCapPct).not.toBeNull();
+    expect(result.appliedRiskPct).toBe(1);
+    expect(result.appliedRiskMoney).toBeCloseTo(result.equity * 0.01);
+    expect(result.lotSize).toBeCloseTo(result.appliedRiskMoney / 100, 1);
+  });
+
   it("calculates gold and index sizing with editable point value defaults", () => {
     const account = wave1Workspace.accounts.find((item) => item.id === "acct-alpha") ?? null;
     const gold = calculateFxLotSize({
@@ -69,6 +85,24 @@ describe("lot sizing", () => {
     expect(index.instrument.kind).toBe("index");
     expect(index.pipValuePerLot).toBe(1);
     expect(index.riskPerLot).toBe(100);
+  });
+
+  it("supports custom broker symbols through editable point value sizing", () => {
+    const account = wave1Workspace.accounts.find((item) => item.id === "acct-alpha") ?? null;
+    const profile = getInstrumentProfile("US100.cash");
+    const result = calculateFxLotSize({
+      account,
+      symbol: "US100.cash",
+      riskPct: 1,
+      stopPips: 100,
+      valuePerUnitPerLot: profile.defaultValuePerUnitPerLot,
+      applySafeCap: false,
+    });
+
+    expect(profile.kind).toBe("custom");
+    expect(profile.defaultValuePerUnitPerLot).toBe(1);
+    expect(result.lotSize).toBeGreaterThan(0);
+    expect(result.riskPerLot).toBe(100);
   });
 
   it("keeps calculator numeric parsing compatible with comma decimals", () => {

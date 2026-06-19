@@ -83,12 +83,20 @@ function calculatorReducer(
     case "setStopPipsInput":
       return { ...state, stopPipsInput: action.value };
     case "setSymbol": {
-      const nextInstrument = getInstrumentProfile(action.symbol);
+      const nextSymbol = action.symbol.trim().toUpperCase();
+      if (!nextSymbol) {
+        return {
+          ...state,
+          pointValueInput: "",
+          symbol: "",
+        };
+      }
+      const nextInstrument = getInstrumentProfile(nextSymbol);
       return {
         ...state,
-        pointValueInput: getPointValueInputForSymbol(nextInstrument.symbol),
+        pointValueInput: getPointValueInputForSymbol(nextSymbol),
         stopPipsInput: String(nextInstrument.defaultStopUnits),
-        symbol: nextInstrument.symbol,
+        symbol: nextSymbol,
       };
     }
     case "applyRecommendedRisk":
@@ -140,6 +148,7 @@ function useLotSizeCalculatorModel({
     stopPips,
     baseAmount,
     valuePerUnitPerLot,
+    applySafeCap: false,
   });
   const canCalculate =
     Boolean(selectedAccount) &&
@@ -151,7 +160,7 @@ function useLotSizeCalculatorModel({
   const displayedLotSize = canCalculate ? result.lotSize : 0;
   const displayedAppliedRiskMoney = canCalculate ? result.appliedRiskMoney : 0;
   const displayedRequestedRiskMoney = canCalculate ? result.requestedRiskMoney : 0;
-  const fundingCapWasApplied =
+  const exceedsRecommendedRisk =
     result.safeCapPct !== null && requestedRiskPct > result.safeCapPct;
   const dailyRoomPct =
     selectedAccount?.funding?.dailyRoomLeftPct ?? risk.dailyRoomLeftPct;
@@ -168,6 +177,8 @@ function useLotSizeCalculatorModel({
   const validationMessage =
     !selectedAccount || baseAmount <= 0
       ? "Selecciona una cuenta con equity disponible."
+      : !symbol.trim()
+        ? "Escribe un instrumento."
       : requestedRiskPct <= 0
         ? "Introduce un risk mayor que 0."
         : stopPips <= 0
@@ -181,7 +192,7 @@ function useLotSizeCalculatorModel({
     ? "warning"
     : exceedsRoom
       ? "danger"
-      : fundingCapWasApplied || hasStaleData
+      : exceedsRecommendedRisk || hasStaleData
         ? "warning"
         : "safe";
   const safetyMessage = validationMessage
@@ -190,8 +201,8 @@ function useLotSizeCalculatorModel({
       ? "Reduce risk o stop antes de abrir más exposición."
       : hasStaleData
         ? "Cálculo estimado con datos no frescos."
-        : fundingCapWasApplied
-          ? "Aplicado el cap recomendado de la cuenta."
+        : exceedsRecommendedRisk
+          ? "Supera el risk recomendado de la cuenta."
           : "Riesgo dentro del margen visible.";
 
   const recommendations = getLotSizingRecommendationRows({
@@ -334,19 +345,19 @@ function CalculatorInputPanel({
 
         <Field>
           <FieldLabel htmlFor="calculator-symbol">Instrumento</FieldLabel>
-          <select
-            aria-label="Instrumento"
+          <input
             id="calculator-symbol"
+            list="calculator-symbol-presets"
             className={calculatorInputClass}
+            placeholder="EURUSD, XAUUSD, US100.cash..."
             value={symbol}
             onChange={(event) => handleSymbolChange(event.currentTarget.value)}
-          >
+          />
+          <datalist id="calculator-symbol-presets">
             {CALCULATOR_INSTRUMENT_SYMBOLS.map((item) => (
-              <option key={item} value={item}>
-                {getInstrumentProfile(item).label}
-              </option>
+              <option key={item} value={item} label={getInstrumentProfile(item).label} />
             ))}
-          </select>
+          </datalist>
           <FieldDescription>
             {instrument.kind === "fx"
               ? `${result.instrument.quoteCurrency} -> ${result.accountCurrency}`
@@ -523,7 +534,7 @@ function CalculatorResultPanel({
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {result.safeCapPct
-              ? `Cap cuenta ${formatPercent(result.safeCapPct)}`
+              ? `Recomendado ${formatPercent(result.safeCapPct)}`
               : "Sin cap externo"}
           </p>
         </div>
