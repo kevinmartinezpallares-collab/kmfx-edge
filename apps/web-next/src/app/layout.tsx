@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const vercelTelemetryEnabled = process.env.VERCEL === "1";
+const vercelTelemetryEnabled = process.env.KMFX_ENABLE_VERCEL_TELEMETRY === "1";
 
 const themeBootScript = `
 (() => {
