@@ -402,6 +402,7 @@ BILLING_STATUS_VALUES = {
     *BILLING_RESTRICTED_STATUSES,
 }
 DEFAULT_VIP_PROMOTION_CODES = {"comunidad100"}
+DEFAULT_BETA_INVITE_TRIAL_DAYS = 7
 CONNECTION_RATE_LIMIT_WINDOW_SECONDS = 60
 CONNECTION_RATE_LIMIT_BUCKETS: dict[str, tuple[float, int]] = {}
 SENSITIVE_RATE_LIMIT_WINDOW_SECONDS = 60
@@ -428,10 +429,12 @@ MT5_CLOUD_BASE_URL = "https://mt5-api.kmfxedge.com"
 MT5_CLOUD_SYNC_PATH = "/api/mt5/sync"
 MT5_CLOUD_JOURNAL_PATH = "/api/mt5/journal"
 MT5_CLOUD_POLICY_PATH = "/api/mt5/policy"
+MT5_CLOUD_RISKGUARD_ACK_PATH = "/api/mt5/riskguard/ack"
 MT5_LOCAL_BASE_URL = "http://127.0.0.1:8766"
 MT5_LOCAL_SYNC_PATH = "/mt5/sync"
 MT5_LOCAL_JOURNAL_PATH = "/mt5/journal"
 MT5_LOCAL_POLICY_PATH = "/mt5/policy"
+MT5_LOCAL_RISKGUARD_ACK_PATH = "/mt5/riskguard/ack"
 
 app = FastAPI(title="KMFX Connector API", version="0.2.0")
 app.add_middleware(
@@ -459,6 +462,7 @@ log.info(
         "/api/mt5/sync",
         "/api/mt5/journal",
         "/api/mt5/policy",
+        "/api/mt5/riskguard/ack",
         "/api/accounts/snapshot",
         "/api/billing/status",
         "/api/billing/checkout",
@@ -530,6 +534,7 @@ BANDWIDTH_CRITICAL_PREFIXES = (
     "/api/mt5/sync",
     "/api/mt5/journal",
     "/api/mt5/policy",
+    "/api/mt5/riskguard/ack",
     "/api/accounts/snapshot",
     "/api/billing/",
     "/health",
@@ -580,6 +585,41 @@ SYNC_ERROR_INVALID_PAYLOAD = 1003
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def normalize_invite_code(value: Any) -> str:
+    return safe_str(value).strip().lower()
+
+
+def beta_invite_codes() -> set[str]:
+    raw_values = [
+        _env_value("KMFX_INVITE_CODE"),
+        _env_value("KMFX_INVITE_CODES"),
+    ]
+    codes: set[str] = set()
+    for raw_value in raw_values:
+        for code in safe_str(raw_value).split(","):
+            normalized = normalize_invite_code(code)
+            if normalized:
+                codes.add(normalized)
+    return codes
+
+
+def beta_invite_signup_enabled() -> bool:
+    return _env_flag("KMFX_INVITE_ONLY_SIGNUP", default=False) or bool(beta_invite_codes())
+
+
+def beta_invite_trial_days() -> int:
+    return max(1, _env_int("KMFX_INVITE_TRIAL_DAYS", default=DEFAULT_BETA_INVITE_TRIAL_DAYS))
+
+
+def beta_invite_plan() -> str:
+    return normalize_plan_key(_env_value("KMFX_INVITE_TRIAL_PLAN") or "unlimited")
+
+
+def beta_invite_code_allowed(value: Any) -> bool:
+    code = normalize_invite_code(value)
+    return bool(code and code in beta_invite_codes())
 
 
 def connector_json_response(content: Any, status_code: int = 200) -> JSONResponse:
@@ -1450,6 +1490,7 @@ def _resolve_supabase_user_claims(request: Request) -> dict[str, Any]:
         return {}
     claims = {
         "sub": safe_str(payload.get("id")),
+        "created_at": safe_str(payload.get("created_at")),
         "email": safe_str(payload.get("email")).lower(),
         "user_metadata": ensure_dict(payload.get("user_metadata")),
         "app_metadata": ensure_dict(payload.get("app_metadata")),
@@ -1478,7 +1519,7 @@ def _resolve_verified_bearer_claims(request: Request) -> dict[str, Any]:
         return {}
 
     merged_claims = deepcopy(signed_claims)
-    for key in ("sub", "email"):
+    for key in ("sub", "email", "created_at"):
         fresh_value = safe_str(auth_user_claims.get(key))
         if fresh_value:
             merged_claims[key] = fresh_value
@@ -1673,6 +1714,7 @@ def resolve_authenticated_identity(request: Request) -> dict[str, str]:
     if email or user_id:
         return {
             "email": email,
+            "created_at": safe_str(claims.get("created_at")),
             "user_id": user_id or email,
             "source": "verified_bearer",
             "app_metadata": ensure_dict(claims.get("app_metadata")),
@@ -1685,6 +1727,7 @@ def resolve_authenticated_identity(request: Request) -> dict[str, str]:
     if preview_email or preview_user_id:
         return {
             "email": preview_email,
+            "created_at": "",
             "user_id": preview_user_id or preview_email,
             "source": "preview_bearer",
             "app_metadata": ensure_dict(preview_claims.get("app_metadata")),
@@ -1696,13 +1739,14 @@ def resolve_authenticated_identity(request: Request) -> dict[str, str]:
     if trusted_email or trusted_user_id:
         return {
             "email": trusted_email,
+            "created_at": "",
             "user_id": trusted_user_id or trusted_email,
             "source": "trusted_header",
             "app_metadata": {},
             "user_metadata": {},
         }
 
-    return {"email": "", "user_id": "", "source": "", "app_metadata": {}, "user_metadata": {}}
+    return {"email": "", "created_at": "", "user_id": "", "source": "", "app_metadata": {}, "user_metadata": {}}
 
 
 def build_admin_context(request: Request) -> dict[str, Any]:
@@ -1714,6 +1758,7 @@ def build_admin_context(request: Request) -> dict[str, Any]:
     is_admin = bool(email and email in ADMIN_EMAILS)
     return {
         "email": email,
+        "created_at": safe_str(identity.get("created_at")),
         "user_id": user_id,
         "source": identity["source"],
         "app_metadata": app_metadata,
@@ -1840,6 +1885,39 @@ def billing_cancel_at_period_end(app_metadata: dict[str, Any]) -> bool:
     return False
 
 
+def beta_invite_access_for_context(context: dict[str, Any]) -> dict[str, Any]:
+    if not beta_invite_signup_enabled():
+        return {}
+
+    app_metadata = ensure_dict(context.get("app_metadata"))
+    user_metadata = ensure_dict(context.get("user_metadata"))
+    invite_code = (
+        app_metadata.get("kmfx_beta_invite_code")
+        or app_metadata.get("beta_invite_code")
+        or user_metadata.get("kmfx_beta_invite_code")
+        or user_metadata.get("beta_invite_code")
+    )
+    if not beta_invite_code_allowed(invite_code):
+        return {}
+
+    started_at = (
+        _parse_datetime(context.get("created_at"))
+        or _parse_datetime(app_metadata.get("kmfx_beta_invite_started_at"))
+        or _parse_datetime(user_metadata.get("kmfx_beta_invite_started_at"))
+    )
+    if started_at is None:
+        return {}
+
+    ends_at = started_at + timedelta(days=beta_invite_trial_days())
+    active = datetime.now(timezone.utc) < ends_at
+    return {
+        "active": active,
+        "endsAt": ends_at.isoformat().replace("+00:00", "Z"),
+        "plan": beta_invite_plan(),
+        "source": "invite_code",
+    }
+
+
 def entitlement_account_limit(entitlements: dict[str, Any], context: dict[str, Any], *, authenticated: bool) -> int | str:
     if not authenticated:
         return 0
@@ -1919,6 +1997,22 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
         or plan
     )
     status = billing_status_from_metadata(app_metadata, plan)
+    beta_access = beta_invite_access_for_context(context)
+    has_commercial_access = plan != "free" and status in {"trialing", "active"}
+    if beta_access and not context.get("is_admin") and not has_commercial_access:
+        beta_plan = normalize_plan_key(beta_access.get("plan"))
+        if beta_access.get("active"):
+            plan = beta_plan
+            status = "trialing"
+            billing_source = "beta_invite"
+        else:
+            # Keep the commercial-looking beta plan visible, but restrict access
+            # after the invitation window has ended.
+            plan = beta_plan
+            status = "paused"
+            billing_source = "beta_invite_expired"
+        app_metadata["kmfx_trial_end"] = safe_str(beta_access.get("endsAt"))
+        app_metadata["billing_trial_end"] = safe_str(beta_access.get("endsAt"))
     effective_plan = "free" if status in BILLING_RESTRICTED_STATUSES else plan
     if context.get("is_admin"):
         effective_plan = "unlimited"
@@ -1977,6 +2071,7 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
             "liveMt5Accounts": account_limit,
             "connectionKeyLimit": connection_key_limit,
         },
+        "betaAccess": beta_access,
         "is_admin": bool(context.get("is_admin")),
         "scope_user_id": user_id,
         "source": billing_source,
@@ -5149,10 +5244,25 @@ def extract_account_policy_config(*sources: Any) -> dict[str, Any]:
     for source in sources:
         if not isinstance(source, dict):
             continue
-        for key in ("configured_policy", "account_policy", "risk_policy", "riskPolicy", "policy", "riskProfile"):
+        for key in (
+            "configured_policy",
+            "account_policy",
+            "risk_policy",
+            "riskPolicy",
+            "policy",
+            "riskProfile",
+        ):
             value = source.get(key)
             if isinstance(value, dict):
                 candidates.append(value)
+        for package_key in ("risk_policy_package", "riskPolicyPackage"):
+            package = source.get(package_key)
+            if not isinstance(package, dict):
+                continue
+            for configured_key in ("configuredPolicy", "configured_policy"):
+                configured = package.get(configured_key)
+                if isinstance(configured, dict):
+                    candidates.append(configured)
         candidates.append(source)
 
     config: dict[str, Any] = {}
@@ -5205,6 +5315,19 @@ def extract_account_policy_config(*sources: Any) -> dict[str, Any]:
         max_volume = first_configured_policy_value(candidate, "max_volume", "maxVolume")
         if max_volume is not None:
             config["max_volume"] = safe_float(max_volume)
+        auto_block = first_configured_policy_value(candidate, "auto_block", "autoBlock", "auto_block_enabled")
+        if auto_block is not None:
+            config["auto_block"] = safe_bool(auto_block)
+        for key, raw_keys in (
+            ("max_concurrent_positions", ("max_concurrent_positions", "maxConcurrentPositions")),
+            ("max_symbol_exposure_pct", ("max_symbol_exposure_pct", "maxSymbolExposurePct")),
+            ("max_trades_per_day", ("max_trades_per_day", "maxTradesPerDay")),
+            ("cooldown_after_losses_minutes", ("cooldown_after_losses_minutes", "cooldownAfterLossesMinutes")),
+            ("news_block_minutes", ("news_block_minutes", "newsBlockMinutes")),
+        ):
+            value = first_configured_policy_value(candidate, *raw_keys)
+            if value is not None:
+                config[key] = safe_float(value)
         for list_key, raw_keys in (
             ("allowed_sessions", ("allowed_sessions", "allowedSessions")),
             ("allowed_symbols", ("allowed_symbols", "allowedSymbols")),
@@ -5228,7 +5351,7 @@ def build_policy(login: str, account_policy: dict[str, Any] | None = None) -> di
         "panic_lock_active": False,
         "panic_lock_expires_at": "",
         "close_all_required": False,
-        "auto_block": True,
+        "auto_block": False,
         "allowed_symbols": ["EURUSD", "GBPUSD", "XAUUSD", "NAS100", "US30"],
         "allowed_sessions": ["London", "New York"],
         "max_risk_per_trade_pct": 0.50,
@@ -5267,6 +5390,12 @@ def build_policy(login: str, account_policy: dict[str, Any] | None = None) -> di
             "total_dd_hard_stop",
             "portfolio_heat_limit_pct",
             "max_volume",
+            "auto_block",
+            "max_concurrent_positions",
+            "max_symbol_exposure_pct",
+            "max_trades_per_day",
+            "cooldown_after_losses_minutes",
+            "news_block_minutes",
         ):
             if key in configured_policy:
                 policy[key] = configured_policy[key]
@@ -5300,12 +5429,56 @@ def build_policy(login: str, account_policy: dict[str, Any] | None = None) -> di
     return policy
 
 
+def normalize_risk_policy_package_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    source = payload.get("configured_policy") if isinstance(payload.get("configured_policy"), dict) else payload
+    source = source if isinstance(source, dict) else {}
+    config = extract_account_policy_config({"configured_policy": source})
+
+    for key in (
+        "auto_block",
+        "max_concurrent_positions",
+        "max_symbol_exposure_pct",
+        "max_trades_per_day",
+        "cooldown_after_losses_minutes",
+        "news_block_minutes",
+    ):
+        if key not in source:
+            continue
+        if key == "auto_block":
+            config[key] = bool(source.get(key))
+        else:
+            config[key] = safe_float(source.get(key))
+
+    rules = source.get("rules")
+    if isinstance(rules, list):
+        config["rules"] = [
+            {
+                "action": safe_str(rule.get("action")) if isinstance(rule, dict) else "warn",
+                "enabled": bool(rule.get("enabled", True)) if isinstance(rule, dict) else True,
+                "id": safe_str(rule.get("id")) if isinstance(rule, dict) else "",
+                "label": safe_str(rule.get("label")) if isinstance(rule, dict) else "",
+                "value": rule.get("value") if isinstance(rule, dict) else "",
+            }
+            for rule in rules
+            if isinstance(rule, dict)
+        ]
+
+    config["policy_source"] = "user"
+    config["riskguard_mode"] = "monitor"
+    config["riskguard_enforcement_requested"] = False
+    return config
+
+
 def build_connector_policy_response(login: str, account_state: dict[str, Any] | None = None) -> dict[str, Any]:
     state = account_state if isinstance(account_state, dict) else {}
     account_policy = extract_account_policy_config(state)
     policy = build_policy(login, account_policy)
+    allowed_symbols = policy.get("allowed_symbols") if isinstance(policy.get("allowed_symbols"), list) else []
+    allowed_sessions = policy.get("allowed_sessions") if isinstance(policy.get("allowed_sessions"), list) else []
     return {
         **policy,
+        "allowed_sessions_csv": ",".join(safe_str(item) for item in allowed_sessions if safe_str(item)),
+        "allowed_symbols_csv": ",".join(safe_str(item) for item in allowed_symbols if safe_str(item)),
         "risk_status": "active_monitoring",
         "blocking_rule": "",
         "action_required": "Opera dentro de la política activa y respeta los límites locales.",
@@ -5317,6 +5490,150 @@ def build_connector_policy_response(login: str, account_state: dict[str, Any] | 
         "peak_source": "backend_persisted",
         **bandwidth_policy_payload(),
     }
+
+
+def normalize_riskguard_terminal_ack(
+    payload: dict[str, Any],
+    *,
+    expected_policy_hash: str = "",
+) -> dict[str, Any]:
+    source = payload if isinstance(payload, dict) else {}
+    riskguard_enabled = safe_bool(source.get("riskguard_enabled", source.get("RiskGuardEnabled")), default=False)
+    consent_accepted = safe_bool(source.get("consent_accepted", source.get("ConsentAccepted")), default=False)
+    reactive_delete_pending = safe_bool(
+        source.get("reactive_delete_pending_orders", source.get("ReactiveDeletePendingOrders")),
+        default=False,
+    )
+    reactive_close_positions = safe_bool(
+        source.get("reactive_close_market_positions", source.get("ReactiveCloseMarketPositions")),
+        default=False,
+    )
+    terminal_trade_allowed = safe_bool(
+        source.get("terminal_trade_allowed", source.get("TerminalTradeAllowed")),
+        default=False,
+    )
+    account_trade_allowed = safe_bool(
+        source.get("account_trade_allowed", source.get("AccountTradeAllowed")),
+        default=False,
+    )
+    auto_block_received = safe_bool(source.get("auto_block_received", source.get("auto_block")), default=False)
+    policy_hash = safe_str(source.get("policy_hash") or source.get("policyHash"))[:64]
+    expected_hash = safe_str(expected_policy_hash)[:64]
+    policy_hash_matches = bool(policy_hash and expected_hash and policy_hash == expected_hash)
+    event_type = safe_str(
+        source.get("event_type")
+        or source.get("eventType")
+        or source.get("riskguard_event_type")
+        or source.get("riskGuardEventType"),
+    )[:80]
+    blocking_rule = safe_str(source.get("blocking_rule") or source.get("blockingRule"))[:120]
+    risk_status = safe_str(source.get("risk_status") or source.get("riskStatus"))[:80]
+    severity = safe_str(source.get("severity"), "warning")[:32]
+    if severity not in {"info", "warning", "danger"}:
+        severity = "warning"
+    action_required = safe_str(source.get("action_required") or source.get("actionRequired"))[:240]
+    terminal_can_act = bool(
+        riskguard_enabled
+        and consent_accepted
+        and terminal_trade_allowed
+        and account_trade_allowed
+    )
+    active_enforcement_confirmed = bool(
+        terminal_can_act
+        and auto_block_received
+        and policy_hash_matches
+        and reactive_delete_pending
+        and not reactive_close_positions
+    )
+    if not riskguard_enabled:
+        protection_state = "monitor_only"
+    elif not consent_accepted:
+        protection_state = "consent_required"
+    elif reactive_close_positions:
+        protection_state = "advanced_close_requires_firm_review"
+    elif active_enforcement_confirmed:
+        protection_state = "reactive_entry_guard_confirmed"
+    elif terminal_can_act:
+        protection_state = "terminal_confirmed_monitor"
+    else:
+        protection_state = "terminal_read_only_or_unavailable"
+
+    alertable_event_types = {
+        "block_new_entries",
+        "close_all_required",
+        "pending_delete_preview",
+        "pending_order_blocked",
+        "pending_order_deleted",
+        "synthetic_pending_blocked",
+        "trade_flagged_after_execution",
+    }
+    event_reason = safe_str(
+        source.get("event_reason")
+        or source.get("eventReason")
+        or action_required
+        or blocking_rule,
+    )[:280]
+    alert_event = {}
+    if event_type in alertable_event_types:
+        alert_tone = "danger" if event_type in {"close_all_required", "pending_order_deleted"} else severity
+        if alert_tone not in {"info", "warning", "danger"}:
+            alert_tone = "warning"
+        if event_type == "close_all_required":
+            label = "Mesa de Riesgo: reducción defensiva requerida"
+            fallback_reason = "La política activa indica que hay que reducir exposición antes de seguir operando."
+        elif event_type in {"pending_order_blocked", "pending_order_deleted", "pending_delete_preview", "synthetic_pending_blocked"}:
+            label = "Mesa de Riesgo: orden bloqueada"
+            fallback_reason = "RiskGuard ha detectado una entrada que no cumple la política activa."
+        elif event_type == "trade_flagged_after_execution":
+            label = "Mesa de Riesgo: operación revisable"
+            fallback_reason = "La entrada se ha marcado para revisión porque la política activa no permitía más exposición."
+        else:
+            label = "Mesa de Riesgo: entradas bloqueadas"
+            fallback_reason = "La política activa no permite abrir más operaciones ahora."
+        symbol = safe_str(source.get("symbol") or source.get("event_symbol") or source.get("eventSymbol"))[:32]
+        order_ticket = safe_str(source.get("order_ticket") or source.get("orderTicket"))[:32]
+        event_key = "|".join(
+            part
+            for part in [policy_hash, event_type, blocking_rule, symbol, order_ticket]
+            if part
+        )
+        alert_event = {
+            "id": f"riskguard:{hashlib.sha256(event_key.encode('utf-8')).hexdigest()[:16]}" if event_key else f"riskguard:{event_type}",
+            "tone": alert_tone,
+            "label": label,
+            "reason": event_reason or fallback_reason,
+            "event_type": event_type,
+            "policy_hash": policy_hash,
+            "blocking_rule": blocking_rule,
+            "risk_status": risk_status,
+            "occurred_at": now_iso(),
+        }
+
+    normalized = {
+        "account_trade_allowed": account_trade_allowed,
+        "active_enforcement_confirmed": active_enforcement_confirmed,
+        "action_required": action_required,
+        "auto_block_received": auto_block_received,
+        "blocking_rule": blocking_rule,
+        "consent_accepted": consent_accepted,
+        "ea_name": safe_str(source.get("ea_name") or source.get("eaName"), "KMFXRiskGuard")[:64],
+        "ea_version": safe_str(source.get("ea_version") or source.get("eaVersion"), "unknown")[:32],
+        "event_type": event_type,
+        "firm_caution_required": bool(reactive_close_positions),
+        "mode": safe_str(source.get("mode"), "MONITOR_ONLY")[:64],
+        "policy_hash": policy_hash,
+        "policy_hash_matches": policy_hash_matches,
+        "protection_state": protection_state,
+        "reactive_close_market_positions": reactive_close_positions,
+        "reactive_delete_pending_orders": reactive_delete_pending,
+        "riskguard_enabled": riskguard_enabled,
+        "risk_status": risk_status,
+        "severity": severity,
+        "terminal_trade_allowed": terminal_trade_allowed,
+    }
+    if alert_event:
+        normalized["alert_event"] = alert_event
+    return normalized
 
 
 def load_persisted_account_state(connection_key: str, identity_key: str = "", bound_account: Any = None) -> dict[str, Any]:
@@ -7550,25 +7867,38 @@ async def update_own_account(account_id: str, request: Request) -> JSONResponse:
         or payload.get("display_name")
         or payload.get("name"),
     )
-    if not alias:
+    has_account_profile = "accountProfile" in payload or "account_profile" in payload
+    has_funding_profile = "fundingProfile" in payload or "funding_profile" in payload
+    if not alias and not has_account_profile and not has_funding_profile:
         return connector_json_response(
             {
                 "ok": False,
-                "reason": "missing_alias",
-                "details": {"field": "alias"},
+                "reason": "missing_account_update",
+                "details": {"fields": ["alias", "accountProfile"]},
                 "timestamp": now_iso(),
             },
             status_code=400,
         )
 
     try:
-        updated = account_service.rename_account(normalized_account_id, alias)
+        account_profile = payload.get("accountProfile", payload.get("account_profile"))
+        funding_profile = payload.get("fundingProfile", payload.get("funding_profile"))
+        updated = account_service.update_account_display_profile(
+            normalized_account_id,
+            alias=alias if alias else None,
+            account_profile=account_profile if isinstance(account_profile, dict) else None,
+            clear_account_profile=has_account_profile and account_profile is None,
+            funding_profile=funding_profile if isinstance(funding_profile, dict) else None,
+            clear_funding_profile=has_funding_profile and funding_profile is None,
+        )
     except ValueError as exc:
+        reason = str(exc) or "invalid_account_update"
+        field = "alias" if reason in {"invalid_alias", "missing_alias"} else "accountProfile"
         return connector_json_response(
             {
                 "ok": False,
-                "reason": str(exc) or "invalid_alias",
-                "details": {"field": "alias", "max_length": 80},
+                "reason": reason,
+                "details": {"field": field, "max_length": 80},
                 "timestamp": now_iso(),
             },
             status_code=400,
@@ -7582,7 +7912,7 @@ async def update_own_account(account_id: str, request: Request) -> JSONResponse:
 
     remember_live_account_snapshot(updated)
     emit_audit_event(
-        "rename_account",
+        "update_account_display_profile",
         context=auth_context,
         user_id=scope_user_id,
         account_id=updated.account_id,
@@ -7594,6 +7924,111 @@ async def update_own_account(account_id: str, request: Request) -> JSONResponse:
             "account_id": updated.account_id,
             "alias": updated.alias,
             "display_name": updated.alias,
+            "timestamp": now_iso(),
+        }
+    )
+
+
+@app.post("/api/accounts/{account_id}/risk-policy")
+async def update_own_account_risk_policy(account_id: str, request: Request) -> JSONResponse:
+    scope_user_id, auth_context = resolve_account_scope(request)
+    if not scope_user_id:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "auth_required",
+                "timestamp": now_iso(),
+            },
+            status_code=401,
+        )
+    rate_limited = sensitive_rate_limit_response(
+        "POST /api/accounts/{account_id}/risk-policy",
+        request,
+        user_id=scope_user_id,
+        email=safe_str(auth_context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
+
+    payload, payload_error = await read_json_object_payload(
+        request,
+        "POST /api/accounts/{account_id}/risk-policy",
+        max_bytes=32_768,
+    )
+    if payload_error is not None:
+        return payload_error
+
+    normalized_account_id = safe_str(account_id)
+    account = next(
+        (
+            item
+            for item in account_service.list_accounts(scope_user_id)
+            if item.account_id == normalized_account_id
+        ),
+        None,
+    )
+    if account is None:
+        if not auth_context.get("is_admin"):
+            return connector_json_response(
+                {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+                status_code=404,
+            )
+        account = find_account_by_id_any_user(normalized_account_id)
+        if account is None:
+            return connector_json_response(
+                {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+                status_code=404,
+            )
+
+    configured_policy = payload.get("configured_policy")
+    risk_policy_package = payload.get("risk_policy_package")
+    policy_hash = safe_str(payload.get("policy_hash"))
+    if not isinstance(configured_policy, dict) or not isinstance(risk_policy_package, dict) or not policy_hash:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "invalid_risk_policy_package",
+                "timestamp": now_iso(),
+            },
+            status_code=400,
+        )
+
+    try:
+        updated = account_service.set_account_risk_policy(
+            normalized_account_id,
+            configured_policy=configured_policy,
+            policy_hash=policy_hash,
+            risk_policy_package=risk_policy_package,
+        )
+    except Exception as exc:
+        if is_account_store_unavailable_exception(exc):
+            return mt5_account_store_unavailable_response("POST /api/accounts/{account_id}/risk-policy", exc)
+        log.exception("risk policy update failed | account_id=%s", normalized_account_id)
+        return connector_json_response(
+            {"ok": False, "reason": "risk_policy_update_failed", "timestamp": now_iso()},
+            status_code=500,
+        )
+
+    if updated is None:
+        return connector_json_response(
+            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+            status_code=404,
+        )
+
+    remember_live_account_snapshot(updated)
+    emit_audit_event(
+        "risk_policy_update",
+        context=auth_context,
+        user_id=scope_user_id,
+        account_id=updated.account_id,
+        details={"policy_hash": policy_hash, "source": "risk_section"},
+    )
+    return connector_json_response(
+        {
+            "ok": True,
+            "account_id": updated.account_id,
+            "last_policy_at": updated.last_policy_at.isoformat() if updated.last_policy_at else "",
+            "policy_hash": policy_hash,
             "timestamp": now_iso(),
         }
     )
@@ -8643,6 +9078,137 @@ async def mt5_policy(
         safe_float(policy.get("daily_start_equity")),
     )
     return connector_json_response(policy)
+
+
+@app.post("/api/mt5/riskguard/ack")
+async def mt5_riskguard_ack(request: Request) -> JSONResponse:
+    payload, payload_error = await read_json_object_payload(
+        request,
+        "/api/mt5/riskguard/ack",
+        max_bytes=8_192,
+    )
+    if payload_error is not None:
+        return payload_error
+
+    query_rejection = query_connection_key_rejection_response("/api/mt5/riskguard/ack", request)
+    if query_rejection is not None:
+        return query_rejection
+    normalized_connection_key = resolve_connection_key(payload, request)
+    if not normalized_connection_key:
+        return mt5_missing_connection_key_response("/api/mt5/riskguard/ack")
+
+    rate_limited = connection_key_rate_limit_response("/api/mt5/riskguard/ack", normalized_connection_key)
+    if rate_limited is not None:
+        return rate_limited
+
+    try:
+        bound_account = await account_store_io(
+            "riskguard_ack_connection_key_lookup",
+            resolve_account_by_connection_key,
+            normalized_connection_key,
+        )
+    except OSError as exc:
+        if is_account_store_unavailable_exception(exc):
+            return mt5_account_store_unavailable_response(
+                "/api/mt5/riskguard/ack",
+                exc,
+                operation="riskguard_ack_connection_key_lookup",
+                connection_key=normalized_connection_key,
+            )
+        raise
+
+    if bound_account is None:
+        try:
+            is_revoked = await account_store_io(
+                "riskguard_ack_revoked_connection_key_lookup",
+                account_service.is_connection_key_revoked_any_user,
+                normalized_connection_key,
+            )
+        except OSError as exc:
+            if is_account_store_unavailable_exception(exc):
+                return mt5_account_store_unavailable_response(
+                    "/api/mt5/riskguard/ack",
+                    exc,
+                    operation="riskguard_ack_revoked_connection_key_lookup",
+                    connection_key=normalized_connection_key,
+                )
+            raise
+        if is_revoked:
+            return mt5_revoked_connection_key_response("/api/mt5/riskguard/ack", normalized_connection_key)
+        log_connection_key_validation("/api/mt5/riskguard/ack", normalized_connection_key, False)
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "unknown_connection_key",
+                "error": "unknown_connection_key",
+                "timestamp": now_iso(),
+            },
+            status_code=401,
+        )
+
+    log_connection_key_validation("/api/mt5/riskguard/ack", normalized_connection_key, True)
+    latest_payload = getattr(bound_account, "latest_payload", {}) or {}
+    risk_policy_package = latest_payload.get("risk_policy_package")
+    package_policy_hash = (
+        risk_policy_package.get("policy_hash")
+        if isinstance(risk_policy_package, dict)
+        else ""
+    )
+    expected_policy_hash = safe_str(
+        latest_payload.get("risk_policy_hash")
+        or latest_payload.get("riskPolicyHash")
+        or package_policy_hash,
+    )
+    ack = normalize_riskguard_terminal_ack(payload, expected_policy_hash=expected_policy_hash)
+
+    try:
+        updated = await account_store_io(
+            "riskguard_ack_persist",
+            account_service.record_riskguard_terminal_ack,
+            bound_account.account_id,
+            ack=ack,
+        )
+    except OSError as exc:
+        if is_account_store_unavailable_exception(exc):
+            return mt5_account_store_unavailable_response(
+                "/api/mt5/riskguard/ack",
+                exc,
+                operation="riskguard_ack_persist",
+                connection_key=normalized_connection_key,
+            )
+        raise
+
+    if updated is None:
+        return connector_json_response(
+            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+            status_code=404,
+        )
+
+    remember_live_account_snapshot(updated)
+    emit_audit_event(
+        "riskguard_terminal_ack",
+        user_id=getattr(updated, "user_id", ""),
+        account_id=updated.account_id,
+        details={
+            "active_enforcement_confirmed": ack["active_enforcement_confirmed"],
+            "firm_caution_required": ack["firm_caution_required"],
+            "policy_hash": ack["policy_hash"],
+            "protection_state": ack["protection_state"],
+        },
+    )
+    return connector_json_response(
+        {
+            "ok": True,
+            "account_id": updated.account_id,
+            "active_enforcement_confirmed": ack["active_enforcement_confirmed"],
+            "firm_caution_required": ack["firm_caution_required"],
+            "policy_hash": ack["policy_hash"],
+            "policy_hash_matches": ack["policy_hash_matches"],
+            "protection_state": ack["protection_state"],
+            "alert_event": ack.get("alert_event"),
+            "timestamp": now_iso(),
+        }
+    )
 
 
 @app.get("/api/accounts/snapshot")

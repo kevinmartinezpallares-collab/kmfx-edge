@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import * as React from "react";
 
 type Theme = "light" | "dark" | "system";
@@ -14,11 +15,24 @@ type ThemeContextValue = {
 const themeStorageKey = "theme";
 const ThemeContext = React.createContext<ThemeContextValue | null>(null);
 
+function authRouteUsesDarkTheme(pathname: string) {
+  return pathname === "/login" || pathname.startsWith("/auth/");
+}
+
+function shouldForceDarkTheme(pathname?: string | null) {
+  if (pathname) return authRouteUsesDarkTheme(pathname);
+  return (
+    typeof window !== "undefined" &&
+    authRouteUsesDarkTheme(window.location.pathname)
+  );
+}
+
 function getSystemTheme(): ResolvedTheme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-function resolveTheme(theme: Theme): ResolvedTheme {
+function resolveTheme(theme: Theme, pathname?: string | null): ResolvedTheme {
+  if (shouldForceDarkTheme(pathname)) return "dark";
   if (theme === "system") return getSystemTheme();
   return theme;
 }
@@ -26,6 +40,7 @@ function resolveTheme(theme: Theme): ResolvedTheme {
 function applyTheme(resolvedTheme: ResolvedTheme) {
   const root = document.documentElement;
   root.classList.toggle("dark", resolvedTheme === "dark");
+  root.dataset.theme = resolvedTheme;
   root.style.colorScheme = resolvedTheme;
 }
 
@@ -37,6 +52,19 @@ function readStoredTheme(): Theme {
 }
 
 function getInitialThemeState() {
+  if (typeof document !== "undefined") {
+    const resolvedTheme = shouldForceDarkTheme()
+      ? "dark"
+      : document.documentElement.classList.contains("dark")
+        ? "dark"
+        : "light";
+
+    return {
+      theme: readStoredTheme(),
+      resolvedTheme: resolvedTheme as ResolvedTheme,
+    };
+  }
+
   return {
     theme: "dark" as Theme,
     resolvedTheme: "dark" as ResolvedTheme,
@@ -44,29 +72,33 @@ function getInitialThemeState() {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [{ theme, resolvedTheme }, setThemeState] = React.useState(getInitialThemeState);
 
   React.useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       const storedTheme = readStoredTheme();
-      setThemeState({ theme: storedTheme, resolvedTheme: resolveTheme(storedTheme) });
+      setThemeState({
+        theme: storedTheme,
+        resolvedTheme: resolveTheme(storedTheme, pathname),
+      });
     });
 
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [pathname]);
 
   React.useEffect(() => {
     applyTheme(resolvedTheme);
   }, [resolvedTheme]);
 
   React.useEffect(() => {
-    if (theme !== "system") return;
+    if (theme !== "system" || shouldForceDarkTheme(pathname)) return;
 
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const syncSystemTheme = () => {
-      const nextResolvedTheme = getSystemTheme();
+      const nextResolvedTheme = resolveTheme("system", pathname);
       setThemeState((current) =>
         current.theme === "system"
           ? { theme: current.theme, resolvedTheme: nextResolvedTheme }
@@ -79,14 +111,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => {
       media.removeEventListener("change", syncSystemTheme);
     };
-  }, [theme]);
+  }, [pathname, theme]);
 
-  const setTheme = React.useCallback((nextTheme: Theme) => {
-    window.localStorage.setItem(themeStorageKey, nextTheme);
+  const setTheme = React.useCallback(
+    (nextTheme: Theme) => {
+      window.localStorage.setItem(themeStorageKey, nextTheme);
 
-    const nextResolvedTheme = resolveTheme(nextTheme);
-    setThemeState({ theme: nextTheme, resolvedTheme: nextResolvedTheme });
-  }, []);
+      const nextResolvedTheme = resolveTheme(nextTheme, pathname);
+      setThemeState({ theme: nextTheme, resolvedTheme: nextResolvedTheme });
+    },
+    [pathname],
+  );
 
   const value = React.useMemo(
     () => ({ theme, resolvedTheme, setTheme }),

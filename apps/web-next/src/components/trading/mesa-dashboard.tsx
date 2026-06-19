@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Liveline, type LivelinePoint, type ThemeMode } from "liveline";
-import { curveBasis } from "@visx/curve";
+import { curveNatural } from "@visx/curve";
 import { ChevronRight, X } from "lucide-react";
 import {
   Bar as RechartsBar,
@@ -43,8 +43,8 @@ import {
   ProfitLossLegendHoverProvider,
   ProfitLossLine,
   profitLossColor,
-  XAxis,
   resolveProfitLossTooltipLabel,
+  XAxis,
 } from "@/components/ui/charts";
 import {
   Table,
@@ -64,7 +64,6 @@ import {
   buildDashboardPerformance,
   buildDashboardSessionRows,
   buildDashboardSymbolRows,
-  resolveAccountMode,
   sessionLabel,
 } from "@/lib/domain/dashboard-selectors";
 import { buildStrategyRows } from "@/lib/domain/strategies-selectors";
@@ -78,7 +77,7 @@ import {
   signedTextClass,
 } from "@/lib/domain/semantic-colors";
 import {
-  livelineWindowForData,
+  normalizeLivelinePoints,
   prepareHistoricalLivelineCurve,
 } from "@/lib/charts/liveline-points";
 import {
@@ -101,13 +100,16 @@ const PANEL_LOWER_CHART_CONTENT_CLASS = "flex flex-1 flex-col gap-4";
 const PANEL_DIAGNOSTIC_CARD_CLASS = "min-h-[360px] gap-2 py-3";
 const PANEL_DIAGNOSTIC_CONTENT_CLASS = "flex flex-1 flex-col gap-3";
 const LIVELINE_BADGE_WINDOW_BUFFER = 0.05;
+const PANEL_DAY_SECONDS = 86_400;
+const PANEL_DRAW_DOWN_WINDOW_SECS = 30 * PANEL_DAY_SECONDS;
+const PANEL_EXPECTANCY_WINDOW_DAYS = 77;
+const MINI_PROFIT_LOSS_CHART_MARGIN = { bottom: 34, left: 12, right: 14, top: 10 };
 const PANEL_EQUITY_WINDOWS = [
   { key: "7D", label: "7D", secs: 604_800 },
   { key: "30D", label: "30D", secs: 2_592_000 },
   { key: "90D", label: "90D", secs: 7_776_000 },
   { key: "YTD", label: "YTD", secs: null },
 ] as const;
-const MINI_PROFIT_LOSS_CHART_MARGIN = { bottom: 34, left: 12, right: 14, top: 10 };
 const PNL_DISTRIBUTION_SIDE_BUCKETS = 6;
 const PNL_DISTRIBUTION_CHART_CONFIG = {
   result: {
@@ -700,6 +702,60 @@ function formatMetricValue({
   })}${suffix}`;
 }
 
+function easeOutCubic(progress: number) {
+  return 1 - Math.pow(1 - progress, 3);
+}
+
+function useAnimatedMetricNumber(value: number, durationMs = 850, enabled = false) {
+  const target = Number.isFinite(value) ? value : 0;
+  const [displayValue, setDisplayValue] = React.useState(target);
+  const latestValueRef = React.useRef(target);
+
+  React.useEffect(() => {
+    if (!enabled) {
+      latestValueRef.current = target;
+      return;
+    }
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduceMotion || durationMs <= 0) {
+      latestValueRef.current = target;
+      const frame = window.requestAnimationFrame(() => {
+        setDisplayValue((current) => (Object.is(current, target) ? current : target));
+      });
+
+      return () => window.cancelAnimationFrame(frame);
+    }
+
+    const startValue = latestValueRef.current;
+    const delta = target - startValue;
+    const startedAt = performance.now();
+    let frame = 0;
+
+    function tick(now: number) {
+      const progress = Math.min(1, (now - startedAt) / durationMs);
+      const nextValue = startValue + delta * easeOutCubic(progress);
+
+      setDisplayValue(nextValue);
+
+      if (progress < 1) {
+        frame = window.requestAnimationFrame(tick);
+        return;
+      }
+
+      latestValueRef.current = target;
+      setDisplayValue(target);
+    }
+
+    frame = window.requestAnimationFrame(tick);
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [durationMs, enabled, target]);
+
+  return displayValue;
+}
+
 export function MetricCard({
   title,
   value,
@@ -709,6 +765,7 @@ export function MetricCard({
   caption,
   tone = "neutral",
   delta,
+  animateValue = false,
 }: {
   title: string;
   value: number;
@@ -718,6 +775,7 @@ export function MetricCard({
   caption: string;
   tone?: "neutral" | "positive" | "negative";
   delta?: MetricDelta;
+  animateValue?: boolean;
 }) {
   const deltaTone =
     delta?.tone ?? (delta && delta.value > 0 ? "positive" : delta && delta.value < 0 ? "negative" : "neutral");
@@ -734,21 +792,23 @@ export function MetricCard({
       : deltaTone === "negative"
         ? "bg-loss text-background"
         : "bg-muted text-muted-foreground";
+  const animatedValue = useAnimatedMetricNumber(value, 850, animateValue);
+  const displayValue = animateValue ? animatedValue : value;
 
   return (
-    <Card className="overflow-hidden border-border/70 bg-card/70 shadow-none">
-      <CardContent className="grid min-h-[128px] content-center p-5">
-        <div className="grid min-w-0 gap-3">
+    <Card size="sm" className="overflow-hidden border-border/70 bg-card/70 shadow-none">
+      <CardContent className="grid min-h-[108px] content-center px-4 py-2">
+        <div className="grid min-w-0 gap-2">
           <p className="text-xs font-medium text-muted-foreground">{title}</p>
-          <div className="grid gap-2">
+          <div className="grid gap-1.5">
             <p
               className={cn(
-                "whitespace-nowrap text-2xl font-bold tabular-nums text-foreground",
+                "whitespace-nowrap text-xl font-bold tabular-nums text-foreground 2xl:text-2xl",
                 tone === "positive" && "text-profit",
                 tone === "negative" && "text-loss",
               )}
             >
-              {formatMetricValue({ value, prefix, suffix, decimals })}
+              {formatMetricValue({ value: displayValue, prefix, suffix, decimals })}
             </p>
             {delta ? (
               <div className="flex min-w-0 items-center gap-1.5 text-xs leading-none">
@@ -763,7 +823,7 @@ export function MetricCard({
                 <span className="truncate text-muted-foreground">{delta.label}</span>
               </div>
             ) : null}
-            <p className="max-w-[18rem] text-xs leading-snug text-muted-foreground">
+            <p className="max-w-[18rem] text-xs leading-tight text-muted-foreground">
               {caption}
             </p>
           </div>
@@ -906,10 +966,6 @@ function buildEquityChartData(
   ];
 }
 
-function panelSourceLabel(workspace: WorkspaceState) {
-  return workspace.meta.sourceMode === "live" ? "Lectura MT5" : "Lectura segura";
-}
-
 const SHORT_PANEL_TIME_LABEL_FORMATTER = new Intl.DateTimeFormat("es-ES", {
   day: "numeric",
   month: "short",
@@ -981,6 +1037,52 @@ function buildDrawdownRows(points: EquityChartPoint[]) {
       displayLabel: point.label,
       label: point.label,
       time: point.time,
+    };
+  });
+}
+
+function buildSmoothedDrawdownLivelineRows(
+  rows: ReturnType<typeof buildDrawdownRows>,
+) {
+  if (rows.length < 5) {
+    return rows.map((row) => ({
+      time: row.time,
+      value: -row.drawdownPct,
+    }));
+  }
+
+  return rows.map((row, index) => {
+    const previous = rows[index - 1];
+    const next = rows[index + 1];
+
+    if (!previous || !next || index === rows.length - 1) {
+      return {
+        time: row.time,
+        value: -row.drawdownPct,
+      };
+    }
+
+    const neighborAverage = (previous.drawdownPct + next.drawdownPct) / 2;
+    const isMeaningfulRiskSpike =
+      row.drawdownPct >= previous.drawdownPct &&
+      row.drawdownPct >= next.drawdownPct &&
+      row.drawdownPct - neighborAverage >= 1.25;
+
+    if (isMeaningfulRiskSpike) {
+      return {
+        time: row.time,
+        value: -row.drawdownPct,
+      };
+    }
+
+    const smoothedDrawdown =
+      previous.drawdownPct * 0.22 +
+      row.drawdownPct * 0.56 +
+      next.drawdownPct * 0.22;
+
+    return {
+      time: row.time,
+      value: -smoothedDrawdown,
     };
   });
 }
@@ -1062,6 +1164,57 @@ function fitLivelineToRequestedWindow(
   };
 
   return [edgePoint, ...visible];
+}
+
+function distributeLivelinePointsAcrossWindow(
+  points: LivelinePoint[],
+  windowSecs: number,
+  now: number,
+): LivelinePoint[] {
+  const normalized = normalizeLivelinePoints(points, 1);
+  if (normalized.length < 2 || windowSecs <= 0) return normalized;
+
+  const windowStart = now - windowSecs;
+  const step = windowSecs / (normalized.length - 1);
+
+  return normalized.map((point, index) => ({
+    time: Math.round(windowStart + step * index),
+    value: point.value,
+  }));
+}
+
+function densifyLivelineValueJumps(
+  points: LivelinePoint[],
+  maxValueStep: number,
+): LivelinePoint[] {
+  const normalized = normalizeLivelinePoints(points, 1);
+  if (normalized.length < 2 || maxValueStep <= 0) return normalized;
+
+  const densified: LivelinePoint[] = [];
+
+  normalized.forEach((point, index) => {
+    const previous = normalized[index - 1];
+
+    if (!previous) {
+      densified.push(point);
+      return;
+    }
+
+    const valueDelta = point.value - previous.value;
+    const insertedSteps = Math.min(10, Math.floor(Math.abs(valueDelta) / maxValueStep));
+
+    for (let step = 1; step <= insertedSteps; step += 1) {
+      const ratio = step / (insertedSteps + 1);
+      densified.push({
+        time: Math.round(previous.time + (point.time - previous.time) * ratio),
+        value: previous.value + valueDelta * ratio,
+      });
+    }
+
+    densified.push(point);
+  });
+
+  return normalizeLivelinePoints(densified, 1);
 }
 
 function resamplePanelLivelinePoints(
@@ -1154,7 +1307,7 @@ function EquityCurveCard({
 
   return (
     <Card className={cn("overflow-hidden", PANEL_CARD_CLASS)}>
-      <CardHeader>
+      <CardHeader className="pb-0">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle>Curva de equity y balance</CardTitle>
@@ -1162,9 +1315,6 @@ function EquityCurveCard({
               Evolución de la cuenta activa frente al balance de referencia.
             </CardDescription>
           </div>
-          <span className="text-xs font-medium text-muted-foreground">
-            {hasHistory ? panelSourceLabel(workspace) : "Historial insuficiente"}
-          </span>
         </div>
       </CardHeader>
       <CardContent className="px-3 pb-5 sm:px-6">
@@ -1177,7 +1327,7 @@ function EquityCurveCard({
             />
             <div
               data-kmfx-liveline
-              className="h-[300px] w-full sm:h-[320px] xl:h-[340px]"
+              className="h-[clamp(300px,36vh,430px)] w-full"
               style={chartTheme.isLight ? { filter: "contrast(1.18)" } : undefined}
             >
               <Liveline
@@ -1206,14 +1356,14 @@ function EquityCurveCard({
                 padding={livelinePadding(isMobile, {
                   top: 18,
                   right: 132,
-                  bottom: 34,
+                  bottom: 24,
                   left: 24,
                 })}
               />
             </div>
           </div>
         ) : (
-          <div className="flex h-[320px] flex-col items-center justify-center rounded-lg border border-dashed border-border/80 bg-background/35 text-center xl:h-[340px]">
+          <div className="flex h-[clamp(300px,36vh,430px)] flex-col items-center justify-center rounded-lg border border-dashed border-border/80 bg-background/35 text-center">
             <p className="text-sm font-medium text-foreground">Historial insuficiente</p>
             <p className="mt-2 max-w-sm text-xs text-muted-foreground">
               Conecta historial de equity o espera cierres reales para activar la curva.
@@ -1237,30 +1387,37 @@ export function DrawdownRecentCard({
   const chartTheme = usePanelChartTheme();
   const isMobile = useIsMobile();
   const chartData = buildLiveAwareEquityChartData(workspace, activeAccount);
-  const rows = buildDrawdownRows(chartData).slice(-77);
+  const allRows = buildDrawdownRows(chartData);
+  const latestRow = allRows.at(-1);
+  const recentWindowStart =
+    (latestRow?.time ?? 0) - PANEL_DRAW_DOWN_WINDOW_SECS;
+  const rows = allRows.filter((row) => row.time >= recentWindowStart);
+  const visualRows = rows.length > 1 ? rows : allRows.slice(-77);
   const maxDrawdown = rows.reduce((max, row) => Math.max(max, row.drawdownPct), 0);
-  const currentDrawdown = rows.at(-1)?.drawdownPct ?? 0;
-  const labelByTime = new Map(rows.map((row) => [row.time, row.displayLabel || shortPanelTimeLabel(row.time)]));
-  const livelineRows = prepareHistoricalLivelineCurve(
-    rows.map((row) => ({
-      time: row.time,
-      value: -row.drawdownPct,
-    })),
+  const currentDrawdown = visualRows.at(-1)?.drawdownPct ?? 0;
+  const labelByTime = new Map(visualRows.map((row) => [row.time, row.displayLabel || shortPanelTimeLabel(row.time)]));
+  const drawdownLineColor = chartTheme.isLight ? "#404040" : chartTheme.accent;
+  const drawdownBaseRows = densifyLivelineValueJumps(
+    buildSmoothedDrawdownLivelineRows(visualRows),
+    0.12,
+  );
+  const windowedDrawdownRows = latestRow
+    ? distributeLivelinePointsAcrossWindow(
+        drawdownBaseRows,
+        PANEL_DRAW_DOWN_WINDOW_SECS,
+        latestRow.time,
+      )
+    : drawdownBaseRows;
+  const preparedDrawdownRows = prepareHistoricalLivelineCurve(
+    windowedDrawdownRows,
     {
-      maxPoints: 54,
-      minPoints: 18,
-      minStepSecs: 300,
+      maxPoints: 64,
+      minPoints: 28,
+      minStepSecs: 1_800,
     },
   );
-  const dataSpanSecs =
-    livelineRows.length >= 2
-      ? Math.max(86_400, (livelineRows.at(-1)?.time ?? 0) - (livelineRows[0]?.time ?? 0))
-      : 604_800;
-  const effectiveWindowSecs = livelineWindowForData(livelineRows, dataSpanSecs, {
-    minSecs: Math.min(dataSpanSecs, 86_400),
-    padRatio: 0.04,
-    maxPadSecs: 43_200,
-  });
+  const livelineRows = resamplePanelLivelinePoints(preparedDrawdownRows, 72);
+  const effectiveWindowSecs = PANEL_DRAW_DOWN_WINDOW_SECS;
 
   return (
     <Card className={cn(PANEL_CARD_CLASS, PANEL_MICRO_CHART_CARD_CLASS, className)}>
@@ -1284,23 +1441,24 @@ export function DrawdownRecentCard({
         <p className="font-mono text-2xl font-semibold text-foreground">
           {formatPercent(currentDrawdown, 2)}
         </p>
-        {rows.length > 1 ? (
+        {visualRows.length > 1 ? (
           <div
             data-kmfx-liveline
             className={cn(PANEL_MICRO_CHART_SURFACE_CLASS, "w-full")}
-            style={chartTheme.isLight ? { filter: "contrast(1.12)" } : undefined}
+            style={chartTheme.isLight ? { filter: "contrast(1.04)" } : undefined}
           >
             <Liveline
               badge
               badgeTail={!isMobile}
               badgeVariant="minimal"
-              color={chartTheme.accent}
+              color={drawdownLineColor}
               data={livelineRows}
               fill
               formatTime={(time) => labelByTime.get(time) ?? shortPanelTimeLabel(time)}
               formatValue={(value) => formatPercent(Math.abs(Number(value)), 2)}
               grid
-              lineWidth={1.55}
+              lerpSpeed={0.06}
+              lineWidth={1.2}
               momentum={false}
               padding={livelinePadding(isMobile, {
                 bottom: 32,
@@ -1319,73 +1477,6 @@ export function DrawdownRecentCard({
           <EmptyChartState label="Sin historial suficiente para drawdown." />
         )}
       </CardContent>
-    </Card>
-  );
-}
-
-function SummaryHeroCard({
-  workspace,
-  activeAccount,
-}: {
-  workspace: WorkspaceState;
-  activeAccount: TradingAccount | undefined;
-}) {
-  const mode = resolveAccountMode(activeAccount);
-
-  return (
-    <Card className="overflow-hidden border-border/55 bg-card/35 shadow-none">
-      <CardHeader className="px-4 py-2.5">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div className="flex min-w-0 flex-col gap-1.5 xl:flex-row xl:items-center xl:gap-5">
-            <div className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3 xl:max-w-[32rem]">
-              <CardTitle className="truncate text-sm tracking-tight">
-                {activeAccount?.label ?? "Sin cuenta conectada"}
-              </CardTitle>
-              <CardDescription className="truncate text-xs">
-                {activeAccount
-                  ? `${activeAccount.broker} / ${activeAccount.server} / MT5 ${activeAccount.login}`
-                  : "Conecta una cuenta para activar el Panel."}
-              </CardDescription>
-            </div>
-            {activeAccount ? (
-              <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span className="whitespace-nowrap">
-                  Modo{" "}
-                  <strong className="font-medium text-foreground">{mode}</strong>
-                </span>
-                <span className="whitespace-nowrap">
-                  Moneda{" "}
-                  <strong className="font-mono font-medium text-foreground">
-                    {activeAccount.baseCurrency}
-                  </strong>
-                </span>
-                <span className="whitespace-nowrap">
-                  Abiertas{" "}
-                  <strong className="font-mono font-medium text-foreground">
-                    {activeAccount.openPositionsCount}
-                  </strong>
-                </span>
-                <span className="whitespace-nowrap">
-                  Fuente{" "}
-                  <strong className="font-medium text-foreground">
-                    {panelSourceLabel(workspace)}
-                  </strong>
-                </span>
-              </div>
-            ) : null}
-          </div>
-          <Button
-            render={<Link href="/accounts" />}
-            nativeButton={false}
-            variant="outline"
-            size="sm"
-            className="h-8 justify-between lg:min-w-36"
-          >
-            Ver cuentas
-            <ChevronRight data-icon="inline-end" />
-          </Button>
-        </div>
-      </CardHeader>
     </Card>
   );
 }
@@ -1667,17 +1758,20 @@ function MiniProfitLossLineChart({
   currency: string;
   rows: Array<{ date: Date; label: string; pnl: number; trades: number }>;
 }) {
+  const chartRows = rows
+    .filter((row) => Number.isFinite(row.date.getTime()) && Number.isFinite(row.pnl))
+    .toSorted((left, right) => left.date.getTime() - right.date.getTime());
   const [legendHoveredIndex, setLegendHoveredIndex] = React.useState<number | null>(null);
   const showProfitLossLegend = false;
 
   return (
-    <div className={cn(PANEL_MICRO_CHART_SURFACE_CLASS, "flex flex-col gap-2")}>
+    <div className={cn(PANEL_MICRO_CHART_SURFACE_CLASS, "flex flex-col gap-2 overflow-hidden")}>
       <LineChart
-        animationDuration={1100}
-        animationEasing="cubic-bezier(0.85, 0, 0.15, 1)"
+        animationDuration={0}
         className="h-full"
-        data={rows}
+        data={chartRows}
         margin={MINI_PROFIT_LOSS_CHART_MARGIN}
+        yDomainTween={false}
       >
         <Grid
           highlightRowStroke="var(--chart-grid)"
@@ -1688,25 +1782,25 @@ function MiniProfitLossLineChart({
           numTicksRows={5}
         />
         <Line
-          curve={curveBasis}
+          animate={false}
+          curve={curveNatural}
           dataKey="pnl"
-          fadeEdges
+          fadeEdges={false}
           showHighlight={false}
           stroke="transparent"
           strokeWidth={0}
         />
         <ProfitLossLegendHoverProvider hoveredIndex={legendHoveredIndex}>
           <ProfitLossLine
-            curve={curveBasis}
+            curve={curveNatural}
             dataKey="pnl"
-            fadeEdges
-            strokeWidth={2.15}
+            fadeEdges={false}
+            strokeWidth={2}
           />
         </ProfitLossLegendHoverProvider>
-        <XAxis numTicks={4} />
+        <XAxis numTicks={3} tickMode="domain" />
         <ChartTooltip
-          indicatorColor={(point) =>
-            profitLossColor((point.pnl as number) ?? 0)}
+          indicatorColor={(point) => profitLossColor((point.pnl as number) ?? 0)}
           rows={(point) => {
             const value = Number(point.pnl) || 0;
             return [
@@ -1741,58 +1835,108 @@ function MiniProfitLossLineChart({
 function buildExpectancyChartRows(
   rows: Array<{ date: Date; label: string; pnl: number; trades: number }>,
 ) {
-  const operatedRows = rows.filter((row) => row.trades > 0);
-  const sourceRows = operatedRows.length > 0 ? operatedRows : rows;
-  const maxPoints = 10;
-  const bucketSize = Math.max(1, Math.ceil(sourceRows.length / maxPoints));
+  const sortedRows = rows
+    .filter((row) => Number.isFinite(row.date.getTime()))
+    .toSorted((a, b) => a.date.getTime() - b.date.getTime());
+  const lastRow = sortedRows.at(-1);
+  if (!lastRow) return [];
 
-  return Array.from(
-    { length: Math.ceil(sourceRows.length / bucketSize) },
-    (_, bucketIndex) => {
-      const bucket = sourceRows.slice(bucketIndex * bucketSize, (bucketIndex + 1) * bucketSize);
-      const representative = bucket.at(-1) ?? sourceRows.at(-1);
-      const trades = bucket.reduce((sum, row) => sum + Math.max(1, row.trades), 0);
-      const pnl = trades > 0
-        ? bucket.reduce((sum, row) => sum + row.pnl * Math.max(1, row.trades), 0) / trades
-        : representative?.pnl ?? 0;
+  const endDay = startOfUtcDay(lastRow.date);
+  const startDay = addUtcDays(endDay, -(PANEL_EXPECTANCY_WINDOW_DAYS - 1));
+  const operatedRows = sortedRows.filter((row) => row.trades > 0);
+  const sourceRows = operatedRows.length > 0 ? operatedRows : sortedRows;
+  const sourcePoints = sourceRows
+    .map((row) => ({
+      ...row,
+      dayTime: startOfUtcDay(row.date).getTime(),
+    }))
+    .filter((row) => row.dayTime <= endDay.getTime())
+    .toSorted((a, b) => a.dayTime - b.dayTime);
 
+  if (sourcePoints.length === 0) return [];
+
+  return Array.from({ length: PANEL_EXPECTANCY_WINDOW_DAYS }, (_, index) => {
+    const date = addUtcDays(startDay, index);
+    const dayTime = date.getTime();
+    const exact = sourcePoints.find((point) => point.dayTime === dayTime);
+
+    if (exact) {
       return {
-        date: representative?.date ?? new Date(),
-        label: representative?.label ?? "",
-        pnl,
-        trades,
+        date,
+        label: exact.label || shortPanelTimeLabel(dayTime / 1000),
+        pnl: exact.pnl,
+        trades: exact.trades,
       };
-    },
-  ).toSorted((a, b) => a.date.getTime() - b.date.getTime());
+    }
+
+    let previous = sourcePoints[0];
+    let next = sourcePoints.at(-1);
+
+    for (const point of sourcePoints) {
+      if (point.dayTime <= dayTime) previous = point;
+      if (point.dayTime >= dayTime) {
+        next = point;
+        break;
+      }
+    }
+
+    const previousPnl = previous?.pnl ?? 0;
+    const nextPnl = next?.pnl ?? previousPnl;
+    const span = (next?.dayTime ?? dayTime) - (previous?.dayTime ?? dayTime);
+    const ratio = span > 0 ? (dayTime - (previous?.dayTime ?? dayTime)) / span : 0;
+    const pnl = previousPnl + (nextPnl - previousPnl) * ratio;
+
+    return {
+      date,
+      label: shortPanelTimeLabel(dayTime / 1000),
+      pnl,
+      trades: 0,
+    };
+  });
 }
 
 function smoothExpectancyChartRows(
   rows: Array<{ date: Date; label: string; pnl: number; trades: number }>,
 ) {
-  if (rows.length < 3) return rows;
+  if (rows.length < 5) return rows;
 
   return rows.map((row, index) => {
+    if (index === 0 || index === rows.length - 1) return row;
+
     const windowRows = rows.slice(
-      Math.max(0, index - 1),
-      Math.min(rows.length, index + 2),
+      Math.max(0, index - 2),
+      Math.min(rows.length, index + 3),
     );
-    const weightedTrades = windowRows.reduce(
-      (sum, item) => sum + Math.max(1, item.trades),
-      0,
+    const centerIndex = index - Math.max(0, index - 2);
+    const weighted = windowRows.reduce(
+      (sum, item, itemIndex) => {
+        const distance = Math.abs(itemIndex - centerIndex);
+        const weight = Math.max(1, 3 - distance);
+
+        return {
+          total: sum.total + item.pnl * weight,
+          weight: sum.weight + weight,
+        };
+      },
+      { total: 0, weight: 0 },
     );
-    const smoothedPnl =
-      weightedTrades > 0
-        ? windowRows.reduce(
-            (sum, item) => sum + item.pnl * Math.max(1, item.trades),
-            0,
-          ) / weightedTrades
-        : row.pnl;
+    const smoothedPnl = weighted.weight > 0 ? weighted.total / weighted.weight : row.pnl;
 
     return {
       ...row,
       pnl: smoothedPnl,
     };
   });
+}
+
+function startOfUtcDay(date: Date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+function addUtcDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
 }
 
 export function AverageWinLossCard({
@@ -1808,13 +1952,29 @@ export function AverageWinLossCard({
 }) {
   const avgWinAbs = Math.abs(avgWin);
   const avgLossAbs = Math.abs(avgLoss);
-  const maxValue = Math.max(1, avgWinAbs, avgLossAbs);
   const ratio = avgLossAbs > 0 ? avgWinAbs / avgLossAbs : 0;
-  const maxSegments = 22;
-  const trackerRows = [
-    { label: "Pérdida media", value: avgLossAbs, displayValue: formatCurrency(-avgLossAbs, currency) },
-    { label: "Ganancia media", value: avgWinAbs, displayValue: formatCurrency(avgWinAbs, currency) },
-  ];
+  const totalAverageMove = avgWinAbs + avgLossAbs;
+  const winSharePct = totalAverageMove > 0 ? (avgWinAbs / totalAverageMove) * 100 : 0;
+  const halfDonutData = totalAverageMove > 0
+    ? [
+        {
+          color: "color-mix(in oklab, var(--muted-foreground) 62%, transparent)",
+          label: "Pérdida media",
+          value: avgLossAbs,
+        },
+        {
+          color: "var(--foreground)",
+          label: "Ganancia media",
+          value: avgWinAbs,
+        },
+      ]
+    : [
+        {
+          color: "color-mix(in oklab, var(--muted) 70%, transparent)",
+          label: "Sin datos",
+          value: 1,
+        },
+      ];
 
   return (
     <Card className={cn(PANEL_CARD_CLASS, PANEL_MICRO_CHART_CARD_CLASS, className)}>
@@ -1835,88 +1995,68 @@ export function AverageWinLossCard({
               {ratio.toLocaleString("es-ES", { maximumFractionDigits: 2 })}
             </p>
           </div>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">Peso ganador</p>
+            <p className="mt-1 font-mono text-sm font-semibold text-foreground">
+              {winSharePct.toLocaleString("es-ES", { maximumFractionDigits: 0 })}%
+            </p>
+          </div>
         </div>
 
-        <div className={cn(PANEL_MICRO_CHART_SURFACE_CLASS, "relative overflow-hidden px-1 pb-4 pt-1")}>
-          <div
-            aria-hidden="true"
-            className="absolute inset-x-0 bottom-12 top-4 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:50%_100%,100%_33.33%] opacity-20"
-          />
-          <div
-            aria-hidden="true"
-            className="absolute bottom-12 left-1/2 top-4 w-px -translate-x-1/2 bg-border/80"
-          />
-          <span className="absolute left-1/2 top-1 z-10 -translate-x-1/2 rounded-full bg-card px-2 font-mono text-[10px] font-medium text-muted-foreground">
-            {ratio.toLocaleString("es-ES", { maximumFractionDigits: 2 })}x
-          </span>
-          <div className="relative z-0 grid h-full grid-rows-[1fr_auto]">
-            <div className="grid grid-cols-2 items-center">
-              {trackerRows.map((row, rowIndex) => {
-                const activeSegments = Math.max(
-                  row.value > 0 ? 1 : 0,
-                  Math.round((row.value / maxValue) * maxSegments),
-                );
-                const isLoss = rowIndex === 0;
-
-                return (
-                  <div
-                    className={cn(
-                      "group flex items-center gap-1",
-                      isLoss ? "justify-end pr-4" : "justify-start pl-4",
-                    )}
-                    key={row.label}
-                    title={`${row.label} / ${row.displayValue}`}
-                  >
-                    {isLoss
-                      ? Array.from({ length: maxSegments }, (_, segmentIndex) => {
-                          const isFilled = segmentIndex >= maxSegments - activeSegments;
-
-                          return (
-                            <span
-                              aria-hidden="true"
-                              className={cn(
-                                "h-9 w-1.5 rounded-[2px] transition-all duration-200 group-hover:h-12",
-                                isFilled
-                                  ? "bg-muted-foreground/55 group-hover:bg-muted-foreground/70"
-                                  : "bg-transparent",
-                              )}
-                              key={segmentIndex}
-                            />
-                          );
-                        })
-                      : Array.from({ length: maxSegments }, (_, segmentIndex) => {
-                          const isFilled = segmentIndex < activeSegments;
-
-                          return (
-                            <span
-                              aria-hidden="true"
-                              className={cn(
-                                "h-9 w-1.5 rounded-[2px] transition-all duration-200 group-hover:h-12",
-                                isFilled
-                                  ? "bg-foreground/80 group-hover:bg-foreground"
-                                  : "bg-transparent",
-                              )}
-                              key={segmentIndex}
-                            />
-                          );
-                        })}
-                  </div>
-                );
-              })}
+        <div className={cn(PANEL_MICRO_CHART_SURFACE_CLASS, "grid grid-rows-[1fr_auto] overflow-hidden pb-4")}>
+          <div className="relative mx-auto h-32 w-full max-w-64 overflow-hidden">
+            <PieChart
+              className="absolute left-1/2 top-2 -translate-x-1/2"
+              cornerRadius={12}
+              data={halfDonutData}
+              endAngle={Math.PI / 2}
+              enterStaggerScale={0.35}
+              hoverOffset={2}
+              innerRadius={74}
+              padAngle={0.035}
+              size={228}
+              startAngle={-Math.PI / 2}
+            >
+              <PieSlice
+                hoverEffect="none"
+                index={0}
+                showGlow={false}
+              />
+              {totalAverageMove > 0 ? (
+                <PieSlice
+                  hoverEffect="none"
+                  index={1}
+                  showGlow={false}
+                />
+              ) : null}
+            </PieChart>
+            <div className="absolute inset-x-0 top-[72px] text-center">
+              <p className="font-mono text-sm font-semibold text-foreground">
+                {ratio.toLocaleString("es-ES", { maximumFractionDigits: 2 })}x
+              </p>
+              <p className="mt-0.5 text-[10px] font-medium text-muted-foreground">
+                ganancia / pérdida
+              </p>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div className="text-right">
-                <p className="text-muted-foreground">Pérdida media</p>
-                <p className="mt-1 font-mono font-semibold text-foreground">
-                  {formatCurrency(-avgLossAbs, currency)}
-                </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4 border-t border-border/60 pt-3 text-xs">
+            <div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <span className="h-1.5 w-5 rounded-full bg-muted-foreground/55" />
+                <span>Pérdida media</span>
               </div>
-              <div>
-                <p className="text-muted-foreground">Ganancia media</p>
-                <p className="mt-1 font-mono font-semibold text-foreground">
-                  {formatCurrency(avgWinAbs, currency)}
-                </p>
+              <p className="mt-1 font-mono font-semibold text-foreground">
+                {formatCurrency(-avgLossAbs, currency)}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="flex items-center justify-end gap-1.5 text-muted-foreground">
+                <span>Ganancia media</span>
+                <span className="h-1.5 w-5 rounded-full bg-foreground/85" />
               </div>
+              <p className="mt-1 font-mono font-semibold text-foreground">
+                {formatCurrency(avgWinAbs, currency)}
+              </p>
             </div>
           </div>
         </div>
@@ -2745,13 +2885,8 @@ function OverviewSection({ workspace }: { workspace: WorkspaceState }) {
   const avgWinLossRatio = avgLossAbs > 0 ? Math.abs(analyticsPerformance.avgWin) / avgLossAbs : 0;
 
   return (
-    <div className="flex flex-col gap-4">
-      <SummaryHeroCard
-        workspace={workspace}
-        activeAccount={activeAccount}
-      />
-
-      <div className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="flex flex-col gap-3 xl:gap-4">
+      <div className="grid items-stretch gap-3 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
         <MetricCard
           title="Capital activo"
           value={activeAccount?.equity ?? 0}
@@ -2759,6 +2894,7 @@ function OverviewSection({ workspace }: { workspace: WorkspaceState }) {
           caption="Equity de la cuenta activa"
           tone="neutral"
           delta={metricDeltas.equity}
+          animateValue
         />
         <MetricCard
           title="PnL"
@@ -2827,7 +2963,7 @@ function OverviewSection({ workspace }: { workspace: WorkspaceState }) {
         />
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-3 xl:gap-4">
         <EquityCurveCard workspace={workspace} activeAccount={activeAccount} />
         <div className="grid gap-4 lg:grid-cols-3">
           <DrawdownRecentCard

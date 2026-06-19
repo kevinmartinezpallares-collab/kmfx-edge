@@ -27,6 +27,7 @@ const ALLOWED_PROXY_PATHS = new Set([
   "/api/mt5/sync",
   "/api/mt5/journal",
   "/api/mt5/policy",
+  "/api/mt5/riskguard/ack",
 ]);
 
 const LEGACY_BROWSER_LIVE_PATH_PREFIXES = [

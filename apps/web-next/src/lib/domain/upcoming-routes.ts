@@ -10,7 +10,7 @@ export const upcomingRoutes = {
     href: "/risk",
     title: "Mesa de Riesgo",
     description:
-      "Mesa de Riesgo queda reservada para beta cerrada hasta completar reglas, límites, política MT5 y frontera técnica.",
+      "Mesa de Riesgo queda reservada hasta completar reglas, límites, política MT5 y frontera técnica.",
     nextStep:
       "Cerrar el monitor de límites, estados de datos insuficientes y confirmación EA antes de activarlo como ruta pública.",
   },

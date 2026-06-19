@@ -33,6 +33,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { animate, m as motion, useMotionValue } from "motion/react";
 import {
   ChevronLeft,
@@ -86,6 +94,63 @@ interface AccountCardData {
 }
 
 type AccountGradientTheme = Omit<CustomConfig, "preset" | "speed">;
+
+type AccountProfileFormValue =
+  | "auto"
+  | "own"
+  | "real"
+  | "demo"
+  | "challenge"
+  | "phase_1"
+  | "phase_2"
+  | "funded";
+
+const ACCOUNT_PROFILE_OPTIONS: Array<{
+  description: string;
+  label: string;
+  value: AccountProfileFormValue;
+}> = [
+  {
+    description: "Mantiene la detección por broker, firma o nombre.",
+    label: "Automático",
+    value: "auto",
+  },
+  {
+    description: "Cuenta personal sin reto de fondeo.",
+    label: "Cuenta propia",
+    value: "own",
+  },
+  {
+    description: "Cuenta real de broker, no prop firm.",
+    label: "Cuenta real",
+    value: "real",
+  },
+  {
+    description: "Cuenta demo o simulación.",
+    label: "Demo",
+    value: "demo",
+  },
+  {
+    description: "Reto activo sin fase concreta.",
+    label: "Reto",
+    value: "challenge",
+  },
+  {
+    description: "Primera fase del reto.",
+    label: "Fase 1",
+    value: "phase_1",
+  },
+  {
+    description: "Segunda fase o verificación.",
+    label: "Fase 2",
+    value: "phase_2",
+  },
+  {
+    description: "Cuenta ya fondeada.",
+    label: "Cuenta fondeada",
+    value: "funded",
+  },
+];
 
 function getScrollableWidth(element: HTMLElement | null) {
   if (!element) return 0;
@@ -152,6 +217,22 @@ function useScrollableWidth(containerRef: RefObject<HTMLDivElement | null>) {
   );
 
   return useSyncExternalStore(subscribe, getSnapshot, () => 0);
+}
+
+function useDesktopGridLayout() {
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 1280px)");
+    const update = () => setEnabled(mediaQuery.matches);
+
+    update();
+    mediaQuery.addEventListener("change", update);
+
+    return () => mediaQuery.removeEventListener("change", update);
+  }, []);
+
+  return enabled;
 }
 
 const DEFAULT_LOGO_GRADIENT_THEME: AccountGradientTheme = {
@@ -316,6 +397,10 @@ function planAccessLabel(account: AccountRow) {
 }
 
 function accountCategoryLabel(account: AccountRow) {
+  if (account.profile?.source === "manual" && account.profile.badgeLabel) {
+    return fundingPhaseLabel(account.profile.badgeLabel);
+  }
+
   const rawLabel = account.funding?.phaseLabel ?? account.accountKindLabel;
 
   return fundingPhaseLabel(rawLabel);
@@ -326,9 +411,85 @@ function fundingPhaseLabel(rawLabel: string) {
 
   if (normalized === "phase 1") return "Fase 1";
   if (normalized === "phase 2") return "Fase 2";
-  if (normalized.includes("funded")) return "Cuenta fondeada";
+  if (normalized.includes("funded") || normalized.includes("fondeada")) {
+    return "Cuenta fondeada";
+  }
 
   return rawLabel;
+}
+
+function accountProfileValue(account: AccountRow): AccountProfileFormValue {
+  if (account.profile?.source !== "manual") return "auto";
+
+  const normalizedLabel = account.profile.badgeLabel.trim().toLowerCase();
+  if (account.profile.accountClass === "evaluation" || normalizedLabel.includes("fase 2")) {
+    return "phase_2";
+  }
+  if (normalizedLabel.includes("fase 1")) return "phase_1";
+
+  switch (account.profile.accountClass) {
+    case "challenge":
+      return "challenge";
+    case "demo":
+      return "demo";
+    case "funded":
+      return "funded";
+    case "own":
+      return "own";
+    case "real":
+      return "real";
+    default:
+      return "auto";
+  }
+}
+
+function accountProfilePayload(value: AccountProfileFormValue) {
+  const option = ACCOUNT_PROFILE_OPTIONS.find((item) => item.value === value);
+  if (!option || value === "auto") {
+    return {
+      accountProfile: null,
+      fundingProfile: null,
+    };
+  }
+
+  const accountClass =
+    value === "phase_1" ? "challenge" : value === "phase_2" ? "evaluation" : value;
+  const accountProfile = {
+    account_class: accountClass,
+    badge_label: option.label,
+    source: "manual",
+  };
+
+  if (["challenge", "phase_1", "phase_2", "funded"].includes(value)) {
+    return {
+      accountProfile,
+      fundingProfile: {
+        account_type: accountClass,
+        phase_label: option.label,
+      },
+    };
+  }
+
+  return {
+    accountProfile,
+    fundingProfile: null,
+  };
+}
+
+function optimisticAccountProfile(
+  value: AccountProfileFormValue,
+): AccountRow["profile"] | undefined {
+  const option = ACCOUNT_PROFILE_OPTIONS.find((item) => item.value === value);
+  if (!option || value === "auto") return undefined;
+
+  const accountClass: NonNullable<AccountRow["profile"]>["accountClass"] =
+    value === "phase_1" ? "challenge" : value === "phase_2" ? "evaluation" : value;
+
+  return {
+    accountClass,
+    badgeLabel: option.label,
+    source: "manual",
+  };
 }
 
 function playbookLabel(rawLabel: string) {
@@ -730,12 +891,14 @@ type RenameDialogState = {
   account: AccountRow | null;
   error: string;
   pendingAccountId: string | null;
+  profileValue: AccountProfileFormValue;
   value: string;
 };
 
 type RenameDialogAction =
   | { type: "open"; account: AccountRow }
   | { type: "close" }
+  | { type: "setProfileValue"; value: AccountProfileFormValue }
   | { type: "setValue"; value: string }
   | { type: "setError"; error: string }
   | { type: "startSaving"; accountId: string }
@@ -746,6 +909,7 @@ const INITIAL_RENAME_DIALOG_STATE: RenameDialogState = {
   account: null,
   error: "",
   pendingAccountId: null,
+  profileValue: "auto",
   value: "",
 };
 
@@ -759,12 +923,15 @@ function renameDialogReducer(
         account: action.account,
         error: "",
         pendingAccountId: null,
+        profileValue: accountProfileValue(action.account),
         value: action.account.label,
       };
     case "close":
       return state.pendingAccountId ? state : INITIAL_RENAME_DIALOG_STATE;
     case "setValue":
       return { ...state, value: action.value };
+    case "setProfileValue":
+      return { ...state, profileValue: action.value };
     case "setError":
       return { ...state, error: action.error };
     case "startSaving":
@@ -778,6 +945,7 @@ function renameDialogReducer(
 
 function AccountCardSlide({
   card,
+  compactLayout = false,
   deletingAccountId,
   index,
   onDeleteAccount,
@@ -786,6 +954,7 @@ function AccountCardSlide({
   selectedAccountId,
 }: {
   card: AccountCardData;
+  compactLayout?: boolean;
   deletingAccountId: string | null;
   index: number;
   onDeleteAccount: (account: AccountRow) => void;
@@ -798,8 +967,13 @@ function AccountCardSlide({
   return (
     <motion.div
       data-account-card
-      className="h-[500px] min-w-[calc(100svw-3rem)] max-w-[calc(100svw-3rem)] sm:min-w-[320px] sm:max-w-[320px]"
-      whileHover={{ y: -10, transition: { duration: 0.3 } }}
+      className={cn(
+        "min-w-[calc(100svw-3rem)] max-w-[calc(100svw-3rem)] sm:min-w-[320px] sm:max-w-[320px]",
+        compactLayout
+          ? "h-[430px] min-w-0 max-w-none sm:min-w-0 sm:max-w-none"
+          : "h-[500px]",
+      )}
+      whileHover={{ y: compactLayout ? -6 : -10, transition: { duration: 0.3 } }}
     >
       <Card
         className={cn(
@@ -808,7 +982,7 @@ function AccountCardSlide({
             "border-primary/60 shadow-2xl shadow-primary/10",
         )}
       >
-        <div className="relative h-56 overflow-hidden">
+        <div className={cn("relative overflow-hidden", compactLayout ? "h-44" : "h-56")}>
           <AnimatedGradient config={gradientConfig} />
           <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-40" />
 
@@ -825,11 +999,14 @@ function AccountCardSlide({
             <AccountLogoFrame
               src={card.author.avatar}
               alt={`${card.author.name} logo`}
-              className="size-16 border border-white/20 bg-background/75 shadow-xl ring-4 ring-black/20"
-              size={64}
+              className={cn(
+                "border border-white/20 bg-background/75 shadow-xl ring-4 ring-black/20",
+                compactLayout ? "size-12" : "size-16",
+              )}
+              size={compactLayout ? 48 : 64}
             />
             <div className="min-w-0 rounded-2xl border border-white/10 bg-background/55 px-3 py-2 text-right shadow-lg backdrop-blur-md">
-              <p className="truncate text-sm font-semibold text-foreground">
+              <p className={cn("truncate font-semibold text-foreground", compactLayout ? "text-xs" : "text-sm")}>
                 {card.author.name}
               </p>
               <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
@@ -867,7 +1044,7 @@ function AccountCardSlide({
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onOpenRenameDialog(card.account)}>
                     <Pencil />
-                    Renombrar cuenta
+                    Editar cuenta
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
@@ -909,12 +1086,24 @@ function AccountCardSlide({
           </div>
         </div>
 
-        <div className="flex h-[calc(100%-14rem)] flex-col justify-between p-5 pb-6">
-          <div className="flex flex-col gap-4">
-            <h3 className="text-xl font-bold leading-tight tracking-tight text-foreground transition-colors group-hover:text-primary">
+        <div
+          className={cn(
+            "flex flex-col justify-between",
+            compactLayout
+              ? "h-[calc(100%-11rem)] p-4 pb-5"
+              : "h-[calc(100%-14rem)] p-5 pb-6",
+          )}
+        >
+          <div className={cn("flex flex-col", compactLayout ? "gap-3" : "gap-4")}>
+            <h3
+              className={cn(
+                "font-bold leading-tight tracking-tight text-foreground transition-colors group-hover:text-primary",
+                compactLayout ? "line-clamp-2 text-lg" : "text-xl",
+              )}
+            >
               {card.title}
             </h3>
-            <div className="grid gap-3 text-sm leading-relaxed">
+            <div className={cn("grid leading-relaxed", compactLayout ? "gap-2 text-xs" : "gap-3 text-sm")}>
               <div className="grid grid-cols-[70px_1fr] items-baseline gap-3">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   Broker
@@ -932,13 +1121,13 @@ function AccountCardSlide({
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-2xl border border-border/50 bg-background/30 p-3">
+                <div className={cn("rounded-2xl border border-border/50 bg-background/30", compactLayout ? "p-2.5" : "p-3")}>
                   <p className="text-[10px] text-muted-foreground">Equity</p>
                   <p className="mt-1 truncate font-mono text-xs text-foreground">
                     {card.equity}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-border/50 bg-background/30 p-3">
+                <div className={cn("rounded-2xl border border-border/50 bg-background/30", compactLayout ? "p-2.5" : "p-3")}>
                   <p className="text-[10px] text-muted-foreground">P&L</p>
                   <p className="mt-1 truncate font-mono text-xs text-foreground">
                     {card.pnl}
@@ -985,10 +1174,14 @@ export function AccountCardsSlider({
 }) {
   const router = useRouter();
   const isMobile = useIsMobile();
+  const isDesktopGridLayout = useDesktopGridLayout();
   const containerRef = useRef<HTMLDivElement>(null);
   const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null);
   const [optimisticAccountLabels, setOptimisticAccountLabels] = useState<
     Record<string, string>
+  >({});
+  const [optimisticAccountProfiles, setOptimisticAccountProfiles] = useState<
+    Record<string, AccountRow["profile"] | null>
   >({});
   const [renameState, dispatchRename] = useReducer(
     renameDialogReducer,
@@ -998,6 +1191,7 @@ export function AccountCardsSlider({
     account: renamingAccount,
     error: renameError,
     pendingAccountId: renamingAccountId,
+    profileValue: renameProfileValue,
     value: renameValue,
   } = renameState;
   const x = useMotionValue(0);
@@ -1005,9 +1199,19 @@ export function AccountCardsSlider({
     () =>
       accounts.map((account) => {
         const label = optimisticAccountLabels[account.id];
-        return label ? { ...account, label } : account;
+        const profileOverride = optimisticAccountProfiles[account.id];
+        const nextAccount = label ? { ...account, label } : account;
+
+        if (Object.hasOwn(optimisticAccountProfiles, account.id)) {
+          return {
+            ...nextAccount,
+            profile: profileOverride ?? undefined,
+          };
+        }
+
+        return nextAccount;
       }),
-    [accounts, optimisticAccountLabels],
+    [accounts, optimisticAccountLabels, optimisticAccountProfiles],
   );
   const cards = useMemo(
     () => buildCards(visibleAccounts, activeAccountId),
@@ -1028,8 +1232,9 @@ export function AccountCardsSlider({
     cards.findIndex((card) => card.id === resolvedSelectedAccountId),
     0,
   );
-  const canScrollLeft = selectedCardIndex > 0;
-  const canScrollRight = selectedCardIndex < cards.length - 1;
+  const canScrollLeft = !isDesktopGridLayout && selectedCardIndex > 0;
+  const canScrollRight =
+    !isDesktopGridLayout && selectedCardIndex < cards.length - 1;
 
   const getCenteredXForIndex = useCallback((index: number) => {
     const container = containerRef.current;
@@ -1110,13 +1315,25 @@ export function AccountCardsSlider({
   };
 
   useEffect(() => {
+    if (isDesktopGridLayout) {
+      x.set(0);
+      return;
+    }
+
     const selectedIndex = cards.findIndex(
       (card) => card.id === resolvedSelectedAccountId,
     );
     if (selectedIndex < 0) return;
 
     centerCardAtIndex(selectedIndex);
-  }, [cards, centerCardAtIndex, resolvedSelectedAccountId, width]);
+  }, [
+    cards,
+    centerCardAtIndex,
+    isDesktopGridLayout,
+    resolvedSelectedAccountId,
+    width,
+    x,
+  ]);
 
   async function deleteAccount(account: AccountRow) {
     if (deletingAccountId || !deleteAccountConfirmation(account)) {
@@ -1172,10 +1389,11 @@ export function AccountCardsSlider({
 
     dispatchRename({ type: "startSaving", accountId: renamingAccount.id });
     try {
+      const profilePayload = accountProfilePayload(renameProfileValue);
       const response = await fetch(
         `/api/kmfx/accounts/${encodeURIComponent(renamingAccount.id)}`,
         {
-          body: JSON.stringify({ alias }),
+          body: JSON.stringify({ alias, ...profilePayload }),
           headers: { "Content-Type": "application/json" },
           method: "PATCH",
         },
@@ -1194,6 +1412,10 @@ export function AccountCardsSlider({
       setOptimisticAccountLabels((current) => ({
         ...current,
         [renamingAccount.id]: alias,
+      }));
+      setOptimisticAccountProfiles((current) => ({
+        ...current,
+        [renamingAccount.id]: optimisticAccountProfile(renameProfileValue) ?? null,
       }));
       dispatchRename({ type: "saved" });
       router.refresh();
@@ -1246,22 +1468,31 @@ export function AccountCardsSlider({
 
         <motion.div
           ref={containerRef}
-          className="w-full max-w-full overflow-hidden px-1 py-8 md:cursor-grab md:active:cursor-grabbing"
-          whileTap={{ cursor: "grabbing" }}
+          className={cn(
+            "w-full max-w-full overflow-hidden px-1 py-8",
+            isDesktopGridLayout
+              ? "overflow-visible"
+              : "md:cursor-grab md:active:cursor-grabbing",
+          )}
+          whileTap={isDesktopGridLayout ? undefined : { cursor: "grabbing" }}
         >
           <motion.div
             data-account-track
-            drag={isMobile ? false : "x"}
+            drag={isMobile || isDesktopGridLayout ? false : "x"}
             dragConstraints={{ right: 0, left: -width }}
             dragElastic={0.1}
-            onDragEnd={snapToNearestCard}
-            style={{ x }}
-            className="flex gap-6"
+            onDragEnd={isDesktopGridLayout ? undefined : snapToNearestCard}
+            style={isDesktopGridLayout ? undefined : { x }}
+            className={cn(
+              "gap-6",
+              isDesktopGridLayout ? "grid grid-cols-4" : "flex",
+            )}
           >
             {cards.map((card, index) => (
               <AccountCardSlide
                 key={card.id}
                 card={card}
+                compactLayout={isDesktopGridLayout}
                 deletingAccountId={deletingAccountId}
                 index={index}
                 onDeleteAccount={(account) => void deleteAccount(account)}
@@ -1287,9 +1518,9 @@ export function AccountCardsSlider({
         <DialogContent className="sm:max-w-md">
           <form onSubmit={renameAccount} className="grid gap-4">
             <DialogHeader>
-              <DialogTitle>Renombrar cuenta</DialogTitle>
+              <DialogTitle>Editar cuenta</DialogTitle>
               <DialogDescription>
-                Este nombre se mostrará en cuentas, selector y detalle. No cambia el login ni la KMFX Key.
+                Ajusta el nombre y la etiqueta de la card. No cambia el login ni la KMFX Key.
               </DialogDescription>
             </DialogHeader>
 
@@ -1320,6 +1551,54 @@ export function AccountCardsSlider({
               ) : null}
             </div>
 
+            <div className="grid gap-2">
+              <label
+                htmlFor="account-profile"
+                className="text-sm font-medium text-foreground"
+              >
+                Etiqueta de la card
+              </label>
+              <Select
+                value={renameProfileValue}
+                onValueChange={(value) =>
+                  dispatchRename({
+                    type: "setProfileValue",
+                    value: value as AccountProfileFormValue,
+                  })
+                }
+              >
+                <SelectTrigger
+                  id="account-profile"
+                  className="h-11 w-full border-border/70 bg-background/40 sm:h-9"
+                >
+                  <SelectValue>
+                    {
+                      ACCOUNT_PROFILE_OPTIONS.find(
+                        (option) => option.value === renameProfileValue,
+                      )?.label
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent align="start">
+                  <SelectGroup>
+                    {ACCOUNT_PROFILE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <span className="grid gap-0.5">
+                          <span>{option.label}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {option.description}
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                En automático, KMFX intentará leerlo del broker, firma o nombre.
+              </p>
+            </div>
+
             <DialogFooter>
               <Button
                 type="button"
@@ -1336,7 +1615,7 @@ export function AccountCardsSlider({
                 type="submit"
                 disabled={Boolean(renamingAccountId) || !renameValue.trim()}
               >
-                {renamingAccountId ? "Guardando..." : "Guardar nombre"}
+                {renamingAccountId ? "Guardando..." : "Guardar cambios"}
               </Button>
             </DialogFooter>
           </form>

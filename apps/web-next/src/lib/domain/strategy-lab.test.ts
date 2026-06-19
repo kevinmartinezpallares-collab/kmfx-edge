@@ -1,42 +1,54 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  accountObjectives,
   getStrategyLabReadiness,
-  strategyLabGeneBlocks,
+  researchGates,
+  strategyFamilies,
   strategyLabMetrics,
   strategyLabSteps,
 } from "@/lib/domain/strategy-lab";
 
 describe("strategy lab contract", () => {
-  it("keeps the six genetic blocks from the master document", () => {
-    expect(strategyLabGeneBlocks.map((block) => block.block)).toEqual([
-      "A",
-      "B",
-      "C",
-      "D",
-      "E",
-      "F",
+  it("supports multiple account objectives", () => {
+    expect(accountObjectives.map((objective) => objective.name)).toEqual([
+      "Fondeo",
+      "Consistencia larga",
+      "Darwinex / track record",
     ]);
-    expect(strategyLabGeneBlocks.reduce((total, block) => total + block.options.length, 0)).toBe(32);
+    expect(accountObjectives.every((objective) => objective.controls.length >= 4)).toBe(true);
   });
 
   it("tracks setup readiness from concrete steps", () => {
     expect(strategyLabSteps.map((step) => step.id)).toEqual([
-      "postgres",
-      "ea",
-      "env",
-      "first-run",
-      "dashboard",
+      "supabase",
+      "mt5-export",
+      "csv-ingest",
+      "validation",
+      "promotion",
     ]);
-    expect(getStrategyLabReadiness()).toBe(40);
+    expect(getStrategyLabReadiness()).toBe(50);
   });
 
-  it("surfaces the expected genetic defaults", () => {
+  it("surfaces research metrics and validation gates", () => {
     expect(strategyLabMetrics).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ label: "Pool inicial", value: "200" }),
-        expect.objectContaining({ label: "Survivors", value: "10" }),
-        expect.objectContaining({ label: "Promocion", value: "50+" }),
+        expect.objectContaining({ label: "Fuente conectada", value: "Supabase" }),
+        expect.objectContaining({ label: "Promocion", value: "7 puertas" }),
+      ]),
+    );
+    expect(researchGates).toHaveLength(7);
+  });
+
+  it("includes the initial strategy families", () => {
+    expect(strategyFamilies.map((strategy) => strategy.name)).toEqual(
+      expect.arrayContaining([
+        "ORB breakout",
+        "ORB failed breakout",
+        "VWAP continuation",
+        "VWAP mean reversion",
+        "Liquidity sweep",
+        "Range compression breakout",
       ]),
     );
   });

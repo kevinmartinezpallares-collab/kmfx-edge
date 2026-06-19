@@ -123,7 +123,7 @@ const addAccountSteps: Array<{ id: AddAccountStep; label: string }> = [
 
 const accountConnectionMethods = [
   {
-    body: "Camino recomendado para beta: Launcher, EA y primera sincronización completa desde MT5.",
+    body: "Camino recomendado: Launcher, EA y primera sincronización completa desde MT5.",
     label: "Disponible",
     title: "Conectar MT5 con EA",
     value: "launcher",
@@ -427,8 +427,8 @@ function AddAccountMethodStep({
       <div className="rounded-xl border border-border/70 bg-background/45 p-4">
         <p className="text-sm font-semibold">Elige cómo conectar</p>
         <p className="mt-1 text-xs leading-5 text-muted-foreground">
-          Para beta, el flujo operativo es MT5 con EA y KMFX Key. Las
-          otras vías quedan preparadas como próximas opciones.
+          El flujo operativo es MT5 con EA y KMFX Key. Las otras vías quedan
+          preparadas como próximas opciones.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           {accountConnectionMethods.map((method) => {

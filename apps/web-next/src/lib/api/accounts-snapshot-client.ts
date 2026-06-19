@@ -169,13 +169,20 @@ export function clearLiveAccountsSnapshotCache() {
 }
 
 export async function fetchLiveAccountsSnapshot({
+  cacheMode = "cache",
   view = "full",
 }: {
+  cacheMode?: "cache" | "no-store";
   view?: SnapshotView;
 } = {}): Promise<RawLiveAccountsSnapshot> {
   const ttlMs = resolveEffectiveSnapshotCacheTtlMs();
   const now = Date.now();
   let cacheKey = "";
+
+  if (cacheMode === "no-store") {
+    const headers = await buildSnapshotHeaders();
+    return requestLiveAccountsSnapshot(view, headers, 0);
+  }
 
   if (ttlMs > 0) {
     cacheKey = await snapshotCacheKeyFromAuthCookies(view);

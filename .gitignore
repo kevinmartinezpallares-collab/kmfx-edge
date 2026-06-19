@@ -4,6 +4,15 @@
 *.log
 *.zip
 
+# Local secrets
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+!**/.env*.example
+
 kmfx_equity_8765.json
 kmfx_risk_8765.json
 kmfx_bridge_8765.log

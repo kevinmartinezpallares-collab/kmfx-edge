@@ -2,10 +2,14 @@
 
 import * as React from "react";
 import {
+  CircleCheckIcon,
+  FileClockIcon,
+  LockKeyholeIcon,
   PlusIcon,
   RotateCcwIcon,
   SaveIcon,
   SlidersHorizontalIcon,
+  TagsIcon,
   XIcon,
 } from "lucide-react";
 
@@ -41,7 +45,6 @@ type EditableRule = {
   label: string;
   max: number;
   min: number;
-  source: "Común" | "Usuario" | "Técnico";
   step: number;
   suffix: string;
   value: number;
@@ -70,18 +73,6 @@ type RiskPolicyConfiguratorProps = {
   accountId: string;
   accountLabel: string;
   policy: RiskPolicyControls;
-};
-
-const SOURCE_BY_LABEL: Record<string, EditableRule["source"]> = {
-  "Riesgo por operación": "Común",
-  "Pérdida diaria": "Común",
-  "Drawdown máximo": "Común",
-  "Riesgo abierto máximo": "Usuario",
-  "Máximo operaciones/día": "Usuario",
-  "Entradas sin stop loss": "Técnico",
-  "Pausa tras 2 pérdidas": "Usuario",
-  "Noticias alto impacto": "Usuario",
-  "Automatización MT5 futura": "Técnico",
 };
 
 const MAIN_RULES = [
@@ -114,6 +105,27 @@ const VOLUME_LIMITS: Record<string, Pick<EditableRule, "max" | "min" | "step" | 
 };
 
 const SESSION_MODES: SessionMode[] = ["Normal", "Reducido", "Bloqueado"];
+const riskSwitchClassName =
+  "data-unchecked:bg-input/80 shadow-inner [&_[data-slot=switch-thumb]]:bg-white dark:[&_[data-slot=switch-thumb]]:bg-white";
+const riskSwitchActiveStyle: React.CSSProperties = {
+  backgroundColor: "#0A84FF",
+};
+
+const RULE_LABELS: Partial<Record<string, string>> = {
+  "Entradas sin stop loss": "Sin stop loss",
+  "Máximo operaciones/día": "Operaciones/día",
+  "Noticias alto impacto": "Noticias importantes",
+  "Riesgo abierto máximo": "Riesgo abierto",
+  "Riesgo por operación": "Riesgo por trade",
+};
+
+function displayRuleLabel(label: string) {
+  return RULE_LABELS[label] ?? label;
+}
+
+function displayGuardMode(mode: GuardMode) {
+  return mode === "Bloqueo lógico" ? "Bloquear entrada" : "Solo aviso";
+}
 
 function parsePolicyNumber(value: string, fallback: number) {
   const match = value.replace(",", ".").match(/-?\d+(\.\d+)?/);
@@ -152,7 +164,6 @@ function buildEditableRules(rules: RiskPolicyRuleControl[]) {
       label,
       max: limits.max,
       min: limits.min,
-      source: SOURCE_BY_LABEL[label] ?? "Usuario",
       step: limits.step,
       suffix: limits.suffix,
       value: source ? ruleValueFallback(source) : 0,
@@ -178,7 +189,6 @@ function buildEditableVolume(volumeControls: RiskPolicyVolumeControl[]) {
       label: control.label,
       max: limits.max,
       min: limits.min,
-      source: "Usuario" as const,
       step: limits.step,
       suffix: limits.suffix,
       value: parsePolicyNumber(control.value, 0),
@@ -243,10 +253,13 @@ function mergeDraft(defaultDraft: DraftState, saved: Partial<DraftState>) {
   };
 }
 
-function formatRuleValue(rule: EditableRule) {
-  if (rule.label === "Entradas sin stop loss") return "No permitidas";
-  const value = Number.isInteger(rule.value) ? rule.value.toFixed(0) : rule.value.toFixed(2);
-  return `${value}${rule.suffix ? ` ${rule.suffix}` : ""}`;
+function formatInputValue(value: number) {
+  if (!Number.isFinite(value)) return "";
+  return Number.isInteger(value) ? String(value) : String(value).replace(".", ",");
+}
+
+function parseInputValue(value: string) {
+  return Number.parseFloat(value.replace(",", "."));
 }
 
 function sessionSize(mode: SessionMode) {
@@ -258,6 +271,106 @@ function sessionSize(mode: SessionMode) {
 function clampRuleValue(rule: EditableRule, value: number) {
   if (!Number.isFinite(value)) return rule.min;
   return Math.min(Math.max(value, rule.min), rule.max);
+}
+
+function ruleByLabel(draft: DraftState, label: string) {
+  return draft.rules.find((rule) => rule.label === label);
+}
+
+function volumeByLabel(draft: DraftState, label: string) {
+  return draft.volume.find((rule) => rule.label === label);
+}
+
+function activeRuleValue(rule?: EditableRule) {
+  return rule?.checked ? rule.value : null;
+}
+
+function buildConfiguredPolicyFromDraft(draft: DraftState) {
+  const riskPerTrade = ruleByLabel(draft, "Riesgo por operación");
+  const dailyLoss = ruleByLabel(draft, "Pérdida diaria");
+  const maxDrawdown = ruleByLabel(draft, "Drawdown máximo");
+  const openRisk = ruleByLabel(draft, "Riesgo abierto máximo");
+  const maxTrades = ruleByLabel(draft, "Máximo operaciones/día");
+  const cooldown = ruleByLabel(draft, "Pausa tras 2 pérdidas");
+  const news = ruleByLabel(draft, "Noticias alto impacto");
+  const maxVolume = volumeByLabel(draft, "Lote máximo");
+  const concurrentPositions = volumeByLabel(draft, "Posiciones simultáneas");
+  const symbolRisk = volumeByLabel(draft, "Riesgo por símbolo");
+
+  return {
+    allowed_sessions: draft.sessions
+      .filter((session) => session.mode !== "Bloqueado")
+      .map((session) => session.key),
+    allowed_symbols: draft.symbols
+      .filter((symbol) => symbol.enabled)
+      .map((symbol) => symbol.symbol),
+    auto_block: draft.rules.some((rule) => rule.checked && rule.guardMode === "Bloqueo lógico"),
+    cooldown_after_losses_minutes: activeRuleValue(cooldown),
+    daily_dd_hard_stop: activeRuleValue(dailyLoss),
+    max_concurrent_positions: activeRuleValue(concurrentPositions),
+    max_risk_per_trade_pct: activeRuleValue(riskPerTrade),
+    max_symbol_exposure_pct: activeRuleValue(symbolRisk),
+    max_trades_per_day: activeRuleValue(maxTrades),
+    max_volume: activeRuleValue(maxVolume),
+    news_block_minutes: activeRuleValue(news),
+    policy_source: "user",
+    portfolio_heat_limit_pct: activeRuleValue(openRisk),
+    riskguard_enforcement_requested: false,
+    riskguard_mode: "monitor",
+    rules: draft.rules.map((rule) => ({
+      action: rule.guardMode === "Bloqueo lógico" ? "block_new_trades" : "warn",
+      enabled: rule.checked,
+      id: rule.id,
+      label: rule.label,
+      value: rule.label === "Entradas sin stop loss" ? "No permitidas" : rule.value,
+    })),
+    total_dd_hard_stop: activeRuleValue(maxDrawdown),
+  };
+}
+
+function RuleValueControl({
+  rule,
+  disabled,
+  onChange,
+}: {
+  rule: EditableRule;
+  disabled?: boolean;
+  onChange: (nextRule: EditableRule) => void;
+}) {
+  const stopLossRule = rule.label === "Entradas sin stop loss";
+  const controlDisabled = disabled || stopLossRule;
+
+  return (
+    <div className="relative">
+      <label className="sr-only" htmlFor={`${rule.id}-value`}>
+        Valor de {rule.label}
+      </label>
+      <Input
+        id={`${rule.id}-value`}
+        type="text"
+        inputMode="decimal"
+        value={stopLossRule ? "No permitidas" : formatInputValue(rule.value)}
+        disabled={controlDisabled}
+        className={cn(
+          "h-9! min-h-9! rounded-md border-border/70 bg-background/40 pr-12 font-mono text-sm tabular-nums",
+          rule.suffix === "lotes" && "pr-16",
+          !rule.suffix && "pr-3",
+          stopLossRule && "font-sans text-muted-foreground",
+        )}
+        onChange={(event) =>
+          onChange({
+            ...rule,
+            value: clampRuleValue(rule, parseInputValue(event.currentTarget.value)),
+          })
+        }
+      />
+      {rule.suffix && !stopLossRule ? (
+        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-medium text-muted-foreground">
+          {rule.suffix}
+        </span>
+      ) : null}
+    </div>
+  );
 }
 
 function PolicyRuleRow({
@@ -275,72 +388,56 @@ function PolicyRuleRow({
         : "text-profit";
 
   return (
-    <div className="grid gap-3 border-b border-border/60 py-3 last:border-b-0 lg:grid-cols-[minmax(240px,1fr)_136px_150px_150px] lg:items-center">
+    <div
+      className={cn(
+        "min-w-0 rounded-md border border-border/60 bg-background/30 p-4",
+        !rule.checked && "opacity-70",
+      )}
+    >
       <div className="flex min-w-0 gap-3">
         <Switch
           checked={rule.checked}
-          className="mt-1"
-          size="sm"
+          className={cn("mt-0.5", riskSwitchClassName)}
           onCheckedChange={(checked) => onChange({ ...rule, checked })}
+          style={rule.checked ? riskSwitchActiveStyle : undefined}
         />
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="font-medium text-foreground">{rule.label}</p>
-            <span className="text-xs text-muted-foreground">{rule.source}</span>
-          </div>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">{rule.detail}</p>
+          <p className="truncate text-sm font-medium text-foreground">{displayRuleLabel(rule.label)}</p>
+          <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{rule.detail}</p>
         </div>
       </div>
 
-      <div>
-        <label className="sr-only" htmlFor={`${rule.id}-value`}>
-          Valor de {rule.label}
-        </label>
-        <Input
-          id={`${rule.id}-value`}
-          type="number"
-          inputMode="decimal"
-          min={rule.min}
-          max={rule.max}
-          step={rule.step}
-          value={rule.value}
-          disabled={!rule.checked || rule.label === "Entradas sin stop loss"}
-          className="h-9 border-border/70 bg-background/40 font-mono"
-          onChange={(event) =>
-            onChange({
-              ...rule,
-              value: clampRuleValue(rule, Number.parseFloat(event.currentTarget.value)),
-            })
-          }
-        />
-        <p className="mt-1 text-xs text-muted-foreground">{formatRuleValue(rule)}</p>
+      <div className="mt-4 grid min-w-0 grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-2">
+        <RuleValueControl rule={rule} disabled={!rule.checked} onChange={onChange} />
+
+        <Select
+          value={rule.guardMode}
+          disabled={!rule.checked}
+          onValueChange={(value) => {
+            if (value === "Solo aviso" || value === "Bloqueo lógico") {
+              onChange({ ...rule, guardMode: value });
+            }
+          }}
+        >
+          <SelectTrigger className="h-9! min-h-9! w-full rounded-md border-border/70 bg-background/40 text-sm">
+            <span data-slot="select-value" className="flex flex-1 items-center text-left">
+              {displayGuardMode(rule.guardMode)}
+            </span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="Solo aviso">Solo aviso</SelectItem>
+              <SelectItem value="Bloqueo lógico">Bloquear entrada</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </div>
 
-      <Select
-        value={rule.guardMode}
-        disabled={!rule.checked}
-        onValueChange={(value) => {
-          if (value === "Solo aviso" || value === "Bloqueo lógico") {
-            onChange({ ...rule, guardMode: value });
-          }
-        }}
-      >
-        <SelectTrigger className="h-9 w-full border-border/70 bg-background/40">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectItem value="Solo aviso">Solo aviso</SelectItem>
-            <SelectItem value="Bloqueo lógico">Bloqueo lógico</SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-
-      <div className="lg:text-right">
-        <p className={cn("text-xs font-medium", modeTone)}>
-          {rule.checked ? rule.guardMode : "Desactivado"}
+      <div className="mt-3 flex min-w-0 items-center justify-between gap-3">
+        <p className={cn("text-sm font-medium", modeTone)}>
+          {rule.checked ? displayGuardMode(rule.guardMode) : "Desactivado"}
         </p>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">{rule.futureAction}</p>
+        <p className="truncate text-right text-xs text-muted-foreground">{rule.futureAction}</p>
       </div>
     </div>
   );
@@ -359,24 +456,7 @@ function VolumeRuleRow({
         <p className="font-medium text-foreground">{rule.label}</p>
         <p className="mt-1 text-xs text-muted-foreground">{rule.detail}</p>
       </div>
-      <div>
-        <Input
-          type="number"
-          inputMode="decimal"
-          min={rule.min}
-          max={rule.max}
-          step={rule.step}
-          value={rule.value}
-          className="h-9 border-border/70 bg-background/40 font-mono"
-          onChange={(event) =>
-            onChange({
-              ...rule,
-              value: clampRuleValue(rule, Number.parseFloat(event.currentTarget.value)),
-            })
-          }
-        />
-        <p className="mt-1 text-right text-xs text-muted-foreground">{formatRuleValue(rule)}</p>
-      </div>
+      <RuleValueControl rule={rule} onChange={onChange} />
     </div>
   );
 }
@@ -393,19 +473,55 @@ function PolicyStatusStrip({
   savedLabel: string;
 }) {
   const cells = [
-    { label: "Cuenta", value: accountLabel },
-    { label: "Política", value: "Reglas comunes" },
-    { label: "Bloqueos lógicos", value: `${activeBlockCount}` },
-    { label: "Símbolos permitidos", value: `${allowedSymbolCount}` },
-    { label: "Borrador", value: savedLabel },
+    {
+      helper: "Perfil activo",
+      icon: CircleCheckIcon,
+      label: "Cuenta",
+      tone: "text-foreground",
+      value: accountLabel,
+    },
+    {
+      helper: "Aplicable a esta cuenta",
+      icon: SlidersHorizontalIcon,
+      label: "Política",
+      tone: "text-foreground",
+      value: "Reglas comunes",
+    },
+    {
+      helper: "Nuevos trades",
+      icon: LockKeyholeIcon,
+      label: "Bloqueos",
+      tone: activeBlockCount > 0 ? "text-risk" : "text-muted-foreground",
+      value: `${activeBlockCount} activos`,
+    },
+    {
+      helper: "Instrumentos permitidos",
+      icon: TagsIcon,
+      label: "Símbolos",
+      tone: allowedSymbolCount > 0 ? "text-profit" : "text-muted-foreground",
+      value: `${allowedSymbolCount} permitidos`,
+    },
+    {
+      helper: "Guardado para esta cuenta",
+      icon: FileClockIcon,
+      label: "Cambios",
+      tone: "text-foreground",
+      value: savedLabel,
+    },
   ];
 
   return (
-    <div className="grid border-y border-border/60 sm:grid-cols-2 xl:grid-cols-5">
+    <div className="grid gap-4 border-y border-border/60 py-4 sm:grid-cols-2 xl:grid-cols-5">
       {cells.map((cell) => (
-        <div key={cell.label} className="min-w-0 border-b border-border/60 py-3 pr-4 last:border-b-0 sm:border-r sm:last:border-r-0 xl:border-b-0">
-          <p className="text-xs text-muted-foreground">{cell.label}</p>
-          <p className="mt-1 truncate font-mono text-sm font-semibold text-foreground">{cell.value}</p>
+        <div key={cell.label} className="min-w-0 border-l border-border/70 pl-3">
+          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <cell.icon className="size-3.5" />
+            {cell.label}
+          </div>
+          <p className={cn("mt-2 truncate text-base font-semibold tracking-normal", cell.tone)}>
+            {cell.value}
+          </p>
+          <p className="mt-1 truncate text-xs text-muted-foreground">{cell.helper}</p>
         </div>
       ))}
     </div>
@@ -422,6 +538,7 @@ export function RiskPolicyConfigurator({
   const [draft, setDraft] = React.useState<DraftState>(defaultDraft);
   const [symbolInput, setSymbolInput] = React.useState("");
   const [savedLabel, setSavedLabel] = React.useState("Local");
+  const [isPublishing, setIsPublishing] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -463,6 +580,41 @@ export function RiskPolicyConfigurator({
       setSavedLabel("Sin guardar");
     }
   }, [storageKey]);
+
+  const publishPolicyPackage = React.useCallback(async (nextDraft: DraftState) => {
+    saveDraft(nextDraft);
+    setIsPublishing(true);
+
+    try {
+      const response = await fetch(`/api/kmfx/accounts/${encodeURIComponent(accountId)}/risk-policy`, {
+        body: JSON.stringify({
+          accountLabel,
+          configured_policy: buildConfiguredPolicyFromDraft(nextDraft),
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const payload = await response.json().catch(() => ({}));
+      const policyHash =
+        typeof payload.policy_hash === "string"
+          ? payload.policy_hash
+          : typeof payload.risk_policy_package?.policy_hash === "string"
+            ? payload.risk_policy_package.policy_hash
+            : "";
+
+      setSavedLabel(
+        response.ok && policyHash
+          ? `${payload.persisted === false ? "Local" : "Hash"} ${policyHash.slice(0, 6)}`
+          : "Local",
+      );
+    } catch {
+      setSavedLabel("Local");
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [accountId, accountLabel, saveDraft]);
 
   const updateRule = React.useCallback((nextRule: EditableRule) => {
     saveDraft({
@@ -516,7 +668,7 @@ export function RiskPolicyConfigurator({
     try {
       window.localStorage.removeItem(storageKey);
     } catch {
-      // Local storage is an enhancement in this beta surface.
+      // Local storage is an enhancement for this preview surface.
     }
     setDraft(defaultDraft);
     setSavedLabel("Restablecido");
@@ -533,11 +685,11 @@ export function RiskPolicyConfigurator({
         <div>
           <CardTitle className="flex items-center gap-2">
             <SlidersHorizontalIcon className="size-5 text-muted-foreground" />
-            Configuración de límites y bloqueos
+            Límites y bloqueos de operativa
           </CardTitle>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            Ajusta la política por cuenta antes de añadir riesgo. En beta se guarda como borrador local y aplica
-            avisos o bloqueos lógicos; MT5 no queda bloqueado hasta confirmar EA, consentimiento y telemetría.
+            Define cuándo KMFX debe avisar y cuándo debe impedir añadir más riesgo. Se guarda
+            como política local; MT5 no queda bloqueado hasta activar el módulo en el terminal.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -545,9 +697,9 @@ export function RiskPolicyConfigurator({
             <RotateCcwIcon data-icon="inline-start" />
             Restablecer
           </Button>
-          <Button size="sm" onClick={() => saveDraft(draft)}>
+          <Button size="sm" disabled={isPublishing} onClick={() => void publishPolicyPackage(draft)}>
             <SaveIcon data-icon="inline-start" />
-            Guardar borrador
+            {isPublishing ? "Guardando" : "Guardar política"}
           </Button>
         </div>
       </CardHeader>
@@ -560,20 +712,17 @@ export function RiskPolicyConfigurator({
         />
 
         <section className="py-4">
-          <div className="grid gap-1 border-b border-border/60 pb-3 lg:grid-cols-[minmax(240px,1fr)_136px_150px_150px]">
-            <div>
-              <p className="font-medium text-foreground">Reglas principales</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Reglas comunes para evitar sobreoperativa e incumplimientos básicos.
-              </p>
-            </div>
-            <p className="hidden text-xs font-medium text-muted-foreground lg:block">Límite</p>
-            <p className="hidden text-xs font-medium text-muted-foreground lg:block">Modo</p>
-            <p className="hidden text-right text-xs font-medium text-muted-foreground lg:block">Acción</p>
+          <div className="border-b border-border/60 pb-3">
+            <p className="font-medium text-foreground">Reglas principales</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Límites simples para no sobreoperar, no romper el plan y proteger la cuenta.
+            </p>
           </div>
-          {draft.rules.map((rule) => (
-            <PolicyRuleRow key={rule.id} rule={rule} onChange={updateRule} />
-          ))}
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:gap-x-6 xl:gap-y-5">
+            {draft.rules.map((rule) => (
+              <PolicyRuleRow key={rule.id} rule={rule} onChange={updateRule} />
+            ))}
+          </div>
         </section>
 
         <section className="grid gap-6 border-t border-border/60 py-4 xl:grid-cols-[minmax(0,1fr)_minmax(300px,0.55fr)]">
@@ -592,10 +741,10 @@ export function RiskPolicyConfigurator({
           </div>
 
           <div className="border-t border-border/60 pt-4 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
-            <p className="font-medium text-foreground">Estado técnico</p>
+            <p className="font-medium text-foreground">Qué hace ahora</p>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Esta configuración prepara avisos y bloqueos lógicos. No ejecuta, modifica ni cierra operaciones.
-              La activación técnica en MT5 queda pendiente de EA, consentimiento y confirmación del terminal.
+              KMFX guarda estos límites y los usa como guía de disciplina. No abre, modifica
+              ni cierra operaciones. Para bloquear MT5 de verdad hará falta activar el módulo en el terminal.
             </p>
           </div>
         </section>
@@ -606,13 +755,13 @@ export function RiskPolicyConfigurator({
               <div>
                 <p className="font-medium text-foreground">Símbolos permitidos</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Añade, bloquea o retira instrumentos de la política común.
+                  Decide qué pares o índices pueden usarse en esta cuenta.
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-stretch gap-2 sm:w-auto sm:grid-cols-[160px_auto]">
                 <Input
                   aria-label="Añadir símbolo"
-                  className="h-9 w-32 border-border/70 bg-background/40 font-mono uppercase"
+                  className="h-10! min-h-10! border-border/70 bg-background/40 font-mono uppercase"
                   placeholder="EURUSD"
                   value={symbolInput}
                   onChange={(event) => setSymbolInput(event.currentTarget.value.toUpperCase())}
@@ -620,7 +769,7 @@ export function RiskPolicyConfigurator({
                     if (event.key === "Enter") addSymbol();
                   }}
                 />
-                <Button size="sm" variant="outline" onClick={addSymbol}>
+                <Button className="h-10! min-h-10! px-3" variant="outline" onClick={addSymbol}>
                   <PlusIcon data-icon="inline-start" />
                   Añadir
                 </Button>
@@ -641,8 +790,9 @@ export function RiskPolicyConfigurator({
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={symbol.enabled}
-                      size="sm"
+                      className={riskSwitchClassName}
                       onCheckedChange={(checked) => updateSymbol(symbol.symbol, checked)}
+                      style={symbol.enabled ? riskSwitchActiveStyle : undefined}
                     />
                     <Button
                       aria-label={`Quitar ${symbol.symbol}`}
@@ -661,7 +811,7 @@ export function RiskPolicyConfigurator({
           <div className="border-t border-border/60 pt-4 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
             <p className="font-medium text-foreground">Sesiones y horarios</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Define cuándo operar normal, reducir tamaño o bloquear nuevas entradas.
+              Define cuándo operar normal, reducir tamaño o no abrir nuevos trades.
             </p>
             <div className="mt-3">
               {draft.sessions.map((session) => (
@@ -713,7 +863,7 @@ export function RiskPolicyConfigurator({
         </section>
 
         <p className="border-t border-border/60 pt-4 text-xs leading-5 text-muted-foreground">
-          Las reglas son una política común de disciplina: no generan señales, no hacen copy trading y no sustituyen la revisión de las condiciones de cada cuenta.
+          Estas reglas no generan señales ni replican operaciones. Sirven para mantener disciplina antes de añadir riesgo.
         </p>
       </CardContent>
     </Card>

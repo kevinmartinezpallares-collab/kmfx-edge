@@ -64,15 +64,14 @@ describe("V1 action safety contract", () => {
     );
   });
 
-  it("keeps live beta behind a server-side preview gate when configured", () => {
+  it("keeps production access free of legacy beta Basic Auth gates", () => {
     const source = readSource("src/proxy.ts");
 
-    expect(source).toContain("KMFX_BETA_GATE_PASSWORD");
-    expect(source).toContain("WWW-Authenticate");
-    expect(source).toContain("Basic realm");
-    expect(source).toContain("authorization");
-    expect(source).toContain("Cache-Control");
-    expect(source).not.toContain("NEXT_PUBLIC_KMFX_BETA_GATE_PASSWORD");
+    expect(source).not.toContain("KMFX_BETA_GATE_PASSWORD");
+    expect(source).not.toContain("KMFX_BETA_GATE_USERNAME");
+    expect(source).not.toContain("WWW-Authenticate");
+    expect(source).not.toContain("Basic realm");
+    expect(source).not.toContain("beta_gate_blocked");
   });
 
   it("keeps marketing preview explicit and owner-scoped without billing interception", () => {
@@ -89,5 +88,24 @@ describe("V1 action safety contract", () => {
     expect(workspaceSource).toContain("isMarketingPreviewEmail(userEmail)");
     expect(accessSource).toContain("KMFX_MARKETING_PREVIEW_EMAILS");
     expect(accessSource).toContain("kevinmartinezpallares@gmail.com");
+  });
+
+  it("keeps account mutation routes behind server-side access checks", () => {
+    const refreshRoute = readSource("src/app/api/kmfx/accounts/refresh/route.ts");
+    const riskPolicyRoute = readSource(
+      "src/app/api/kmfx/accounts/[accountId]/risk-policy/route.ts",
+    );
+
+    expect(refreshRoute).toContain("requestConnectionAccess");
+    expect(refreshRoute).toContain("if (!access.allowed)");
+    expect(refreshRoute).toContain("auth_required");
+    expect(refreshRoute).toContain("{ status: access.status }");
+
+    const riskPolicyPost = snippetAround(riskPolicyRoute, "export async function POST", 1320);
+
+    expect(riskPolicyPost).toContain('reason === "auth_required"');
+    expect(riskPolicyPost).toContain("auth_required: authRequired");
+    expect(riskPolicyPost).toContain("ok: !authRequired");
+    expect(riskPolicyPost).toContain("status: authRequired ? 401 : 200");
   });
 });

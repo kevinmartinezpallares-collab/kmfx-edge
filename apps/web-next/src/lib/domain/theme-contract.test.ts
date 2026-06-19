@@ -66,6 +66,38 @@ describe("theme contract", () => {
     expect(source).toContain("@theme inline");
   });
 
+  it("keeps auth backgrounds compatible with OKLCH tokens", () => {
+    const source = readSource("src/components/auth/auth-page.tsx");
+
+    expect(source).toContain("color-mix(in oklch");
+    expect(source).not.toContain("hsl(var(--");
+  });
+
+  it("keeps auth bot verification from shifting the login layout", () => {
+    const source = readSource("src/components/auth/auth-page.tsx");
+
+    expect(source).toContain('className="min-h-[65px] overflow-hidden rounded-xl"');
+    expect(source).toContain('data-turnstile-container=""');
+    expect(source).toContain("overflow-hidden bg-background text-foreground");
+    expect(source).toContain("7 días gratis");
+    expect(source).not.toContain("inviteOnlySignup");
+    expect(source).not.toContain("inviteCode");
+    expect(source).not.toContain("/api/kmfx/invite/validate");
+  });
+
+  it("pre-hydrates the selected theme before app paint", () => {
+    const layoutSource = readSource("src/app/layout.tsx");
+    const providerSource = readSource("src/components/app/theme-provider.tsx");
+
+    expect(layoutSource).toContain("themeBootScript");
+    expect(layoutSource).toContain('data-theme="dark"');
+    expect(layoutSource).toContain('pathname === "/login"');
+    expect(layoutSource).toContain('pathname.startsWith("/auth/")');
+    expect(providerSource).toContain("function shouldForceDarkTheme");
+    expect(providerSource).toContain("usePathname()");
+    expect(providerSource).toContain("root.dataset.theme = resolvedTheme;");
+  });
+
   it("keeps required tokens defined for light and dark structure", () => {
     const source = readGlobalsCss();
     const rootBlock = extractBlock(source, ":root");

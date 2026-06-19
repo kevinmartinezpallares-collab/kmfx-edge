@@ -164,6 +164,7 @@ class MetricsContractTests(unittest.TestCase):
 
     def test_default_reference_policy_does_not_generate_breach(self) -> None:
         raw_policy = connector_api.build_policy("4000082126")
+        self.assertFalse(raw_policy["auto_block"])
         policy, _ = build_policy_snapshot(raw_policy)
         risk_snapshot = {
             "summary": {
@@ -181,6 +182,104 @@ class MetricsContractTests(unittest.TestCase):
         self.assertEqual("reference", evaluation["limits_status"]["risk_per_trade"]["state"])
         self.assertFalse(evaluation["limits_status"]["risk_per_trade"]["is_configured"])
         self.assertEqual("reference_default", evaluation["limits_status"]["risk_per_trade"]["source"])
+
+    def test_account_risk_policy_can_request_auto_block(self) -> None:
+        raw_policy = connector_api.build_policy(
+            "policy-account",
+            connector_api.extract_account_policy_config(
+                {
+                    "configured_policy": {
+                        "auto_block": True,
+                        "policy_source": "user",
+                        "risk_per_trade_pct": 0.25,
+                        "daily_dd_limit_pct": 3.0,
+                        "max_dd_limit_pct": 6.0,
+                    }
+                }
+            ),
+        )
+
+        self.assertTrue(raw_policy["auto_block"])
+        self.assertEqual(0.25, raw_policy["max_risk_per_trade_pct"])
+        self.assertEqual("user", raw_policy["policy_source"])
+
+    def test_riskguard_ack_confirms_reactive_entry_guard_only_without_close_all(self) -> None:
+        ack = connector_api.normalize_riskguard_terminal_ack(
+            {
+                "policy_hash": "abc123",
+                "riskguard_enabled": True,
+                "consent_accepted": True,
+                "reactive_delete_pending_orders": True,
+                "reactive_close_market_positions": False,
+                "terminal_trade_allowed": True,
+                "account_trade_allowed": True,
+                "auto_block_received": True,
+            },
+            expected_policy_hash="abc123",
+        )
+
+        self.assertTrue(ack["active_enforcement_confirmed"])
+        self.assertFalse(ack["firm_caution_required"])
+        self.assertEqual("reactive_entry_guard_confirmed", ack["protection_state"])
+
+    def test_riskguard_ack_marks_position_closing_as_firm_caution(self) -> None:
+        ack = connector_api.normalize_riskguard_terminal_ack(
+            {
+                "policy_hash": "abc123",
+                "riskguard_enabled": True,
+                "consent_accepted": True,
+                "reactive_delete_pending_orders": True,
+                "reactive_close_market_positions": True,
+                "terminal_trade_allowed": True,
+                "account_trade_allowed": True,
+                "auto_block_received": True,
+            },
+            expected_policy_hash="abc123",
+        )
+
+        self.assertFalse(ack["active_enforcement_confirmed"])
+        self.assertTrue(ack["firm_caution_required"])
+        self.assertEqual("advanced_close_requires_firm_review", ack["protection_state"])
+
+    def test_riskguard_ack_builds_alert_event_for_entry_block(self) -> None:
+        ack = connector_api.normalize_riskguard_terminal_ack(
+            {
+                "policy_hash": "abc123",
+                "riskguard_enabled": True,
+                "consent_accepted": True,
+                "reactive_delete_pending_orders": True,
+                "reactive_close_market_positions": False,
+                "terminal_trade_allowed": True,
+                "account_trade_allowed": True,
+                "auto_block_received": True,
+                "event_type": "block_new_entries",
+                "event_reason": "La política activa no permite abrir más operaciones ahora.",
+                "blocking_rule": "max_trades_per_day",
+                "risk_status": "active_monitoring",
+            },
+            expected_policy_hash="abc123",
+        )
+
+        self.assertIn("alert_event", ack)
+        self.assertEqual("Mesa de Riesgo: entradas bloqueadas", ack["alert_event"]["label"])
+        self.assertEqual("max_trades_per_day", ack["alert_event"]["blocking_rule"])
+        self.assertEqual("block_new_entries", ack["alert_event"]["event_type"])
+
+    def test_riskguard_ack_does_not_build_alert_for_plain_policy_summary(self) -> None:
+        ack = connector_api.normalize_riskguard_terminal_ack(
+            {
+                "policy_hash": "abc123",
+                "riskguard_enabled": True,
+                "consent_accepted": True,
+                "reactive_delete_pending_orders": True,
+                "terminal_trade_allowed": True,
+                "account_trade_allowed": True,
+                "event_type": "policy_summary",
+            },
+            expected_policy_hash="abc123",
+        )
+
+        self.assertNotIn("alert_event", ack)
 
     def test_configured_policy_still_generates_breach(self) -> None:
         policy, _ = build_policy_snapshot(

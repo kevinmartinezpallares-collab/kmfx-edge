@@ -12,6 +12,7 @@ import argparse
 import hashlib
 import json
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -69,25 +70,31 @@ class Smoke:
             "User-Agent": "KMFX-Production-Smoke/1.0",
             **(headers or {}),
         }
-        request = urllib.request.Request(url, data=data, headers=request_headers, method=method)
-        try:
-            opener = urllib.request.build_opener() if follow_redirects else urllib.request.build_opener(NoRedirectHandler)
-            with opener.open(request, timeout=self.timeout) as response:
-                return Response(
-                    status=response.status,
-                    headers=normalize_headers(response.headers),
-                    body=response.read(),
-                    url=response.geturl(),
+        last_response = Response(status=0, headers={}, body=b"", url=url)
+        for attempt in range(3):
+            request = urllib.request.Request(url, data=data, headers=request_headers, method=method)
+            try:
+                opener = urllib.request.build_opener() if follow_redirects else urllib.request.build_opener(NoRedirectHandler)
+                with opener.open(request, timeout=self.timeout) as response:
+                    last_response = Response(
+                        status=response.status,
+                        headers=normalize_headers(response.headers),
+                        body=response.read(),
+                        url=response.geturl(),
+                    )
+            except urllib.error.HTTPError as exc:
+                last_response = Response(
+                    status=exc.code,
+                    headers=normalize_headers(exc.headers),
+                    body=exc.read(),
+                    url=url,
                 )
-        except urllib.error.HTTPError as exc:
-            return Response(
-                status=exc.code,
-                headers=normalize_headers(exc.headers),
-                body=exc.read(),
-                url=url,
-            )
-        except urllib.error.URLError as exc:
-            return Response(status=0, headers={}, body=str(exc).encode("utf-8", errors="replace"), url=url)
+            except urllib.error.URLError as exc:
+                last_response = Response(status=0, headers={}, body=str(exc).encode("utf-8", errors="replace"), url=url)
+            if last_response.status not in {0, 502, 503, 504} or attempt == 2:
+                return last_response
+            time.sleep(0.7 * (attempt + 1))
+        return last_response
 
     def run(self) -> int:
         self.check_frontend_headers()
@@ -133,7 +140,7 @@ class Smoke:
         )
 
     def check_spa_routes(self) -> None:
-        if self.profile == "next-beta":
+        if self.profile in {"production", "next-beta"}:
             paths = (
                 "/dashboard",
                 "/accounts",
@@ -414,7 +421,7 @@ def main() -> int:
         "--downloads-mode",
         choices=("auto", "public", "auth"),
         default="auto",
-        help="auto accepts public artifacts or login-protected beta artifacts.",
+        help="auto accepts public artifacts or login-protected production artifacts.",
     )
     args = parser.parse_args()
     return Smoke(

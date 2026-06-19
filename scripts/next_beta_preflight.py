@@ -21,7 +21,7 @@ RENDER_API_BASE = "https://api.render.com/v1"
 DEFAULT_RENDER_SERVICE_ID = "srv-d79k3b75r7bs73fspuu0"
 DEFAULT_API_BASE_URL = "https://kmfx-edge-api.onrender.com"
 DEFAULT_WORKER_BASE_URL = "https://mt5-api.kmfxedge.com"
-DEFAULT_NEXT_BASE_URL = "https://beta.kmfxedge.com"
+DEFAULT_NEXT_BASE_URL = "https://kmfxedge.com"
 
 
 def env_value(*names: str) -> str:
@@ -46,7 +46,7 @@ def request_json_with_headers(
 ) -> tuple[int, Any, dict[str, str]]:
     request_headers = {
         "Accept": "application/json",
-        "User-Agent": "KMFX-Next-Beta-Preflight/1.0",
+        "User-Agent": "KMFX-Next-Production-Preflight/1.0",
         **(headers or {}),
     }
     request = urllib.request.Request(url, data=body, headers=request_headers, method=method)
@@ -129,7 +129,7 @@ def resolve_preview_headers(service_id: str) -> tuple[dict[str, str], list[str]]
 def health_check(base_url: str) -> dict[str, Any]:
     status, payload = request_json(
         f"{base_url.rstrip('/')}/health",
-        headers={"Accept": "application/json", "User-Agent": "KMFX-Next-Beta-Preflight/1.0"},
+        headers={"Accept": "application/json", "User-Agent": "KMFX-Next-Production-Preflight/1.0"},
     )
     ok = status == 200 and isinstance(payload, dict) and payload.get("ok") is True
     return {
@@ -318,10 +318,22 @@ def student_surface_audit(api_base_url: str) -> dict[str, Any]:
         isinstance(key_payload, dict) and key_payload.get("reason") == "auth_required"
     )
 
-    student_auth_confirmed = env_value("KMFX_STUDENT_BETA_AUTH_READY") in {"1", "true", "TRUE", "yes", "YES"}
-    student_billing_confirmed = env_value("KMFX_STUDENT_BETA_BILLING_VERIFIED") in {"1", "true", "TRUE", "yes", "YES"}
-    student_launcher_confirmed = env_value("KMFX_STUDENT_BETA_LAUNCHER_VERIFIED") in {"1", "true", "TRUE", "yes", "YES"}
-    student_reconciliation_confirmed = env_value("KMFX_STUDENT_BETA_RECONCILIATION_VERIFIED") in {
+    student_auth_confirmed = env_value(
+        "KMFX_STUDENT_AUTH_READY",
+        "KMFX_STUDENT_BETA_AUTH_READY",
+    ) in {"1", "true", "TRUE", "yes", "YES"}
+    student_billing_confirmed = env_value(
+        "KMFX_STUDENT_BILLING_VERIFIED",
+        "KMFX_STUDENT_BETA_BILLING_VERIFIED",
+    ) in {"1", "true", "TRUE", "yes", "YES"}
+    student_launcher_confirmed = env_value(
+        "KMFX_STUDENT_LAUNCHER_VERIFIED",
+        "KMFX_STUDENT_BETA_LAUNCHER_VERIFIED",
+    ) in {"1", "true", "TRUE", "yes", "YES"}
+    student_reconciliation_confirmed = env_value(
+        "KMFX_STUDENT_RECONCILIATION_VERIFIED",
+        "KMFX_STUDENT_BETA_RECONCILIATION_VERIFIED",
+    ) in {
         "1",
         "true",
         "TRUE",
@@ -427,8 +439,11 @@ def local_next_checks() -> dict[str, Any]:
         "qa:mobile:v1",
         "qa:live:snapshot",
         "qa:live:integrity",
-        "preflight:beta",
+        "preflight:student",
+        "preflight:production",
         "preflight:platform",
+        "deploy:production",
+        "monitor:production",
     ]
     result["scripts"] = {name: name in scripts for name in expected}
     return result
@@ -457,8 +472,6 @@ def vercel_local_check() -> dict[str, Any]:
         warnings.append("root_vercel_project_is_legacy_surface_do_not_cutover_next_here")
     if not web_next_project.get("linked"):
         blockers.append("apps_web_next_vercel_project_not_linked")
-    elif web_next_project.get("projectName") != "kmfx-edge-next-beta":
-        blockers.append("apps_web_next_vercel_project_is_not_beta")
 
     return {
         "linked": bool(web_next_project.get("linked")),
@@ -522,7 +535,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
     if not worker_health["ok"]:
         blockers.append("worker_health_failed")
     if next_frontend["dashboard_basic_auth_gate"] or next_frontend["login_basic_auth_gate"]:
-        blockers.append("next_beta_basic_auth_gate_enabled")
+        blockers.append("next_basic_auth_gate_enabled")
     if next_frontend["dashboard_server_error"]:
         blockers.append("next_dashboard_server_error")
     if next_frontend["login_server_error"]:
@@ -606,13 +619,13 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def print_human(report: dict[str, Any]) -> None:
-    print("Next beta preflight")
+    print("Next launch preflight")
     print(f"Estado: {report['status']} | scope={report['scope']}")
     print(f"Backend: {report['api_base_url']} | ok={report['render']['ok']} | commit={report['render'].get('commit')}")
     print(f"Worker: {report['worker_base_url']} | ok={report['worker']['ok']} | commit={report['worker'].get('commit')}")
     next_frontend = report["next_frontend"]
     print(
-        "Next beta: {base_url} | dashboard={dashboard_status} | login={login_status} | public_auth={public_auth_config_ok} | version={version_ok} | commit={version_commit} | branch={version_branch} | supabase_host={supabase_host}".format(
+        "Next app: {base_url} | dashboard={dashboard_status} | login={login_status} | public_auth={public_auth_config_ok} | version={version_ok} | commit={version_commit} | branch={version_branch} | supabase_host={supabase_host}".format(
             **next_frontend
         )
     )
@@ -658,7 +671,7 @@ def print_human(report: dict[str, Any]) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Preflight seguro para beta Next read-only.")
+    parser = argparse.ArgumentParser(description="Preflight seguro para lanzamiento Next.")
     parser.add_argument("--render-service-id", default="")
     parser.add_argument("--api-base-url", default="")
     parser.add_argument("--worker-base-url", default="")

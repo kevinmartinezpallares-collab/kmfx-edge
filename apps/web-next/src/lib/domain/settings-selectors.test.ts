@@ -28,6 +28,7 @@ describe("getSettingsOverview", () => {
       ...wave1Workspace,
       meta: {
         ...wave1Workspace.meta,
+        userAvatarUrl: "https://example.com/avatar.png",
         userEmail: "kevinmartinezpallares@hotmail.com",
         userRoleLabel: "Usuario",
       },
@@ -38,6 +39,7 @@ describe("getSettingsOverview", () => {
       email: "kevinmartinezpallares@hotmail.com",
       role: "Usuario",
       initials: "K",
+      avatarUrl: "https://example.com/avatar.png",
     });
   });
 

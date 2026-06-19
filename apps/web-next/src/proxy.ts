@@ -35,8 +35,28 @@ const BILLING_GUARDED_PREFIXES = [
   "/trades",
 ] as const;
 
-function betaGateEnabled() {
-  return Boolean(process.env.KMFX_BETA_GATE_PASSWORD?.trim());
+const CANONICAL_PRODUCTION_HOST = "kmfxedge.com";
+const LEGACY_PRODUCTION_HOSTS = new Set([
+  "beta.kmfxedge.com",
+  "dashboard.kmfxedge.com",
+  "www.kmfxedge.com",
+]);
+const BILLING_GUARD_TIMEOUT_MS = 1200;
+
+export function shouldRedirectToCanonicalProductionHost(host: string | null | undefined) {
+  const normalizedHost = host?.split(":")[0]?.toLowerCase();
+  return Boolean(normalizedHost && LEGACY_PRODUCTION_HOSTS.has(normalizedHost));
+}
+
+export function resolveCanonicalHostRedirect(request: NextRequest) {
+  const host = request.headers.get("host")?.split(":")[0]?.toLowerCase();
+  if (!shouldRedirectToCanonicalProductionHost(host)) return null;
+
+  const url = request.nextUrl.clone();
+  url.hostname = CANONICAL_PRODUCTION_HOST;
+  url.port = "";
+  url.protocol = "https:";
+  return NextResponse.redirect(url, 308);
 }
 
 function logProxyEvent(
@@ -61,44 +81,13 @@ function logProxyEvent(
   }
 }
 
-function unauthorized() {
-  return new NextResponse("Beta privada", {
-    status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="KMFX Edge Beta", charset="UTF-8"',
-      "Cache-Control": "no-store",
-    },
-  });
-}
-
-function hasBetaAccess(request: NextRequest) {
-  const expectedPassword = process.env.KMFX_BETA_GATE_PASSWORD?.trim();
-  if (!expectedPassword) return true;
-
-  const expectedUsername = process.env.KMFX_BETA_GATE_USERNAME?.trim() || "kmfx";
-  const header = request.headers.get("authorization") || "";
-  const [scheme, encoded] = header.split(" ");
-  if (scheme?.toLowerCase() !== "basic" || !encoded) return false;
-
-  try {
-    const decoded = atob(encoded);
-    const separatorIndex = decoded.indexOf(":");
-    if (separatorIndex < 0) return false;
-
-    const username = decoded.slice(0, separatorIndex);
-    const password = decoded.slice(separatorIndex + 1);
-    return username === expectedUsername && password === expectedPassword;
-  } catch {
-    return false;
-  }
-}
-
 function isAuthRoute(pathname: string) {
   return pathname === "/login" || pathname.startsWith("/auth/");
 }
 
 function isPublicKmfxRoute(pathname: string) {
   return (
+    pathname === "/api/mt5/riskguard/ack" ||
     pathname === "/api/kmfx/public-auth-config" ||
     pathname === "/api/kmfx/version"
   );
@@ -130,6 +119,9 @@ function hasExplicitDemoMode(request: NextRequest) {
 async function resolveBlockedBillingAccess(accessToken: string | undefined) {
   if (!accessToken) return null;
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), BILLING_GUARD_TIMEOUT_MS);
+
   try {
     const response = await fetch(buildKmfxApiUrl("/api/billing/status"), {
       cache: "no-store",
@@ -137,6 +129,7 @@ async function resolveBlockedBillingAccess(accessToken: string | undefined) {
         Accept: "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
+      signal: controller.signal,
     });
     const payload = await response.json().catch(() => ({}));
     const access = resolveConnectionAccess(response.ok ? payload : { ok: false });
@@ -157,11 +150,20 @@ async function resolveBlockedBillingAccess(accessToken: string | undefined) {
       }),
     );
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const canonicalRedirect = resolveCanonicalHostRedirect(request);
+  if (canonicalRedirect) {
+    logProxyEvent("info", "canonical_host_redirect", request, {
+      targetHost: CANONICAL_PRODUCTION_HOST,
+    });
+    return canonicalRedirect;
+  }
 
   if (isPublicKmfxRoute(pathname)) {
     return NextResponse.next();
@@ -180,9 +182,8 @@ export async function proxy(request: NextRequest) {
     return new NextResponse(null, { status: 404 });
   }
 
-  if (betaGateEnabled() && !hasBetaAccess(request)) {
-    logProxyEvent("warn", "beta_gate_blocked", request);
-    return unauthorized();
+  if (isAuthRoute(pathname)) {
+    return NextResponse.next();
   }
 
   if (!isSupabaseAuthEnabled()) {
@@ -220,14 +221,6 @@ export async function proxy(request: NextRequest) {
     loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
     logProxyEvent("info", "auth_redirect_login", request);
     return NextResponse.redirect(loginUrl);
-  }
-
-  if (session.authenticated && pathname === "/login") {
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/dashboard";
-    dashboardUrl.search = "";
-    logProxyEvent("info", "auth_redirect_dashboard", request);
-    return NextResponse.redirect(dashboardUrl);
   }
 
   if (

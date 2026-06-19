@@ -92,7 +92,7 @@ describe("auditLiveSnapshotReadiness", () => {
     );
   });
 
-  it("blocks beta account testing when no account has usable equity payload", () => {
+  it("blocks live account testing when no account has usable equity payload", () => {
     const audit = auditLiveSnapshotReadiness(
       {
         accounts: [
@@ -111,7 +111,7 @@ describe("auditLiveSnapshotReadiness", () => {
     expect(audit.issues).toEqual([
       "Cuenta 1: falta dashboard_payload.",
       "Cuenta 1: falta equity o balance valido.",
-      "No hay ninguna cuenta lista para una prueba beta read-only.",
+      "No hay ninguna cuenta lista para una prueba live read-only.",
     ]);
   });
 

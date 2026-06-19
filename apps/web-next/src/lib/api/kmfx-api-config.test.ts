@@ -43,7 +43,7 @@ describe("kmfx-api-config", () => {
     );
   });
 
-  it("keeps live snapshot timeout bounded for beta read-only mode", () => {
+  it("keeps live snapshot timeout bounded for live read-only mode", () => {
     delete process.env.KMFX_SNAPSHOT_TIMEOUT_MS;
     expect(resolveKmfxSnapshotTimeoutMs()).toBe(8000);
 

@@ -9,9 +9,13 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    ".vercel/**",
     "out/**",
+    "output/**",
     "build/**",
+    "dist/**",
     "next-env.d.ts",
+    "*.tsbuildinfo",
     // Bklit registry chart primitives are installed generated code.
     "src/components/charts/**",
   ]),

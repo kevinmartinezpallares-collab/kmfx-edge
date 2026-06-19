@@ -1,0 +1,51 @@
+name: Production Monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */2 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    name: Production health and usage guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run production monitor
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_API_TOKEN: ${{ secrets.RENDER_API_TOKEN }}
+          RENDER_TOKEN: ${{ secrets.RENDER_TOKEN }}
+          KMFX_MONITOR_CHECK_PREFIX: production
+          KMFX_PRODUCTION_FRONTEND_URL: https://kmfxedge.com
+          KMFX_PRODUCTION_BACKEND_URL: https://kmfx-edge-api.onrender.com
+          KMFX_PRODUCTION_MT5_API_URL: https://mt5-api.kmfxedge.com
+          KMFX_PRODUCTION_MT5_CORS_ORIGIN: https://kmfxedge.com
+          KMFX_PRODUCTION_MAX_BANDWIDTH_USAGE: "0.05"
+        run: python3 scripts/production_monitor_usage.py | tee production-monitor.json
+
+      - name: Upload monitor report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-monitor-report
+          path: production-monitor.json
+          if-no-files-found: ignore
+
+      - name: Notify monitor failure
+        if: failure()
+        env:
+          PRODUCTION_MONITOR_WEBHOOK_URL: ${{ secrets.PRODUCTION_MONITOR_WEBHOOK_URL }}
+          BETA_MONITOR_WEBHOOK_URL: ${{ secrets.BETA_MONITOR_WEBHOOK_URL }}
+        run: python3 scripts/production_monitor_notify.py --report production-monitor.json

@@ -70,6 +70,12 @@ export type RawLiveDashboardPayload = {
   openPositionsCount?: number;
   totalTrades?: number;
   timestamp?: string;
+  riskguard_alert_event?: RawRiskGuardAlertEvent;
+  riskGuardAlertEvent?: RawRiskGuardAlertEvent;
+  riskguard_terminal_ack?: RawRiskGuardTerminalAck;
+  riskGuardTerminalAck?: RawRiskGuardTerminalAck;
+  risk_policy_hash?: string;
+  riskPolicyHash?: string;
   history?: Array<{
     timestamp?: string;
     value?: number;
@@ -95,6 +101,8 @@ export type RawLiveDashboardPayload = {
     bestWinningStreak?: number;
     bestLosingStreak?: number;
   };
+  account_profile?: RawLiveAccountProfile;
+  accountProfile?: RawLiveAccountProfile;
   fundingProfile?: {
     firm?: string;
     account_type?: "challenge" | "funded" | "evaluation";
@@ -147,6 +155,73 @@ export type RawLiveDashboardPayload = {
   };
 };
 
+export type RawLiveAccountProfile = {
+  account_class?:
+    | "own"
+    | "real"
+    | "demo"
+    | "challenge"
+    | "evaluation"
+    | "funded";
+  accountClass?:
+    | "own"
+    | "real"
+    | "demo"
+    | "challenge"
+    | "evaluation"
+    | "funded";
+  badge_label?: string;
+  badgeLabel?: string;
+  source?: "auto" | "manual";
+  updated_at?: string;
+  updatedAt?: string;
+};
+
+export type RawRiskGuardAlertEvent = {
+  id?: string;
+  tone?: "danger" | "warning" | "info";
+  label?: string;
+  reason?: string;
+  event_type?: string;
+  eventType?: string;
+  policy_hash?: string;
+  policyHash?: string;
+  blocking_rule?: string;
+  blockingRule?: string;
+  risk_status?: string;
+  riskStatus?: string;
+  occurred_at?: string;
+  occurredAt?: string;
+  received_at?: string;
+  receivedAt?: string;
+};
+
+export type RawRiskGuardTerminalAck = {
+  account_trade_allowed?: boolean;
+  active_enforcement_confirmed?: boolean;
+  alert_event?: RawRiskGuardAlertEvent;
+  alertEvent?: RawRiskGuardAlertEvent;
+  auto_block_received?: boolean;
+  blocking_rule?: string;
+  consent_accepted?: boolean;
+  ea_name?: string;
+  ea_version?: string;
+  event_type?: string;
+  eventType?: string;
+  firm_caution_required?: boolean;
+  mode?: string;
+  policy_hash?: string;
+  policy_hash_matches?: boolean;
+  protection_state?: string;
+  risk_status?: string;
+  severity?: "info" | "warning" | "danger";
+  reactive_close_market_positions?: boolean;
+  reactive_delete_pending_orders?: boolean;
+  received_at?: string;
+  riskguard_enabled?: boolean;
+  terminal_trade_allowed?: boolean;
+};
+
 export type RawLiveSnapshotAccount = {
   account_id?: string;
   user_id?: string;
@@ -159,13 +234,20 @@ export type RawLiveSnapshotAccount = {
   status?: string;
   last_sync_at?: string;
   is_default?: boolean;
+  riskguard_terminal_ack?: RawRiskGuardTerminalAck;
+  riskGuardTerminalAck?: RawRiskGuardTerminalAck;
   dashboard_payload?: RawLiveDashboardPayload;
 };
 
 export type RawLiveAccountsSnapshot = {
   accounts?: RawLiveSnapshotAccount[];
+  auth_avatar_url?: string;
   auth_email?: string;
+  auth_picture?: string;
+  avatar_url?: string;
+  picture?: string;
   user_id?: string;
+  user_avatar_url?: string;
   scope_user_id?: string;
   is_admin?: boolean;
   summary_only?: boolean;

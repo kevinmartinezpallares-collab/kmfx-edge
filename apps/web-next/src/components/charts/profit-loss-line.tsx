@@ -2,6 +2,7 @@
 
 import { curveLinear } from "@visx/curve";
 import { LinePath } from "@visx/shape";
+import type { CurveFactory, CurveFactoryLineOnly } from "d3-shape";
 import { useCallback, useId, useMemo } from "react";
 import { useChart, useChartStable } from "./chart-context";
 import {
@@ -11,9 +12,7 @@ import {
 } from "./fade-edges";
 import { useProfitLossLegendHover } from "./profit-loss-legend-hover";
 
-// CurveFactory type - simplified version compatible with visx
-// biome-ignore lint/suspicious/noExplicitAny: d3 curve factory type
-type CurveFactory = any;
+type CurveFactoryLike = CurveFactory | CurveFactoryLineOnly;
 
 export const PROFIT_LOSS_POSITIVE_COLOR = "var(--color-emerald-500)";
 export const PROFIT_LOSS_NEGATIVE_COLOR = "var(--color-red-500)";
@@ -38,7 +37,7 @@ export interface ProfitLossLineProps {
   positiveColor?: string;
   negativeColor?: string;
   /** Curve function. Default: curveLinear */
-  curve?: CurveFactory;
+  curve?: CurveFactoryLike;
   /**
    * Fade the line stroke toward transparent at the chart edges.
    * Default: false
@@ -48,6 +47,101 @@ export interface ProfitLossLineProps {
 
 function segmentLegendIndex(isPositive: boolean) {
   return isPositive ? 0 : 1;
+}
+
+type ProfitLossSegmentPoint = {
+  row: Record<string, unknown>;
+  x: Date;
+  y: number;
+};
+
+type ProfitLossSegment = {
+  isPositive: boolean;
+  points: ProfitLossSegmentPoint[];
+};
+
+function pointSign(value: number) {
+  return value >= 0;
+}
+
+function buildProfitLossSegments(
+  data: Record<string, unknown>[],
+  dataKey: string,
+  xAccessor: (row: Record<string, unknown>) => Date,
+): ProfitLossSegment[] {
+  const points = data
+    .map((row) => {
+      const value = row[dataKey];
+      const x = xAccessor(row);
+
+      if (typeof value !== "number" || !Number.isFinite(value)) {
+        return null;
+      }
+      if (!Number.isFinite(x.getTime())) {
+        return null;
+      }
+
+      return { row, x, y: value };
+    })
+    .filter((point): point is ProfitLossSegmentPoint => point !== null);
+
+  if (points.length < 2) {
+    return [];
+  }
+
+  const segments: ProfitLossSegment[] = [];
+  let currentSign = pointSign(points[0].y);
+  let currentPoints: ProfitLossSegmentPoint[] = [points[0]];
+
+  function pushCurrentSegment() {
+    if (currentPoints.length > 1) {
+      segments.push({
+        isPositive: currentSign,
+        points: currentPoints,
+      });
+    }
+  }
+
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const next = points[index];
+    const previousSign = pointSign(previous.y);
+    const nextSign = pointSign(next.y);
+
+    if (previous.y !== 0 && next.y !== 0 && previousSign !== nextSign) {
+      const denominator = Math.abs(previous.y) + Math.abs(next.y);
+      const ratio = denominator > 0 ? Math.abs(previous.y) / denominator : 0.5;
+      const zeroTime =
+        previous.x.getTime() + (next.x.getTime() - previous.x.getTime()) * ratio;
+      const zeroPoint: ProfitLossSegmentPoint = {
+        row: {
+          ...next.row,
+          [dataKey]: 0,
+          date: new Date(zeroTime),
+        },
+        x: new Date(zeroTime),
+        y: 0,
+      };
+
+      currentPoints.push(zeroPoint);
+      pushCurrentSegment();
+      currentSign = nextSign;
+      currentPoints = [zeroPoint, next];
+      continue;
+    }
+
+    if (previous.y === 0 && currentSign !== nextSign) {
+      pushCurrentSegment();
+      currentSign = nextSign;
+      currentPoints = [previous, next];
+      continue;
+    }
+
+    currentPoints.push(next);
+  }
+
+  pushCurrentSegment();
+  return segments;
 }
 
 export function ProfitLossLine({
@@ -60,15 +154,13 @@ export function ProfitLossLine({
 }: ProfitLossLineProps) {
   const { tooltipData } = useChart();
   const { hoveredIndex } = useProfitLossLegendHover();
-  const { renderData, xScale, yScale, xAccessor, innerHeight, innerWidth } =
+  const { renderData, xScale, yScale, xAccessor, innerWidth } =
     useChartStable();
   const reactId = useId();
   const fadeSides = resolveFadeSides(fadeEdges);
   const fadeStops = fadeSides.any ? fadeGradientStops(fadeSides) : null;
   const positiveGradientId = `profit-loss-gradient-pos-${dataKey}-${reactId}`;
   const negativeGradientId = `profit-loss-gradient-neg-${dataKey}-${reactId}`;
-  const positiveClipId = `profit-loss-clip-pos-${dataKey}-${reactId}`;
-  const negativeClipId = `profit-loss-clip-neg-${dataKey}-${reactId}`;
 
   const focusedLegendIndex = useMemo(() => {
     if (hoveredIndex !== null) {
@@ -84,23 +176,20 @@ export function ProfitLossLine({
     return segmentLegendIndex(value >= 0);
   }, [dataKey, hoveredIndex, tooltipData]);
 
+  const segments = useMemo(
+    () => buildProfitLossSegments(renderData, dataKey, xAccessor),
+    [dataKey, renderData, xAccessor],
+  );
+
   const getX = useCallback(
-    (d: Record<string, unknown>) => xScale(xAccessor(d)) ?? 0,
-    [xAccessor, xScale]
+    (point: ProfitLossSegmentPoint) => xScale(point.x) ?? 0,
+    [xScale],
   );
 
   const getY = useCallback(
-    (d: Record<string, unknown>) => {
-      const value = d[dataKey];
-      return typeof value === "number" ? (yScale(value) ?? 0) : 0;
-    },
-    [dataKey, yScale]
+    (point: ProfitLossSegmentPoint) => yScale(point.y) ?? 0,
+    [yScale],
   );
-  const zeroY = Math.min(innerHeight, Math.max(0, yScale(0) ?? innerHeight));
-  const clipOverlap = Math.max(1, strokeWidth);
-  const positiveClipHeight = Math.min(innerHeight, zeroY + clipOverlap / 2);
-  const negativeClipY = Math.max(0, zeroY - clipOverlap / 2);
-  const negativeClipHeight = Math.max(0, innerHeight - negativeClipY);
   const positiveStroke = fadeStops ? `url(#${positiveGradientId})` : positiveColor;
   const negativeStroke = fadeStops ? `url(#${negativeGradientId})` : negativeColor;
   const positiveOpacity =
@@ -114,24 +203,6 @@ export function ProfitLossLine({
 
   return (
     <>
-      <defs>
-        <clipPath id={positiveClipId}>
-          <rect
-            height={positiveClipHeight}
-            width={innerWidth}
-            x={0}
-            y={0}
-          />
-        </clipPath>
-        <clipPath id={negativeClipId}>
-          <rect
-            height={negativeClipHeight}
-            width={innerWidth}
-            x={0}
-            y={negativeClipY}
-          />
-        </clipPath>
-      </defs>
       {fadeStops ? (
         <defs>
           <linearGradient
@@ -174,40 +245,29 @@ export function ProfitLossLine({
           </linearGradient>
         </defs>
       ) : null}
-      <g
-        clipPath={`url(#${positiveClipId})`}
-        opacity={positiveOpacity}
-        style={{ transition: "opacity 0.2s ease-in-out" }}
-      >
-        <LinePath
-          curve={curve}
-          data-chart-line-path={dataKey}
-          data={renderData}
-          stroke={positiveStroke}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={strokeWidth}
-          x={getX}
-          y={getY}
-        />
-      </g>
-      <g
-        clipPath={`url(#${negativeClipId})`}
-        opacity={negativeOpacity}
-        style={{ transition: "opacity 0.2s ease-in-out" }}
-      >
-        <LinePath
-          curve={curve}
-          data-chart-line-path={dataKey}
-          data={renderData}
-          stroke={negativeStroke}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={strokeWidth}
-          x={getX}
-          y={getY}
-        />
-      </g>
+      {segments.map((segment, index) => (
+        <g
+          key={`${segment.isPositive ? "positive" : "negative"}-${index}`}
+          opacity={
+            segment.isPositive
+              ? positiveOpacity
+              : negativeOpacity
+          }
+          style={{ transition: "opacity 0.2s ease-in-out" }}
+        >
+          <LinePath
+            curve={curve}
+            data-chart-line-path={dataKey}
+            data={segment.points}
+            stroke={segment.isPositive ? positiveStroke : negativeStroke}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={strokeWidth}
+            x={getX}
+            y={getY}
+          />
+        </g>
+      ))}
     </>
   );
 }

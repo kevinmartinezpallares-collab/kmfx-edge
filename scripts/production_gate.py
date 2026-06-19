@@ -61,16 +61,16 @@ def run_check(check: Check) -> dict[str, object]:
     }
 
 
-def build_checks(*, full_tests: bool, next_beta: bool) -> list[Check]:
+def build_checks(*, full_tests: bool, next_production: bool) -> list[Check]:
     python = sys.executable
     smoke_command = [python, "scripts/production_smoke.py"]
-    if next_beta:
+    if next_production:
         smoke_command.extend(
             [
                 "--frontend-url",
-                "https://beta.kmfxedge.com",
+                "https://kmfxedge.com",
                 "--profile",
-                "next-beta",
+                "production",
                 "--downloads-mode",
                 "auth",
                 "--cors-origin",
@@ -131,15 +131,21 @@ def main() -> int:
         help="Run the complete unittest suite in addition to the focused regression checks.",
     )
     parser.add_argument(
+        "--next-production",
+        action="store_true",
+        help="Run frontend smoke expectations against the production Next.js app.",
+    )
+    parser.add_argument(
         "--next-beta",
         action="store_true",
-        help="Run frontend smoke expectations against the protected Next.js beta.",
+        help=argparse.SUPPRESS,
     )
     args = parser.parse_args()
+    next_production = args.next_production or args.next_beta
 
     results = [
         run_check(check)
-        for check in build_checks(full_tests=args.full_tests, next_beta=args.next_beta)
+        for check in build_checks(full_tests=args.full_tests, next_production=next_production)
     ]
     failed = [result for result in results if not result["ok"]]
 
@@ -147,8 +153,8 @@ def main() -> int:
         json.dumps(
             {
                 "ok": not failed,
-                "mode": ("next-beta-full" if args.full_tests else "next-beta-standard")
-                if args.next_beta
+                "mode": ("next-production-full" if args.full_tests else "next-production-standard")
+                if next_production
                 else ("full" if args.full_tests else "standard"),
                 "checks": results,
             },

@@ -1,7 +1,7 @@
 # Runbook de Alertas Operativas
 
 Objetivo: detectar fallos reales de produccion sin montar servicios externos ni
-anadir coste fijo antes de la beta.
+anadir coste fijo innecesario.
 
 ## Formato
 
@@ -14,44 +14,45 @@ El backend emite alertas estructuradas en logs con el prefijo:
 Todas las alertas pasan por el mismo sanitizador que los eventos de auditoria:
 no deben imprimir keys completas, JWTs, bearer tokens, contrasenas ni secretos.
 
-## Monitor Beta
+## Monitor Produccion
 
-Antes de abrir mas usuarios, despues de cada deploy beta y cuando un alumno
+Antes de abrir mas usuarios, despues de cada deploy y cuando un usuario
 reporte que no puede entrar o sincronizar, ejecutar:
 
 ```bash
 cd apps/web-next
-npm run monitor:beta
+npm run monitor:production
 ```
 
-El comando usa `scripts/beta_monitor_usage.py` y no imprime secretos. Carga
-opcionalmente `~/.kmfx-beta-monitor.env` para leer tokens privados ya existentes
-en la maquina.
+El comando usa `scripts/production_monitor_usage.py` y no imprime secretos.
+Carga opcionalmente `~/.kmfx-production-monitor.env` para leer tokens privados
+ya existentes en la maquina.
 
-Tambien existe el workflow `Beta Monitor` en GitHub Actions. Se ejecuta cada dos
-horas y puede lanzarse manualmente desde `Actions > Beta Monitor > Run workflow`.
-El resultado queda guardado como artifact `beta-monitor-report`.
+Tambien existe el workflow `Production Monitor` en GitHub Actions. Se ejecuta
+cada dos horas y puede lanzarse manualmente desde
+`Actions > Production Monitor > Run workflow`. El resultado queda guardado como
+artifact `production-monitor-report`.
 
 Si el workflow falla, GitHub Actions marca la ejecucion en rojo y envia sus
 notificaciones habituales. Para aviso adicional a Discord o Slack, configurar el
-secret `BETA_MONITOR_WEBHOOK_URL`; el workflow enviara un resumen con checks
+secret `PRODUCTION_MONITOR_WEBHOOK_URL`; el workflow enviara un resumen con checks
 fallidos, deployment y uso Render MTD.
 
 Checks cubiertos:
 
-- `beta_version_endpoint`: confirma que `https://beta.kmfxedge.com` responde con
+- `production_version_endpoint`: confirma que `https://kmfxedge.com` responde con
   version y deployment ID de Vercel.
-- `beta_public_auth_config`: confirma que la configuracion publica de Supabase
+- `production_public_auth_config`: confirma que la configuracion publica de Supabase
   esta disponible. Si falla, el login puede mostrar "acceso seguro no cargado".
-- `beta_route_*_requires_login`: confirma que las rutas privadas visibles en
-  beta redirigen a login y no a Basic Auth ni a una pantalla rota.
-- `beta_download_*_requires_login`: confirma que Launcher, Windows y EA no se
+- `production_route_*_requires_login`: confirma que las rutas privadas visibles
+  redirigen a login y no a Basic Auth ni a una pantalla rota.
+- `production_download_*_requires_login`: confirma que Launcher, Windows y EA no se
   descargan fuera de una sesion real.
 - `backend_health` y `mt5_api_health`: confirman Render y Worker MT5 vivos.
 - `snapshot_public_requires_auth`: confirma que la lectura publica de cuentas no
   devuelve datos sin sesion y muestra el guard de consumo.
 - `snapshot_bandwidth_usage_below_threshold`: avisa si una lectura publica de
-  snapshot se acerca al limite operativo definido para beta.
+  snapshot se acerca al limite operativo definido para produccion.
 - `mt5_api_cors_allows_expected_origin`: confirma que el Worker permite el
   origen esperado para el conector MT5 y no abre CORS universal.
 - `mt5_api_cors_blocks_unexpected_origin`: confirma que un origen ajeno no queda
@@ -62,22 +63,22 @@ Checks cubiertos:
 Variables opcionales:
 
 ```bash
-KMFX_BETA_FRONTEND_URL=https://beta.kmfxedge.com
-KMFX_BETA_BACKEND_URL=https://kmfx-edge-api.onrender.com
-KMFX_BETA_MT5_API_URL=https://mt5-api.kmfxedge.com
-KMFX_BETA_MT5_CORS_ORIGIN=https://kmfxedge.com
-KMFX_BETA_MAX_BANDWIDTH_USAGE=0.05
+KMFX_PRODUCTION_FRONTEND_URL=https://kmfxedge.com
+KMFX_PRODUCTION_BACKEND_URL=https://kmfx-edge-api.onrender.com
+KMFX_PRODUCTION_MT5_API_URL=https://mt5-api.kmfxedge.com
+KMFX_PRODUCTION_MT5_CORS_ORIGIN=https://kmfxedge.com
+KMFX_PRODUCTION_MAX_BANDWIDTH_USAGE=0.05
 ```
 
 Secrets recomendados en GitHub Actions:
 
 ```text
 RENDER_API_KEY
-BETA_MONITOR_WEBHOOK_URL
+PRODUCTION_MONITOR_WEBHOOK_URL
 ```
 
 `RENDER_API_KEY` permite que el workflow mida consumo Render desde GitHub.
-`BETA_MONITOR_WEBHOOK_URL` es opcional y solo sirve para enviar aviso adicional
+`PRODUCTION_MONITOR_WEBHOOK_URL` es opcional y solo sirve para enviar aviso adicional
 a Discord o Slack cuando el monitor falle.
 
 Si aparece `slow_check:<name>:<ms>`, no bloquea por si solo, pero conviene
@@ -86,16 +87,16 @@ revisarlo si supera de forma repetida 2500 ms.
 ### Interpretacion Del Monitor
 
 - Si `ok=false`, no abrir mas usuarios hasta revisar el check fallido.
-- Si `ok=true` con `warnings`, la beta sigue operativa, pero conviene revisar
+- Si `ok=true` con `warnings`, produccion sigue operativa, pero conviene revisar
   consumo Render, latencia o tokens ausentes.
-- Si falta token Render en GitHub, el workflow seguira validando beta y dejara
+- Si falta token Render en GitHub, el workflow seguira validando produccion y dejara
   `render_usage_unavailable` como warning. Para medir consumo de Render desde
   Actions, anadir `RENDER_API_KEY` como secret del repositorio.
 
 ### Checklist Al Entrar Un Usuario Nuevo
 
-1. Ejecutar `npm run monitor:beta` o lanzar el workflow `Beta Monitor`.
-2. Revisar que `beta_public_auth_config`, `backend_health` y `mt5_api_health`
+1. Ejecutar `npm run monitor:production` o lanzar el workflow `Production Monitor`.
+2. Revisar que `production_public_auth_config`, `backend_health` y `mt5_api_health`
    esten en verde.
 3. Confirmar que `snapshot_bandwidth_usage_below_threshold` no se acerca al
    limite configurado.
@@ -103,7 +104,7 @@ revisarlo si supera de forma repetida 2500 ms.
 5. Si el alumno instala EA/Launcher, confirmar que no aparecen rechazos
    anormales de MT5 sync.
 
-Runbook de incidencias de alumno: `docs/beta-incident-response-runbook.md`.
+Runbook de incidencias de usuario: `docs/beta-incident-response-runbook.md`.
 
 ## Eventos Cubiertos
 
@@ -265,6 +266,6 @@ level":"error
 
 ## Escalado Futuro
 
-Antes de beta abierta, se puede conectar un log drain o alerta externa a estos
+Antes de abrir mas usuarios, se puede conectar un log drain o alerta externa a estos
 patrones. La aplicacion ya emite eventos listos para monitorizacion sin cambiar
 el contrato del backend.

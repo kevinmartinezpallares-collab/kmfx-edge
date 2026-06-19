@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { cookies } from "next/headers";
 
 import { fetchLiveAccountsSnapshot } from "@/lib/api/accounts-snapshot-client";
 import { isMarketingPreviewEmail } from "@/lib/auth/marketing-preview-access";
@@ -22,6 +23,7 @@ type SearchParamsLike =
   | WorkspaceSearchParams
   | undefined;
 
+export const ACTIVE_WORKSPACE_ACCOUNT_COOKIE = "kmfx-active-account";
 const MARKETING_SNAPSHOT_ANCHOR_MS = Date.parse("2026-06-13T09:00:00Z");
 
 function resolveWorkspaceSourceMode(): WorkspaceSourceMode {
@@ -148,6 +150,15 @@ function firstSearchParamValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+async function readPersistedActiveAccountId() {
+  try {
+    const cookieStore = await cookies();
+    return cookieStore.get(ACTIVE_WORKSPACE_ACCOUNT_COOKIE)?.value;
+  } catch {
+    return undefined;
+  }
+}
+
 export function withActiveWorkspaceAccount(
   workspace: WorkspaceState,
   accountId: string | undefined,
@@ -168,7 +179,9 @@ export async function getWorkspaceStateForSearchParams(
   searchParams?: SearchParamsLike,
 ) {
   const resolvedSearchParams = await searchParams;
-  const activeAccountId = firstSearchParamValue(resolvedSearchParams?.account);
+  const activeAccountId =
+    firstSearchParamValue(resolvedSearchParams?.account) ??
+    (await readPersistedActiveAccountId());
   const previewMode = firstSearchParamValue(resolvedSearchParams?.demo);
 
   if (previewMode === "mock") {

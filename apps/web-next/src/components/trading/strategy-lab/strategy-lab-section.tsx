@@ -1,17 +1,22 @@
 import {
-  Activity,
   BadgeCheck,
-  BrainCircuit,
+  BarChart3,
   Database,
-  FileCode2,
-  Play,
+  FileDown,
+  FlaskConical,
+  Gauge,
+  GitBranch,
+  LockKeyhole,
+  PlayCircle,
   ShieldCheck,
-  Terminal,
+  SlidersHorizontal,
+  Target,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -26,51 +31,44 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  accountObjectives,
   getStrategyLabReadiness,
-  strategyLabCandidatePlaceholders,
+  researchGates,
+  strategyFamilies,
   strategyLabCommands,
-  strategyLabGeneBlocks,
   strategyLabMetrics,
   strategyLabSteps,
   type StrategyLabStatus,
 } from "@/lib/domain/strategy-lab";
-import { cn } from "@/lib/utils";
 
-const statusMeta: Record<StrategyLabStatus, { label: string; className: string }> = {
-  ready: {
-    label: "Listo",
-    className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
-  },
-  pending: {
-    label: "Pendiente",
-    className: "border-amber-500/40 bg-amber-500/10 text-amber-300",
-  },
-  blocked: {
-    label: "Bloqueado",
-    className: "border-destructive/40 bg-destructive/10 text-destructive",
-  },
+const statusLabel: Record<StrategyLabStatus, string> = {
+  ready: "Listo",
+  pending: "Pendiente",
+  blocked: "Bloqueado",
+};
+
+const statusVariant: Record<StrategyLabStatus, "secondary" | "outline" | "destructive"> = {
+  ready: "secondary",
+  pending: "outline",
+  blocked: "destructive",
 };
 
 function StatusBadge({ status }: { status: StrategyLabStatus }) {
-  const meta = statusMeta[status];
-  return (
-    <Badge variant="outline" className={cn("w-fit", meta.className)}>
-      {meta.label}
-    </Badge>
-  );
+  return <Badge variant={statusVariant[status]}>{statusLabel[status]}</Badge>;
 }
 
-function MetricCards() {
+function MetricStrip() {
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
       {strategyLabMetrics.map((metric) => (
-        <Card key={metric.label} className="border-border/70 bg-card/70">
-          <CardHeader className="pb-2">
+        <Card key={metric.label} size="sm">
+          <CardHeader>
             <CardDescription>{metric.label}</CardDescription>
-            <CardTitle className="font-mono text-3xl">{metric.value}</CardTitle>
+            <CardTitle className="text-xl">{metric.value}</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+          <CardContent className="text-sm leading-6 text-muted-foreground">
             {metric.note}
           </CardContent>
         </Card>
@@ -79,47 +77,74 @@ function MetricCards() {
   );
 }
 
+function ObjectiveTabs() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Objetivo de cuenta</CardTitle>
+        <CardDescription>
+          El motor no busca el backtest mas bonito; cambia el criterio segun la cuenta.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue={accountObjectives[0]?.name} className="gap-4">
+          <TabsList className="grid h-auto grid-cols-1 md:grid-cols-3">
+            {accountObjectives.map((objective) => (
+              <TabsTrigger key={objective.name} value={objective.name} className="min-h-10">
+                {objective.name}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          {accountObjectives.map((objective) => (
+            <TabsContent key={objective.name} value={objective.name}>
+              <div className="flex flex-col gap-3 rounded-lg border border-border/70 bg-muted/30 p-4">
+                <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                  {objective.description}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {objective.controls.map((control) => (
+                    <Badge key={control} variant="outline">
+                      {control}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+}
+
 function PipelineCard() {
   const readiness = getStrategyLabReadiness();
 
   return (
-    <Card className="border-border/70 bg-card/70">
+    <Card>
       <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle>Pipeline de puesta en marcha</CardTitle>
-            <CardDescription>
-              Orden exacto del documento maestro, con el panel admin ya protegido.
-            </CardDescription>
-          </div>
-          <Badge variant="outline" className="gap-2">
-            <ShieldCheck className="size-3.5" />
-            Admin-only
-          </Badge>
-        </div>
+        <CardTitle>Estado del proceso</CardTitle>
+        <CardDescription>
+          Lo que ya esta listo y lo que falta para alimentar el primer ranking real.
+        </CardDescription>
+        <CardAction>
+          <Badge variant="outline">{readiness}% operativo</Badge>
+        </CardAction>
       </CardHeader>
-      <CardContent className="grid gap-4">
-        <div>
-          <div className="mb-2 flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Preparacion total</span>
-            <span className="font-mono text-foreground">{readiness}%</span>
-          </div>
-          <Progress value={readiness} className="h-1.5" />
-        </div>
-        <div className="grid gap-3">
+      <CardContent className="flex flex-col gap-4">
+        <Progress value={readiness} className="h-1.5" />
+        <div className="flex flex-col gap-2">
           {strategyLabSteps.map((step, index) => (
             <div
               key={step.id}
-              className="grid gap-3 rounded-lg border border-border/70 bg-background/30 p-3 md:grid-cols-[48px_minmax(0,1fr)_auto] md:items-center"
+              className="grid gap-3 rounded-lg border border-border/70 bg-background/40 p-3 md:grid-cols-[2rem_minmax(0,1fr)_auto] md:items-center"
             >
-              <div className="flex size-10 items-center justify-center rounded-md border border-border/70 bg-card/65 font-mono text-sm text-muted-foreground">
+              <div className="flex size-8 items-center justify-center rounded-md border border-border/70 bg-muted/40 text-sm text-muted-foreground">
                 {index + 1}
               </div>
               <div className="min-w-0">
                 <p className="font-medium text-foreground">{step.label}</p>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  {step.detail}
-                </p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">{step.detail}</p>
               </div>
               <StatusBadge status={step.status} />
             </div>
@@ -132,26 +157,24 @@ function PipelineCard() {
 
 function CommandCard() {
   return (
-    <Card className="border-border/70 bg-card/70">
+    <Card>
       <CardHeader>
-        <CardTitle>Comandos operativos</CardTitle>
+        <CardTitle>Comandos utiles</CardTitle>
         <CardDescription>
-          Lo que hay que ejecutar fuera de Vercel: Hetzner, MT5 y tu entorno Python.
+          Los tres comandos que vas a usar durante la primera carga de datos.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-3">
+      <CardContent className="flex flex-col gap-3">
         {strategyLabCommands.map((item) => (
-          <div
-            key={item.label}
-            className="rounded-lg border border-border/70 bg-background/35 p-3"
-          >
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-              <Terminal className="size-4 text-primary" />
-              {item.label}
+          <div key={item.label} className="rounded-lg border border-border/70 bg-muted/30 p-3">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="font-medium text-foreground">{item.label}</p>
+              <Badge variant="outline">CLI</Badge>
             </div>
-            <code className="block overflow-x-auto rounded-md bg-black/35 p-3 font-mono text-xs leading-5 text-muted-foreground">
+            <code className="block overflow-x-auto rounded-md bg-background px-3 py-2 font-mono text-xs leading-5 text-muted-foreground">
               {item.command}
             </code>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.detail}</p>
           </div>
         ))}
       </CardContent>
@@ -159,72 +182,63 @@ function CommandCard() {
   );
 }
 
-function GeneCatalogCard() {
+function StrategyCards() {
   return (
-    <Card className="border-border/70 bg-card/70">
-      <CardHeader>
-        <CardTitle>Catalogo genetico v1</CardTitle>
-        <CardDescription>
-          Seis bloques combinables. Python elige, MT5 prueba, PostgreSQL decide.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>Bloque</TableHead>
-              <TableHead>Rol</TableHead>
-              <TableHead>Opciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {strategyLabGeneBlocks.map((block) => (
-              <TableRow key={block.block}>
-                <TableCell className="font-mono text-foreground">{block.block}</TableCell>
-                <TableCell className="text-foreground">{block.role}</TableCell>
-                <TableCell className="min-w-[420px] text-muted-foreground">
-                  {block.options.join(", ")}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {strategyFamilies.map((strategy) => (
+        <Card key={strategy.name} size="sm">
+          <CardHeader>
+            <CardTitle>{strategy.name}</CardTitle>
+            <CardDescription>{strategy.market}</CardDescription>
+            <CardAction>
+              <StatusBadge status={strategy.status} />
+            </CardAction>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <p className="text-sm leading-6 text-muted-foreground">{strategy.bestFor}</p>
+            <div className="flex flex-wrap gap-2">
+              {strategy.checks.map((check) => (
+                <Badge key={check} variant="outline">
+                  {check}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </section>
   );
 }
 
-function CandidateCard() {
+function ValidationTable() {
   return (
-    <Card className="border-border/70 bg-card/70">
+    <Card>
       <CardHeader>
-        <CardTitle>Top candidates</CardTitle>
+        <CardTitle>Puertas de validacion</CardTitle>
         <CardDescription>
-          Aqui apareceran los candidatos passed cuando PostgreSQL tenga runs reales.
+          Una estrategia solo puede convertirse en EA si pasa estas capas.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead>Rank</TableHead>
-              <TableHead>Symbol</TableHead>
-              <TableHead>TF</TableHead>
-              <TableHead>Genes</TableHead>
-              <TableHead>Score</TableHead>
+              <TableHead>Puerta</TableHead>
+              <TableHead>Objetivo</TableHead>
+              <TableHead>Lectura</TableHead>
               <TableHead>Estado</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {strategyLabCandidatePlaceholders.map((candidate) => (
-              <TableRow key={candidate.rank}>
-                <TableCell className="font-mono text-foreground">{candidate.rank}</TableCell>
-                <TableCell className="font-mono text-foreground">{candidate.symbol}</TableCell>
-                <TableCell className="font-mono text-muted-foreground">{candidate.timeframe}</TableCell>
-                <TableCell className="min-w-[220px] text-muted-foreground">{candidate.genes}</TableCell>
-                <TableCell className="font-mono text-muted-foreground">{candidate.score}</TableCell>
+            {researchGates.map((gate) => (
+              <TableRow key={gate.name}>
+                <TableCell className="font-medium text-foreground">{gate.name}</TableCell>
+                <TableCell className="text-muted-foreground">{gate.target}</TableCell>
+                <TableCell className="min-w-[260px] text-muted-foreground">
+                  {gate.detail}
+                </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{candidate.status}</Badge>
+                  <StatusBadge status={gate.status} />
                 </TableCell>
               </TableRow>
             ))}
@@ -235,49 +249,29 @@ function CandidateCard() {
   );
 }
 
-function ArtifactCard() {
-  const artifacts = [
-    {
-      icon: Database,
-      title: "schema.sql",
-      body: "Tablas generations, algo_runs, top_candidates, mutation_log y vistas de resumen.",
-    },
-    {
-      icon: BrainCircuit,
-      title: "core/orchestrator.py",
-      body: "Loop genetico: genera pool, espera backtests, calcula fitness y promueve top.",
-    },
-    {
-      icon: FileCode2,
-      title: "ea/Genetic_EA.mq5",
-      body: "EA modular que lee next_gene.json y escribe result.json al terminar OnTester.",
-    },
-    {
-      icon: Play,
-      title: "config/gene_catalog.json",
-      body: "Catalogo de bloques, simbolos, timeframes y direcciones del espacio de busqueda.",
-    },
+function FlowCard() {
+  const steps = [
+    { icon: FileDown, label: "MT5 CSV", detail: "Backtest real exportado" },
+    { icon: Database, label: "Supabase", detail: "Metricas y ranking" },
+    { icon: Gauge, label: "Fitness", detail: "PF, DD, R:R, Monte Carlo" },
+    { icon: GitBranch, label: "Robustez", detail: "Fuentes, costes, OOS" },
+    { icon: PlayCircle, label: "EA", detail: "Solo candidatos aprobados" },
   ];
 
   return (
-    <Card className="border-border/70 bg-card/70">
+    <Card>
       <CardHeader>
-        <CardTitle>Artefactos generados</CardTitle>
+        <CardTitle>Flujo de investigacion</CardTitle>
         <CardDescription>
-          El motor vive en `kmfx_genetic/`; la beta solo expone y gobierna la superficie interna.
+          De un backtest bruto a una estrategia candidata sin saltarse controles.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-3 md:grid-cols-2">
-        {artifacts.map((item) => (
-          <div
-            key={item.title}
-            className="rounded-lg border border-border/70 bg-background/30 p-3"
-          >
-            <div className="mb-2 flex items-center gap-2 font-medium text-foreground">
-              <item.icon className="size-4 text-primary" />
-              {item.title}
-            </div>
-            <p className="text-sm leading-6 text-muted-foreground">{item.body}</p>
+      <CardContent className="grid gap-3 md:grid-cols-5">
+        {steps.map((step) => (
+          <div key={step.label} className="rounded-lg border border-border/70 bg-muted/30 p-3">
+            <step.icon className="mb-3 size-4 text-muted-foreground" />
+            <p className="font-medium text-foreground">{step.label}</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">{step.detail}</p>
           </div>
         ))}
       </CardContent>
@@ -285,46 +279,112 @@ function ArtifactCard() {
   );
 }
 
-export function StrategyLabSection() {
+export function StrategyLabSection({ previewMode = false }: { previewMode?: boolean }) {
   return (
-    <div className="grid gap-4">
-      <Card className="border-border/70 bg-card/70">
-        <CardHeader>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="mb-3 flex flex-wrap gap-2">
-                <Badge variant="outline" className="gap-2">
-                  <BadgeCheck className="size-3.5" />
-                  Admin activo
-                </Badge>
-                <Badge variant="secondary" className="gap-2">
-                  <Activity className="size-3.5" />
-                  Exploracion genetica v1
-                </Badge>
-              </div>
-              <CardTitle className="text-2xl">Strategy Lab</CardTitle>
-              <CardDescription className="mt-2 max-w-3xl text-base leading-7">
-                Consola interna para preparar el sistema genetico de KMFX: catalogo de
-                genes, setup PostgreSQL, EA de backtest y primera generacion controlada.
-              </CardDescription>
+    <div className="flex flex-col gap-4">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">
+                <LockKeyhole data-icon="inline-start" />
+                Admin
+              </Badge>
+              {previewMode ? <Badge variant="outline">Preview local</Badge> : null}
+              <Badge variant="outline">
+                <ShieldCheck data-icon="inline-start" />
+                No promociona sin validacion
+              </Badge>
             </div>
-          </div>
-        </CardHeader>
-      </Card>
+            <CardTitle className="text-2xl">Strategy Research Engine</CardTitle>
+            <CardDescription className="max-w-3xl text-base leading-7">
+              Panel interno para descubrir, validar y promover estrategias de KMFX.
+              Sirve para cuentas de fondeo, bots de consistencia larga y track records
+              tipo Darwinex sin depender de un unico backtest.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
+              <Target className="mb-3 size-4 text-muted-foreground" />
+              <p className="font-medium">Selecciona objetivo</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Fondeo, consistencia o track record.
+              </p>
+            </div>
+            <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
+              <FlaskConical className="mb-3 size-4 text-muted-foreground" />
+              <p className="font-medium">Prueba familias</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                ORB, VWAP, liquidez y compresion.
+              </p>
+            </div>
+            <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
+              <BarChart3 className="mb-3 size-4 text-muted-foreground" />
+              <p className="font-medium">Promueve con datos</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Ranking solo tras robustez y costes.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
-      <MetricCards />
+        <Card>
+          <CardHeader>
+            <CardTitle>Estado actual</CardTitle>
+            <CardDescription>Listo para recibir el primer CSV de MT5.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">DB</span>
+              <Badge variant="secondary">
+                <BadgeCheck data-icon="inline-start" />
+                OK
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">CSV importado</span>
+              <Badge variant="outline">Pendiente</Badge>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">EA exportable</span>
+              <Badge variant="destructive">Bloqueado</Badge>
+            </div>
+            <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
+              <div className="mb-2 flex items-center gap-2 font-medium">
+                <SlidersHorizontal className="size-4 text-muted-foreground" />
+                Criterio activo
+              </div>
+              <p className="text-sm leading-6 text-muted-foreground">
+                Esperar datos reales, comparar fuentes y simular reglas de cuenta antes
+                de promover.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
-        <PipelineCard />
-        <CommandCard />
-      </div>
+      <MetricStrip />
+      <ObjectiveTabs />
+      <FlowCard />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <ArtifactCard />
-        <CandidateCard />
-      </div>
+      <section>
+        <div className="mb-3">
+          <h2 className="text-base font-medium text-foreground">Familias de estrategia</h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            Cada familia se convertira en una tarjeta con sus parametros, resultados y
+            razones de rechazo o promocion.
+          </p>
+        </div>
+        <StrategyCards />
+      </section>
 
-      <GeneCatalogCard />
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_26rem]">
+        <ValidationTable />
+        <div className="flex flex-col gap-4">
+          <PipelineCard />
+          <CommandCard />
+        </div>
+      </section>
     </div>
   );
 }

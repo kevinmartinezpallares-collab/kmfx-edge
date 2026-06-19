@@ -2,7 +2,9 @@ import type { TradingAccount } from "@/lib/contracts/account";
 import type { DashboardModel, MetricPoint } from "@/lib/contracts/dashboard-model";
 import type {
   RawLiveAccountsSnapshot,
+  RawLiveAccountProfile,
   RawLiveDashboardPayload,
+  RawRiskGuardTerminalAck,
   RawLiveSnapshotAccount,
   RawLiveTrade,
 } from "@/lib/contracts/live-snapshot";
@@ -170,11 +172,24 @@ function userRoleLabelFromSnapshot(snapshot: RawLiveAccountsSnapshot) {
   return undefined;
 }
 
+function userAvatarUrlFromSnapshot(snapshot: RawLiveAccountsSnapshot) {
+  return String(
+    snapshot.auth_avatar_url ||
+      snapshot.auth_picture ||
+      snapshot.user_avatar_url ||
+      snapshot.avatar_url ||
+      snapshot.picture ||
+      "",
+  ).trim();
+}
+
 function userMetaFromSnapshot(snapshot: RawLiveAccountsSnapshot) {
   const userEmail = String(snapshot.auth_email || "").trim();
   const userRoleLabel = userRoleLabelFromSnapshot(snapshot);
+  const userAvatarUrl = userAvatarUrlFromSnapshot(snapshot);
 
   return {
+    ...(userAvatarUrl ? { userAvatarUrl } : {}),
     ...(userEmail ? { userEmail } : {}),
     ...(userRoleLabel ? { userRoleLabel } : {}),
   };
@@ -621,7 +636,78 @@ function inferPlanAccess(
     : "limited";
 }
 
+function normalizeAccountClass(
+  value: string | undefined,
+): NonNullable<TradingAccount["profile"]>["accountClass"] | null {
+  switch (String(value || "").trim()) {
+    case "own":
+    case "real":
+    case "demo":
+    case "challenge":
+    case "evaluation":
+    case "funded":
+      return value as NonNullable<TradingAccount["profile"]>["accountClass"];
+    default:
+      return null;
+  }
+}
+
+function defaultAccountProfileLabel(
+  accountClass: NonNullable<TradingAccount["profile"]>["accountClass"],
+) {
+  const labels: Record<
+    NonNullable<TradingAccount["profile"]>["accountClass"],
+    string
+  > = {
+    challenge: "Reto",
+    demo: "Demo",
+    evaluation: "Fase 2",
+    funded: "Cuenta fondeada",
+    own: "Cuenta propia",
+    real: "Cuenta real",
+  };
+
+  return labels[accountClass];
+}
+
+function rawAccountProfileFromPayload(
+  payload: RawLiveDashboardPayload,
+): RawLiveAccountProfile | undefined {
+  return payload.accountProfile || payload.account_profile;
+}
+
+function mapAccountProfile(account: RawLiveSnapshotAccount): TradingAccount["profile"] {
+  const rawProfile = rawAccountProfileFromPayload(account.dashboard_payload || {});
+  const accountClass = normalizeAccountClass(
+    rawProfile?.accountClass || rawProfile?.account_class,
+  );
+
+  if (!accountClass) return undefined;
+
+  const badgeLabel = String(
+    rawProfile?.badgeLabel ||
+      rawProfile?.badge_label ||
+      defaultAccountProfileLabel(accountClass),
+  ).trim();
+
+  return {
+    accountClass,
+    badgeLabel: badgeLabel || defaultAccountProfileLabel(accountClass),
+    source: rawProfile?.source === "manual" ? "manual" : "auto",
+  };
+}
+
 function inferIsFunded(account: RawLiveSnapshotAccount) {
+  const profile = mapAccountProfile(account);
+  if (profile?.source === "manual") {
+    if (["challenge", "evaluation", "funded"].includes(profile.accountClass)) {
+      return true;
+    }
+    if (["own", "real", "demo"].includes(profile.accountClass)) {
+      return false;
+    }
+  }
+
   const source = accountIdentityText(account);
   return [
     "challenge",
@@ -657,6 +743,7 @@ function normalizeIdentityText(value: string | null | undefined) {
 function accountIdentityText(account: RawLiveSnapshotAccount) {
   const payload = account.dashboard_payload || {};
   const fundingProfile = payload.fundingProfile;
+  const accountProfile = rawAccountProfileFromPayload(payload);
 
   return normalizeIdentityText([
     account.display_name,
@@ -670,6 +757,10 @@ function accountIdentityText(account: RawLiveSnapshotAccount) {
     fundingProfile?.phase_label,
     fundingProfile?.playbook_label,
     fundingProfile?.account_type,
+    accountProfile?.badge_label,
+    accountProfile?.badgeLabel,
+    accountProfile?.account_class,
+    accountProfile?.accountClass,
   ].filter(Boolean).join(" "));
 }
 
@@ -882,6 +973,14 @@ function inferFundingIdentity(account: RawLiveSnapshotAccount): InferredFundingI
 function mapFundingProfile(account: RawLiveSnapshotAccount) {
   const payload = account.dashboard_payload || {};
   const fundingProfile = payload.fundingProfile;
+  const manualProfile = mapAccountProfile(account);
+  if (
+    manualProfile?.source === "manual" &&
+    ["own", "real", "demo"].includes(manualProfile.accountClass)
+  ) {
+    return undefined;
+  }
+
   const inferredIdentity = inferFundingIdentity(account);
   const isFunded = inferIsFunded(account);
 
@@ -984,6 +1083,65 @@ function resolveConnectionState(
   return "stale";
 }
 
+function normalizeRiskGuardProtectionState(
+  value: string | undefined,
+): NonNullable<TradingAccount["riskGuard"]>["protectionState"] {
+  switch (String(value || "").trim()) {
+    case "monitor_only":
+    case "consent_required":
+    case "terminal_confirmed_monitor":
+    case "terminal_read_only_or_unavailable":
+    case "reactive_entry_guard_confirmed":
+    case "advanced_close_requires_firm_review":
+      return value as NonNullable<TradingAccount["riskGuard"]>["protectionState"];
+    default:
+      return "pending";
+  }
+}
+
+function mapRiskGuardAck(account: RawLiveSnapshotAccount): TradingAccount["riskGuard"] {
+  const payload = account.dashboard_payload || {};
+  const ack: RawRiskGuardTerminalAck | undefined =
+    payload.riskguard_terminal_ack ||
+    payload.riskGuardTerminalAck ||
+    account.riskguard_terminal_ack ||
+    account.riskGuardTerminalAck;
+
+  if (!ack) {
+    return {
+      accountTradeAllowed: false,
+      activeEnforcementConfirmed: false,
+      consentAccepted: false,
+      deletePendingOrdersEnabled: false,
+      enabled: false,
+      firmCautionRequired: false,
+      lastAckLabel: "Pendiente",
+      mode: "Pendiente",
+      policyHash: String(payload.risk_policy_hash || payload.riskPolicyHash || "").trim(),
+      policyHashMatches: false,
+      protectionState: "pending",
+      reactiveClosePositionsEnabled: false,
+      terminalTradeAllowed: false,
+    };
+  }
+
+  return {
+    accountTradeAllowed: Boolean(ack.account_trade_allowed),
+    activeEnforcementConfirmed: Boolean(ack.active_enforcement_confirmed),
+    consentAccepted: Boolean(ack.consent_accepted),
+    deletePendingOrdersEnabled: Boolean(ack.reactive_delete_pending_orders),
+    enabled: Boolean(ack.riskguard_enabled),
+    firmCautionRequired: Boolean(ack.firm_caution_required),
+    lastAckLabel: formatSyncLabel(ack.received_at),
+    mode: String(ack.mode || "Monitor").trim(),
+    policyHash: String(ack.policy_hash || payload.risk_policy_hash || payload.riskPolicyHash || "").trim(),
+    policyHashMatches: Boolean(ack.policy_hash_matches),
+    protectionState: normalizeRiskGuardProtectionState(ack.protection_state),
+    reactiveClosePositionsEnabled: Boolean(ack.reactive_close_market_positions),
+    terminalTradeAllowed: Boolean(ack.terminal_trade_allowed),
+  };
+}
+
 function mapAccount(account: RawLiveSnapshotAccount): TradingAccount {
   const payload = account.dashboard_payload || {};
   const sanitizeAccountText = (value: string, fallback: string) => {
@@ -1027,6 +1185,8 @@ function mapAccount(account: RawLiveSnapshotAccount): TradingAccount {
     lastSyncLabel: formatSyncLabel(account.last_sync_at),
     isFunded: inferIsFunded(account),
     planAccess: inferPlanAccess(account),
+    profile: mapAccountProfile(account),
+    riskGuard: mapRiskGuardAck(account),
     equityHistory: mapEquitySeries(payload),
     funding: mapFundingProfile(account),
   };

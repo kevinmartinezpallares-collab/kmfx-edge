@@ -17,8 +17,6 @@ import {
 
 import { AuthDivider } from "@/components/auth-divider";
 import { FloatingPaths } from "@/components/floating-paths";
-import { AppleIcon } from "@/components/icons/apple-icon";
-import { GithubIcon } from "@/components/icons/github-icon";
 import { GoogleIcon } from "@/components/icons/google-icon";
 import { LogoMark, LogoWordmark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
@@ -40,15 +38,19 @@ import {
 declare global {
   interface Window {
     turnstile?: {
+      getResponse?: (widgetId: string) => string | undefined;
       remove?: (widgetId: string) => void;
       render: (
         container: HTMLElement,
         options: {
           action?: string;
+          appearance?: "always" | "execute" | "interaction-only";
           callback?: (token: string) => void;
           "error-callback"?: () => void;
           "expired-callback"?: () => void;
+          language?: "auto" | string;
           sitekey: string;
+          size?: "normal" | "compact" | "flexible";
           theme?: "auto" | "dark" | "light";
         },
       ) => string;
@@ -83,9 +85,15 @@ const accessHighlights = [
 type AuthMode = "sign-in" | "sign-up";
 type AuthConfigStatus = "idle" | "loading" | "failed";
 type AuthStatus = "idle" | "loading";
+type TurnstileStatus = "disabled" | "error" | "loading" | "ready";
 
 type AuthPublicConfig = BrowserSupabasePublicConfig & {
   turnstileSiteKey: string;
+};
+
+type AuthPageProps = {
+  initialPublicConfig?: Partial<AuthPublicConfig>;
+  nextPath?: string;
 };
 
 type AuthFormState = {
@@ -112,15 +120,25 @@ const INITIAL_AUTH_FORM_STATE: AuthFormState = {
   status: "idle",
 };
 
-const FALLBACK_TURNSTILE_SITE_KEY = "0x4AAAAAACxJdw3wjMn7Jm0K";
+const TURNSTILE_TOKEN_WAIT_MS = 12000;
 
-function getInitialAuthPublicConfig(): AuthPublicConfig {
+function readString(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getInitialAuthPublicConfig(
+  initialPublicConfig?: Partial<AuthPublicConfig>,
+): AuthPublicConfig {
   return {
-    supabasePublishableKey: resolveSupabasePublishableKey(),
-    supabaseUrl: resolveSupabaseUrl(),
+    supabasePublishableKey:
+      readString(initialPublicConfig?.supabasePublishableKey) ||
+      resolveSupabasePublishableKey(),
+    supabaseUrl:
+      readString(initialPublicConfig?.supabaseUrl) || resolveSupabaseUrl(),
     turnstileSiteKey:
+      readString(initialPublicConfig?.turnstileSiteKey) ||
       process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ||
-      FALLBACK_TURNSTILE_SITE_KEY,
+      "",
   };
 }
 
@@ -128,8 +146,13 @@ function hasAuthPublicConfig(config: AuthPublicConfig) {
   return Boolean(config.supabaseUrl.trim() && config.supabasePublishableKey.trim());
 }
 
-function readString(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
+function isCaptchaAuthError(error: unknown) {
+  const value = error as { code?: unknown; message?: unknown; name?: unknown };
+  return [value.code, value.message, value.name].some((field) =>
+    String(field || "")
+      .toLowerCase()
+      .includes("captcha"),
+  );
 }
 
 function authFormReducer(
@@ -152,26 +175,44 @@ function authFormReducer(
   }
 }
 
-function useAuthPageModel(nextPath: string) {
+function useAuthPageModel(
+  nextPath: string,
+  initialPublicConfig?: Partial<AuthPublicConfig>,
+) {
   const router = useRouter();
+  const resolvedInitialPublicConfig = React.useMemo(
+    () => getInitialAuthPublicConfig(initialPublicConfig),
+    [initialPublicConfig],
+  );
   const [authForm, dispatchAuthForm] = React.useReducer(
     authFormReducer,
     INITIAL_AUTH_FORM_STATE,
   );
   const { authMode, email, message, password, status } = authForm;
   const captchaTokenRef = React.useRef("");
+  const captchaTokenWaitersRef = React.useRef<
+    Array<{
+      reject: (error: Error) => void;
+      resolve: (token: string) => void;
+      timeoutId: ReturnType<typeof setTimeout>;
+    }>
+  >([]);
   const turnstileContainerRef = React.useRef<HTMLDivElement | null>(null);
   const turnstileWidgetIdRef = React.useRef<string | null>(null);
+  const turnstileRetryTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [publicAuthConfig, setPublicAuthConfig] = React.useState<AuthPublicConfig>(
-    getInitialAuthPublicConfig,
+    resolvedInitialPublicConfig,
   );
   const [authConfigStatus, setAuthConfigStatus] =
     React.useState<AuthConfigStatus>(() =>
-      hasAuthPublicConfig(getInitialAuthPublicConfig()) ? "idle" : "loading",
+      hasAuthPublicConfig(resolvedInitialPublicConfig) ? "idle" : "loading",
     );
   const authConfigured = hasAuthPublicConfig(publicAuthConfig);
-  const turnstileSiteKey =
-    publicAuthConfig.turnstileSiteKey || FALLBACK_TURNSTILE_SITE_KEY;
+  const turnstileSiteKey = publicAuthConfig.turnstileSiteKey;
+  const [turnstileStatus, setTurnstileStatus] =
+    React.useState<TurnstileStatus>(() =>
+      turnstileSiteKey ? "loading" : "disabled",
+    );
 
   React.useEffect(() => {
     if (authConfigured) {
@@ -198,8 +239,7 @@ function useAuthPageModel(nextPath: string) {
         const nextConfig: AuthPublicConfig = {
           supabasePublishableKey: readString(payload.supabasePublishableKey),
           supabaseUrl: readString(payload.supabaseUrl),
-          turnstileSiteKey:
-            readString(payload.turnstileSiteKey) || FALLBACK_TURNSTILE_SITE_KEY,
+          turnstileSiteKey: readString(payload.turnstileSiteKey),
         };
 
         setPublicAuthConfig(nextConfig);
@@ -220,24 +260,98 @@ function useAuthPageModel(nextPath: string) {
 
   const writeCaptchaToken = React.useCallback((token: string) => {
     captchaTokenRef.current = token;
+    if (!token) return;
+
+    const waiters = captchaTokenWaitersRef.current;
+    captchaTokenWaitersRef.current = [];
+    waiters.forEach((waiter) => {
+      clearTimeout(waiter.timeoutId);
+      waiter.resolve(token);
+    });
   }, []);
+
+  const rejectCaptchaTokenWaiters = React.useCallback((message: string) => {
+    const waiters = captchaTokenWaitersRef.current;
+    captchaTokenWaitersRef.current = [];
+    waiters.forEach((waiter) => {
+      clearTimeout(waiter.timeoutId);
+      waiter.reject(new Error(message));
+    });
+  }, []);
+
+  const readCaptchaToken = React.useCallback(() => {
+    const token = captchaTokenRef.current;
+    if (token) return token;
+
+    const widgetId = turnstileWidgetIdRef.current;
+    if (!widgetId) return "";
+
+    return window.turnstile?.getResponse?.(widgetId) || "";
+  }, []);
+
+  const waitForCaptchaToken = React.useCallback(() => {
+    const token = readCaptchaToken();
+    if (token) return Promise.resolve(token);
+
+    return new Promise<string>((resolve, reject) => {
+      const waiter = {
+        reject,
+        resolve,
+        timeoutId: setTimeout(() => {
+          captchaTokenWaitersRef.current = captchaTokenWaitersRef.current.filter(
+            (entry) => entry !== waiter,
+          );
+          reject(new Error("turnstile_timeout"));
+        }, TURNSTILE_TOKEN_WAIT_MS),
+      };
+
+      captchaTokenWaitersRef.current = [
+        ...captchaTokenWaitersRef.current,
+        waiter,
+      ];
+    });
+  }, [readCaptchaToken]);
 
   const resetTurnstile = React.useCallback(() => {
     writeCaptchaToken("");
+    rejectCaptchaTokenWaiters("turnstile_reset");
     const widgetId = turnstileWidgetIdRef.current;
     if (widgetId && window.turnstile?.reset) {
+      setTurnstileStatus("loading");
       window.turnstile.reset(widgetId);
     }
-  }, [writeCaptchaToken]);
+  }, [rejectCaptchaTokenWaiters, writeCaptchaToken]);
+
+  const scheduleTurnstileRetry = React.useCallback((retry: () => void) => {
+    if (turnstileRetryTimeoutRef.current) {
+      clearTimeout(turnstileRetryTimeoutRef.current);
+    }
+
+    turnstileRetryTimeoutRef.current = setTimeout(() => {
+      turnstileRetryTimeoutRef.current = null;
+      retry();
+    }, 1200);
+  }, []);
 
   React.useEffect(() => {
     if (!authConfigured || !turnstileSiteKey || !turnstileContainerRef.current) {
+      setTurnstileStatus(turnstileSiteKey ? "loading" : "disabled");
       return;
     }
 
     let cancelled = false;
     let renderedWidgetId: string | null = null;
     let scriptWithLoadListener: HTMLElement | null = null;
+    const clearRenderedWidget = () => {
+      const widgetId = renderedWidgetId || turnstileWidgetIdRef.current;
+      if (widgetId && window.turnstile?.remove) {
+        window.turnstile.remove(widgetId);
+      }
+      renderedWidgetId = null;
+      turnstileWidgetIdRef.current = null;
+      turnstileContainerRef.current?.replaceChildren();
+    };
+
     const renderTurnstile = () => {
       if (
         cancelled ||
@@ -253,21 +367,36 @@ function useAuthPageModel(nextPath: string) {
           ? "dark"
           : "light";
 
+      setTurnstileStatus("loading");
       renderedWidgetId = window.turnstile.render(turnstileContainerRef.current, {
         action: authMode === "sign-up" ? "signup" : "signin",
-        callback: (token) => writeCaptchaToken(token || ""),
+        callback: (token) => {
+          writeCaptchaToken(token || "");
+          setTurnstileStatus(token ? "ready" : "loading");
+          dispatchAuthForm({ type: "clearMessage" });
+        },
         "error-callback": () => {
           writeCaptchaToken("");
+          setTurnstileStatus("error");
+          rejectCaptchaTokenWaiters("turnstile_error");
+          clearRenderedWidget();
+          scheduleTurnstileRetry(renderTurnstile);
           dispatchAuthForm({
             type: "setMessage",
-            message: "No hemos podido validar la protección anti-bots.",
+            message:
+              "La verificación anti-bots se ha reiniciado. Espera un momento y vuelve a intentarlo.",
           });
         },
         "expired-callback": () => {
           writeCaptchaToken("");
+          setTurnstileStatus("loading");
+          rejectCaptchaTokenWaiters("turnstile_expired");
+          clearRenderedWidget();
+          scheduleTurnstileRetry(renderTurnstile);
           dispatchAuthForm({
             type: "setMessage",
-            message: "La verificación ha caducado. Vuelve a intentarlo.",
+            message:
+              "La verificación ha caducado. La estamos recargando para que puedas intentarlo otra vez.",
           });
         },
         sitekey: turnstileSiteKey,
@@ -297,12 +426,22 @@ function useAuthPageModel(nextPath: string) {
 
     return () => {
       cancelled = true;
-      scriptWithLoadListener?.removeEventListener("load", renderTurnstile);
-      if (renderedWidgetId && window.turnstile?.remove) {
-        window.turnstile.remove(renderedWidgetId);
+      rejectCaptchaTokenWaiters("turnstile_unmounted");
+      if (turnstileRetryTimeoutRef.current) {
+        clearTimeout(turnstileRetryTimeoutRef.current);
+        turnstileRetryTimeoutRef.current = null;
       }
+      scriptWithLoadListener?.removeEventListener("load", renderTurnstile);
+      clearRenderedWidget();
     };
-  }, [authConfigured, authMode, writeCaptchaToken, turnstileSiteKey]);
+  }, [
+    authConfigured,
+    authMode,
+    rejectCaptchaTokenWaiters,
+    scheduleTurnstileRetry,
+    turnstileSiteKey,
+    writeCaptchaToken,
+  ]);
 
   async function handlePasswordAuth(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -319,28 +458,39 @@ function useAuthPageModel(nextPath: string) {
       return;
     }
 
-    const captchaToken = captchaTokenRef.current;
-
-    if (turnstileSiteKey && !captchaToken) {
-      dispatchAuthForm({
-        type: "setMessage",
-        message: "Completa la verificación para continuar.",
-      });
-      return;
-    }
-
     dispatchAuthForm({ type: "setStatus", status: "loading" });
 
     try {
+      let captchaToken = readCaptchaToken();
+
+      if (turnstileSiteKey && !captchaToken) {
+        try {
+          captchaToken = await waitForCaptchaToken();
+        } catch {
+          dispatchAuthForm({
+            type: "setMessage",
+            message:
+              "Cloudflare no ha terminado la verificación. Espera unos segundos y vuelve a intentarlo.",
+          });
+          resetTurnstile();
+          return;
+        }
+      }
+
       const supabase = createBrowserSupabaseClient(publicAuthConfig);
       const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
-      const { data, error } =
+      let authResult =
         authMode === "sign-up"
           ? await supabase.auth.signUp({
               email,
-              options: captchaToken
-                ? { captchaToken, emailRedirectTo }
-                : { emailRedirectTo },
+              options: {
+                ...(captchaToken ? { captchaToken } : {}),
+                emailRedirectTo,
+                data: {
+                  kmfx_trial_days: 7,
+                  kmfx_trial_source: "public_signup",
+                },
+              },
               password,
             })
           : await supabase.auth.signInWithPassword({
@@ -348,12 +498,27 @@ function useAuthPageModel(nextPath: string) {
               options: captchaToken ? { captchaToken } : undefined,
               password,
             });
+      let { data, error } = authResult;
+
+      if (authMode === "sign-in" && error && !captchaToken && isCaptchaAuthError(error)) {
+        const retryCaptchaToken = readCaptchaToken();
+        if (retryCaptchaToken) {
+          authResult = await supabase.auth.signInWithPassword({
+            email,
+            options: { captchaToken: retryCaptchaToken },
+            password,
+          });
+          data = authResult.data;
+          error = authResult.error;
+        }
+      }
 
       if (error) {
         dispatchAuthForm({
           type: "setMessage",
-          message:
-            authMode === "sign-up"
+          message: isCaptchaAuthError(error)
+            ? "No se pudo validar Cloudflare. Espera unos segundos y vuelve a intentarlo."
+            : authMode === "sign-up"
               ? "No se pudo crear la cuenta. Revisa el email, la contraseña o si ya existe."
               : "Email o contraseña incorrectos.",
         });
@@ -371,18 +536,20 @@ function useAuthPageModel(nextPath: string) {
       }
 
       router.replace(nextPath);
-      router.refresh();
     } catch {
       dispatchAuthForm({
         type: "setMessage",
-        message: "No se pudo conectar con el acceso seguro.",
+        message:
+          authMode === "sign-up" && turnstileSiteKey && !captchaTokenRef.current
+            ? "Cloudflare está tardando demasiado. Vuelve a intentarlo en unos segundos."
+            : "No se pudo conectar con el acceso seguro.",
       });
     } finally {
       dispatchAuthForm({ type: "setStatus", status: "idle" });
     }
   }
 
-  async function signInWithProvider(provider: "google" | "apple" | "github") {
+  async function signInWithProvider(provider: "google") {
     dispatchAuthForm({ type: "clearMessage" });
 
     if (!authConfigured) {
@@ -405,9 +572,7 @@ function useAuthPageModel(nextPath: string) {
         provider,
         options: {
           redirectTo,
-          ...(provider === "google"
-            ? { queryParams: { prompt: "select_account" } }
-            : {}),
+          queryParams: { prompt: "select_account" },
         },
       });
 
@@ -428,6 +593,11 @@ function useAuthPageModel(nextPath: string) {
   }
 
   const messageIsSuccess = message.startsWith("Cuenta creada.");
+  const canSubmitPasswordAuth =
+    status !== "loading" &&
+    (authConfigured
+      ? !turnstileSiteKey || turnstileStatus === "ready"
+      : authConfigStatus !== "loading");
 
   const setAuthMode = React.useCallback(
     (nextAuthMode: AuthMode) => {
@@ -456,12 +626,14 @@ function useAuthPageModel(nextPath: string) {
 
   return {
     authConfigured,
+    authConfigStatus,
     authMode,
     email,
     handlePasswordAuth,
     message,
     messageIsSuccess,
     password,
+    canSubmitPasswordAuth,
     setAuthMode,
     setEmail,
     setPassword,
@@ -469,14 +641,21 @@ function useAuthPageModel(nextPath: string) {
     status,
     turnstileContainerRef,
     turnstileSiteKey,
+    turnstileStatus,
   };
 }
 
 type AuthPageModel = ReturnType<typeof useAuthPageModel>;
 
-function AuthHero() {
+const AuthHero = React.memo(function AuthHero() {
   return (
-    <section className="relative hidden min-h-svh overflow-hidden border-r border-border/70 bg-[radial-gradient(circle_at_20%_20%,hsl(var(--muted))_0,transparent_32%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted)/0.28))] lg:flex">
+    <section
+      className="relative hidden min-h-svh overflow-hidden border-r border-border/70 lg:flex"
+      style={{
+        backgroundImage:
+          "radial-gradient(circle at 20% 20%, var(--muted) 0, transparent 32%), linear-gradient(180deg, var(--background), color-mix(in oklch, var(--muted) 28%, transparent))",
+      }}
+    >
       <FloatingPaths position={1} />
       <FloatingPaths position={-1} />
 
@@ -524,7 +703,7 @@ function AuthHero() {
       </div>
     </section>
   );
-}
+});
 
 function ProviderButtons({
   signInWithProvider,
@@ -540,24 +719,6 @@ function ProviderButtons({
       >
         <GoogleIcon data-icon="inline-start" />
         Continuar con Google
-      </Button>
-      <Button
-        disabled={status === "loading"}
-        onClick={() => void signInWithProvider("apple")}
-        type="button"
-        variant="outline"
-      >
-        <AppleIcon data-icon="inline-start" />
-        Continuar con Apple
-      </Button>
-      <Button
-        disabled={status === "loading"}
-        onClick={() => void signInWithProvider("github")}
-        type="button"
-        variant="outline"
-      >
-        <GithubIcon data-icon="inline-start" />
-        Continuar con GitHub
       </Button>
     </div>
   );
@@ -595,8 +756,10 @@ function AuthModeTabs({
 }
 
 function EmailPasswordForm({
+  authConfigStatus,
   authConfigured,
   authMode,
+  canSubmitPasswordAuth,
   email,
   handlePasswordAuth,
   message,
@@ -606,11 +769,13 @@ function EmailPasswordForm({
   setPassword,
   status,
   turnstileContainerRef,
-  turnstileSiteKey,
+  turnstileStatus,
 }: Pick<
   AuthPageModel,
+  | "authConfigStatus"
   | "authConfigured"
   | "authMode"
+  | "canSubmitPasswordAuth"
   | "email"
   | "handlePasswordAuth"
   | "message"
@@ -620,8 +785,19 @@ function EmailPasswordForm({
   | "setPassword"
   | "status"
   | "turnstileContainerRef"
-  | "turnstileSiteKey"
+  | "turnstileStatus"
 >) {
+  const submitLabel =
+    status === "loading"
+      ? "Validando..."
+      : !authConfigured && authConfigStatus === "loading"
+        ? "Preparando acceso..."
+        : !canSubmitPasswordAuth && turnstileStatus !== "disabled"
+        ? "Verificando..."
+        : authMode === "sign-up"
+          ? "Crear cuenta con email"
+          : "Continuar con email";
+
   return (
     <form className="flex flex-col gap-5" onSubmit={handlePasswordAuth}>
       <FieldGroup>
@@ -644,7 +820,7 @@ function EmailPasswordForm({
           </InputGroup>
           <FieldDescription>
             {authMode === "sign-up"
-              ? "Usaremos este email para crear tu acceso de beta."
+              ? "Usaremos este email para activar tu prueba de 7 días gratis."
               : "Usaremos este email para validar el acceso a tu cuenta."}
           </FieldDescription>
         </Field>
@@ -681,23 +857,23 @@ function EmailPasswordForm({
         </p>
       ) : null}
 
-      {authConfigured && turnstileSiteKey ? (
-        <div
-          ref={turnstileContainerRef}
-          className="min-h-[65px] overflow-hidden rounded-xl"
-        />
+      <div
+        ref={turnstileContainerRef}
+        className="min-h-[65px] overflow-hidden rounded-xl"
+        data-turnstile-container=""
+      />
+      {turnstileStatus === "loading" ? (
+        <p className="text-xs leading-5 text-muted-foreground">
+          Cloudflare está preparando la verificación segura.
+        </p>
       ) : null}
 
       <Button
         className="h-10 rounded-xl"
-        disabled={status === "loading"}
+        disabled={!canSubmitPasswordAuth}
         type="submit"
       >
-        {status === "loading"
-          ? "Validando..."
-          : authMode === "sign-up"
-            ? "Crear cuenta con email"
-            : "Continuar con email"}
+        {submitLabel}
         <ChevronRightIcon data-icon="inline-end" />
       </Button>
     </form>
@@ -732,7 +908,7 @@ function AuthPanel(model: AuthPageModel) {
             </h2>
             <p className="text-sm text-muted-foreground">
               {authMode === "sign-up"
-                ? "Regístrate con un email nuevo para probar la beta."
+                ? "Regístrate y activa 7 días gratis para probar KMFX Edge."
                 : "Accede a tu panel de trading y gestión de cuentas."}
             </p>
           </div>
@@ -754,11 +930,14 @@ function AuthPanel(model: AuthPageModel) {
   );
 }
 
-export function AuthPage({ nextPath = "/dashboard" }: { nextPath?: string }) {
-  const model = useAuthPageModel(nextPath);
+export function AuthPage({
+  initialPublicConfig,
+  nextPath = "/dashboard",
+}: AuthPageProps) {
+  const model = useAuthPageModel(nextPath, initialPublicConfig);
 
   return (
-    <main className="relative min-h-svh overflow-hidden bg-background text-foreground lg:grid lg:grid-cols-[1.05fr_0.95fr]">
+    <main className="dark relative min-h-svh overflow-hidden bg-background text-foreground lg:grid lg:grid-cols-[1.05fr_0.95fr]">
       <AuthHero />
       <AuthPanel {...model} />
     </main>

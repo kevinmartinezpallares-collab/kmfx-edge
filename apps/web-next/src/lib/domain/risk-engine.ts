@@ -57,7 +57,7 @@ type LegacyAccountInput = {
   maxDrawdownLimit?: number;
 };
 
-export type RiskGuardBetaMonitorStatus =
+export type RiskGuardMonitorStatus =
   | "permitted"
   | "warning"
   | "critical"
@@ -66,38 +66,38 @@ export type RiskGuardBetaMonitorStatus =
   | "insufficient"
   | "no_account";
 
-export type RiskGuardBetaMonitorTone =
+export type RiskGuardMonitorTone =
   | "safe"
   | "warning"
   | "danger"
   | "muted";
 
-export type RiskGuardBetaMonitorMetric = {
+export type RiskGuardMonitorMetric = {
   id: string;
   label: string;
   value: string;
   detail: string;
-  tone: RiskGuardBetaMonitorTone;
+  tone: RiskGuardMonitorTone;
 };
 
-export type RiskGuardBetaMonitorRule = {
+export type RiskGuardMonitorRule = {
   id: string;
   label: string;
   value: string;
   status: string;
   detail: string;
-  tone: RiskGuardBetaMonitorTone;
+  tone: RiskGuardMonitorTone;
 };
 
-export type RiskGuardBetaMonitorEvent = {
+export type RiskGuardMonitorEvent = {
   id: string;
   label: string;
   value: string;
   detail: string;
-  tone: RiskGuardBetaMonitorTone;
+  tone: RiskGuardMonitorTone;
 };
 
-export type RiskGuardBetaMonitor = {
+export type RiskGuardMonitor = {
   account: {
     id: string;
     label: string;
@@ -109,16 +109,27 @@ export type RiskGuardBetaMonitor = {
     openPositionsCount: number;
   } | null;
   status: {
-    key: RiskGuardBetaMonitorStatus;
+    key: RiskGuardMonitorStatus;
     label: string;
     action: string;
-    tone: RiskGuardBetaMonitorTone;
+    tone: RiskGuardMonitorTone;
   };
   monitor: {
     active: true;
-    mt5BlockingActive: false;
-    orderActionsActive: false;
+    mt5BlockingActive: boolean;
+    orderActionsActive: boolean;
     message: string;
+  };
+  terminal: {
+    activeEnforcementConfirmed: boolean;
+    firmCautionRequired: boolean;
+    lastAckLabel: string;
+    mode: string;
+    policyHash: string;
+    policyHashMatches: boolean;
+    protectionLabel: string;
+    protectionState: NonNullable<WorkspaceState["accounts"][number]["riskGuard"]>["protectionState"];
+    tone: RiskGuardMonitorTone;
   };
   dailyLossUsedPct: number;
   dailyLimitPct: number;
@@ -147,9 +158,9 @@ export type RiskGuardBetaMonitor = {
     }>;
   };
   hasSufficientData: boolean;
-  metrics: RiskGuardBetaMonitorMetric[];
-  rules: RiskGuardBetaMonitorRule[];
-  recentEvents: RiskGuardBetaMonitorEvent[];
+  metrics: RiskGuardMonitorMetric[];
+  rules: RiskGuardMonitorRule[];
+  recentEvents: RiskGuardMonitorEvent[];
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -209,14 +220,14 @@ function formatSignedMonitorMoney(
   return formatted;
 }
 
-function riskGuardTone(status: RiskGuardBetaMonitorStatus): RiskGuardBetaMonitorTone {
+function riskGuardTone(status: RiskGuardMonitorStatus): RiskGuardMonitorTone {
   if (status === "limit_reached" || status === "critical") return "danger";
   if (status === "warning" || status === "requires_review") return "warning";
   if (status === "permitted") return "safe";
   return "muted";
 }
 
-function riskGuardLabel(status: RiskGuardBetaMonitorStatus) {
+function riskGuardLabel(status: RiskGuardMonitorStatus) {
   switch (status) {
     case "limit_reached":
       return "Límite alcanzado";
@@ -235,7 +246,7 @@ function riskGuardLabel(status: RiskGuardBetaMonitorStatus) {
   }
 }
 
-function riskGuardAction(status: RiskGuardBetaMonitorStatus) {
+function riskGuardAction(status: RiskGuardMonitorStatus) {
   switch (status) {
     case "limit_reached":
       return "Revisa el diario y decide fuera de esta pantalla antes de seguir.";
@@ -252,6 +263,36 @@ function riskGuardAction(status: RiskGuardBetaMonitorStatus) {
     default:
       return "Historial insuficiente para calcular todos los límites.";
   }
+}
+
+function terminalProtectionLabel(
+  state: NonNullable<WorkspaceState["accounts"][number]["riskGuard"]>["protectionState"],
+) {
+  switch (state) {
+    case "reactive_entry_guard_confirmed":
+      return "Bloqueo reactivo confirmado";
+    case "advanced_close_requires_firm_review":
+      return "Cierre avanzado: revisar firma";
+    case "terminal_confirmed_monitor":
+      return "Terminal confirmado";
+    case "terminal_read_only_or_unavailable":
+      return "Terminal sin permisos";
+    case "consent_required":
+      return "Consentimiento pendiente";
+    case "monitor_only":
+      return "Solo monitor";
+    default:
+      return "Pendiente de EA";
+  }
+}
+
+function terminalProtectionTone(
+  state: NonNullable<WorkspaceState["accounts"][number]["riskGuard"]>["protectionState"],
+): RiskGuardMonitorTone {
+  if (state === "reactive_entry_guard_confirmed") return "safe";
+  if (state === "advanced_close_requires_firm_review" || state === "consent_required") return "warning";
+  if (state === "terminal_read_only_or_unavailable" || state === "pending") return "muted";
+  return "muted";
 }
 
 function latestDailyBucket(workspace: WorkspaceState) {
@@ -297,7 +338,7 @@ function statusFromDailyUsage({
   riskStatus: WorkspaceState["risk"]["status"];
   riskSeverity: WorkspaceState["risk"]["severity"];
   usagePct: number;
-}): RiskGuardBetaMonitorStatus {
+}): RiskGuardMonitorStatus {
   if (!hasAccount) return "no_account";
   if (!hasSufficientData) return "insufficient";
   if (usagePct >= 100 || riskStatus === "blocked") return "limit_reached";
@@ -306,9 +347,9 @@ function statusFromDailyUsage({
   return "permitted";
 }
 
-export function buildRiskGuardBetaMonitor(
+export function buildRiskGuardMonitor(
   workspace: WorkspaceState,
-): RiskGuardBetaMonitor {
+): RiskGuardMonitor {
   const activeAccount =
     workspace.accounts.find((account) => account.id === workspace.activeAccountId) ??
     workspace.accounts[0] ??
@@ -340,6 +381,18 @@ export function buildRiskGuardBetaMonitor(
   const dailyUsagePct =
     dailyLimitPct > 0 ? clamp((dailyLossUsedPct / dailyLimitPct) * 100, 0, 999) : 0;
   const hasAccount = Boolean(activeAccount);
+  const riskGuard = activeAccount?.riskGuard;
+  const protectionState = riskGuard?.protectionState ?? "pending";
+  const activeEnforcementConfirmed = Boolean(riskGuard?.activeEnforcementConfirmed);
+  const firmCautionRequired = Boolean(riskGuard?.firmCautionRequired);
+  const terminalMessage =
+    protectionState === "reactive_entry_guard_confirmed"
+      ? "El EA confirmó la política y puede bloquear nuevas entradas de forma reactiva. Evita cerrar posiciones salvo revisión de la firma."
+      : protectionState === "advanced_close_requires_firm_review"
+        ? "El cierre automático de posiciones está marcado como avanzado: revisa las normas de la firma antes de usarlo."
+        : protectionState === "terminal_confirmed_monitor"
+          ? "El EA confirmó la política en MT5, pero las acciones automáticas siguen desactivadas."
+          : "No se envían órdenes ni se bloquean operaciones desde esta pantalla.";
   const hasSufficientData = Boolean(activeAccount && balance > 0 && dailyBucket);
   let statusKey = statusFromDailyUsage({
     hasAccount,
@@ -383,10 +436,10 @@ export function buildRiskGuardBetaMonitor(
   const lossStreak = countCurrentLossStreak(workspace);
   const currency = activeAccount?.baseCurrency ?? "USD";
   const tradesToday = toFiniteNumber(dailyBucket?.trades);
-  const pnlTone: RiskGuardBetaMonitorTone =
+  const pnlTone: RiskGuardMonitorTone =
     dailyPnl < 0 ? "danger" : (dailyPnl > 0 ? "safe" : "muted");
 
-  const metrics: RiskGuardBetaMonitorMetric[] = [
+  const metrics: RiskGuardMonitorMetric[] = [
     {
       id: "daily-loss",
       detail: `${formatMonitorPercent(dailyUsagePct, 0)} del límite diario.`,
@@ -431,7 +484,7 @@ export function buildRiskGuardBetaMonitor(
     },
   ];
 
-  const fundingAlertRules: RiskGuardBetaMonitorRule[] =
+  const fundingAlertRules: RiskGuardMonitorRule[] =
     fundingRuleEvaluation?.alerts.slice(0, 3).map((alert, index) => ({
       detail: alert.reason,
       id: `funding-rule-alert-${index + 1}`,
@@ -441,7 +494,7 @@ export function buildRiskGuardBetaMonitor(
       value: "Regla común",
     })) ?? [];
 
-  const rules: RiskGuardBetaMonitorRule[] = [
+  const rules: RiskGuardMonitorRule[] = [
     {
       id: "funding-rule",
       detail: verifiedFundingRule
@@ -489,9 +542,9 @@ export function buildRiskGuardBetaMonitor(
     },
     {
       id: "theoretical-limit",
-      detail: "Configuración de bloqueo pendiente de activar en EA.",
-      label: "Bloqueo teórico",
-      status: dailyUsagePct >= 100 ? "Teórico" : "Pendiente",
+      detail: "Bloqueo real pendiente de activar en MT5.",
+      label: "MT5 pendiente",
+      status: dailyUsagePct >= 100 ? "No activo" : "Pendiente",
       tone: dailyUsagePct >= 100 ? "danger" : "muted",
       value: "100%",
     },
@@ -528,8 +581,8 @@ export function buildRiskGuardBetaMonitor(
   const eventTrades = (latestDayTrades.length ? latestDayTrades : latestTrades(workspace))
     .toSorted((a, b) => b.closedAt.localeCompare(a.closedAt))
     .slice(0, 5);
-  const recentEvents = eventTrades.map((trade): RiskGuardBetaMonitorEvent => {
-    const tradeTone: RiskGuardBetaMonitorTone =
+  const recentEvents = eventTrades.map((trade): RiskGuardMonitorEvent => {
+    const tradeTone: RiskGuardMonitorTone =
       trade.netPnl < 0 ? "danger" : (trade.netPnl > 0 ? "safe" : "muted");
 
     return {
@@ -604,9 +657,11 @@ export function buildRiskGuardBetaMonitor(
     metrics,
     monitor: {
       active: true,
-      message: "No se envían órdenes ni se bloquean operaciones desde esta pantalla.",
-      mt5BlockingActive: false,
-      orderActionsActive: false,
+      message: terminalMessage,
+      mt5BlockingActive: activeEnforcementConfirmed,
+      orderActionsActive: Boolean(
+        riskGuard?.deletePendingOrdersEnabled || riskGuard?.reactiveClosePositionsEnabled,
+      ),
     },
     openRiskDetail,
     openRiskLabel,
@@ -618,6 +673,17 @@ export function buildRiskGuardBetaMonitor(
       key: statusKey,
       label: riskGuardLabel(statusKey),
       tone: statusTone,
+    },
+    terminal: {
+      activeEnforcementConfirmed,
+      firmCautionRequired,
+      lastAckLabel: riskGuard?.lastAckLabel ?? "Pendiente",
+      mode: riskGuard?.mode ?? "Pendiente",
+      policyHash: riskGuard?.policyHash ?? "",
+      policyHashMatches: Boolean(riskGuard?.policyHashMatches),
+      protectionLabel: terminalProtectionLabel(protectionState),
+      protectionState,
+      tone: terminalProtectionTone(protectionState),
     },
     tradesToday,
   };

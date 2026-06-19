@@ -17,6 +17,27 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const vercelTelemetryEnabled = process.env.VERCEL === "1";
+
+const themeBootScript = `
+(() => {
+  try {
+    const pathname = window.location.pathname;
+    const authRouteUsesDarkTheme = pathname === "/login" || pathname.startsWith("/auth/");
+    const stored = authRouteUsesDarkTheme ? "dark" : window.localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const resolved = stored === "light" ? "light" : stored === "system" ? (prefersDark ? "dark" : "light") : "dark";
+    document.documentElement.classList.toggle("dark", resolved === "dark");
+    document.documentElement.dataset.theme = resolved;
+    document.documentElement.style.colorScheme = resolved;
+  } catch {
+    document.documentElement.classList.add("dark");
+    document.documentElement.dataset.theme = "dark";
+    document.documentElement.style.colorScheme = "dark";
+  }
+})();
+`;
+
 export const metadata: Metadata = {
   title: "KMFX Edge",
   description: "Panel operativo para trading, riesgo, cuentas y portfolio.",
@@ -45,7 +66,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#ffffff",
+  themeColor: "#1a1a1a",
 };
 
 export default function RootLayout({
@@ -59,11 +80,27 @@ export default function RootLayout({
       translate="no"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} dark h-full`}
+      data-theme="dark"
     >
+      <head>
+        <link rel="preconnect" href="https://challenges.cloudflare.com" />
+        <link rel="dns-prefetch" href="https://challenges.cloudflare.com" />
+        <script
+          async
+          defer
+          id="kmfx-turnstile-script"
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+        />
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
       <body className="min-h-full bg-background text-foreground">
         <Providers>{children}</Providers>
-        <Analytics />
-        <SpeedInsights />
+        {vercelTelemetryEnabled ? (
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
+        ) : null}
       </body>
     </html>
   );

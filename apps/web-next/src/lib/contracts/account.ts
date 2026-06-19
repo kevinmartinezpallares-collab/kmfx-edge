@@ -31,6 +31,39 @@ export type TradingAccount = {
   lastSyncLabel: string;
   isFunded: boolean;
   planAccess: "active" | "limited";
+  profile?: {
+    accountClass:
+      | "own"
+      | "real"
+      | "demo"
+      | "challenge"
+      | "evaluation"
+      | "funded";
+    badgeLabel: string;
+    source: "auto" | "manual";
+  };
+  riskGuard?: {
+    accountTradeAllowed: boolean;
+    activeEnforcementConfirmed: boolean;
+    consentAccepted: boolean;
+    deletePendingOrdersEnabled: boolean;
+    enabled: boolean;
+    firmCautionRequired: boolean;
+    lastAckLabel: string;
+    mode: string;
+    policyHash: string;
+    policyHashMatches: boolean;
+    protectionState:
+      | "pending"
+      | "monitor_only"
+      | "consent_required"
+      | "terminal_confirmed_monitor"
+      | "terminal_read_only_or_unavailable"
+      | "reactive_entry_guard_confirmed"
+      | "advanced_close_requires_firm_review";
+    reactiveClosePositionsEnabled: boolean;
+    terminalTradeAllowed: boolean;
+  };
   equityHistory?: Array<{
     label: string;
     value: number;

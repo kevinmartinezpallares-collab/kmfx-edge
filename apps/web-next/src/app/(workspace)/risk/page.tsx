@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { UpcomingSection } from "@/components/app/upcoming-section";
-import { RiskGuardBetaMonitorSection } from "@/components/trading/risk";
+import { RiskGuardMonitorSection } from "@/components/trading/risk";
 import {
   getWorkspaceStateForSearchParams,
   type WorkspaceSearchParams,
@@ -20,7 +20,7 @@ export default async function RiskPage({ searchParams }: RiskPageProps) {
   if (process.env.KMFX_ENABLE_RISKGUARD_PREVIEW === "1") {
     const workspace = await getWorkspaceStateForSearchParams(searchParams);
 
-    return <RiskGuardBetaMonitorSection workspace={workspace} />;
+    return <RiskGuardMonitorSection workspace={workspace} />;
   }
 
   return <UpcomingSection {...upcomingRoutes.risk} />;

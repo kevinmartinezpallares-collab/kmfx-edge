@@ -2,6 +2,7 @@ import "server-only";
 
 import { buildKmfxApiUrl } from "@/lib/api/kmfx-api-config";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { hasSupabasePublicConfig } from "@/lib/supabase/config";
 
 type BackendJsonOptions = {
   body?: Record<string, unknown>;
@@ -34,6 +35,10 @@ function logBackendProxyEvent(
 }
 
 async function resolveSupabaseAccessToken() {
+  if (!hasSupabasePublicConfig()) {
+    throw new Error("auth_required");
+  }
+
   const supabase = await createServerSupabaseClient();
   const claims = await supabase.auth.getClaims();
 

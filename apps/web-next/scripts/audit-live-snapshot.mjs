@@ -124,7 +124,7 @@ function auditSnapshot(snapshot, now = new Date()) {
   ).length;
 
   if (accounts.length > 0 && readyAccountCount === 0) {
-    issues.push("No hay ninguna cuenta lista para una prueba beta read-only.");
+    issues.push("No hay ninguna cuenta lista para una prueba live read-only.");
   }
 
   return {

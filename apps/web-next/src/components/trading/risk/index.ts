@@ -1,1 +1,1 @@
-export { RiskGuardBetaMonitorSection } from "./reference-section";
+export { RiskGuardMonitorSection } from "./reference-section";

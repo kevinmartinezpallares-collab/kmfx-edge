@@ -13,35 +13,35 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { RiskPolicyConfigurator } from "@/components/trading/risk/policy-configurator";
 import type {
-  RiskGuardBetaMonitorEvent,
-  RiskGuardBetaMonitorMetric,
-  RiskGuardBetaMonitorRule,
-  RiskGuardBetaMonitorTone,
+  RiskGuardMonitorEvent,
+  RiskGuardMonitorMetric,
+  RiskGuardMonitorRule,
+  RiskGuardMonitorTone,
 } from "@/lib/domain/risk-engine";
-import { buildRiskGuardBetaMonitor } from "@/lib/domain/risk-engine";
+import { buildRiskGuardMonitor } from "@/lib/domain/risk-engine";
 import { getRiskPolicyControls } from "@/lib/domain/risk-policy-selectors";
 import type { WorkspaceState } from "@/lib/contracts/workspace-state";
 import { cn } from "@/lib/utils";
 
-type RiskGuardBetaMonitorSectionProps = {
+type RiskGuardMonitorSectionProps = {
   workspace: WorkspaceState;
 };
 
-const toneTextClasses: Record<RiskGuardBetaMonitorTone, string> = {
+const toneTextClasses: Record<RiskGuardMonitorTone, string> = {
   danger: "text-loss",
   muted: "text-muted-foreground",
   safe: "text-profit",
   warning: "text-risk",
 };
 
-const tonePanelClasses: Record<RiskGuardBetaMonitorTone, string> = {
+const tonePanelClasses: Record<RiskGuardMonitorTone, string> = {
   danger: "border-loss/35 bg-card/70",
   muted: "border-border/70 bg-card/70",
   safe: "border-border/70 bg-card/70",
   warning: "border-risk/35 bg-card/70",
 };
 
-const toneMarkerClasses: Record<RiskGuardBetaMonitorTone, string> = {
+const toneMarkerClasses: Record<RiskGuardMonitorTone, string> = {
   danger: "bg-loss",
   muted: "bg-muted-foreground",
   safe: "bg-profit",
@@ -50,14 +50,22 @@ const toneMarkerClasses: Record<RiskGuardBetaMonitorTone, string> = {
 
 const riskCardClass = "border-border/70 bg-card/70 shadow-none";
 
-function MetricCard({ metric }: { metric: RiskGuardBetaMonitorMetric }) {
+function MetricCard({ metric }: { metric: RiskGuardMonitorMetric }) {
+  const compactValue = metric.value.length > 13 || /\s/.test(metric.value);
+
   return (
     <Card size="sm" className={riskCardClass}>
       <CardHeader>
         <CardTitle className="text-xs text-muted-foreground">{metric.label}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className={cn("font-mono text-2xl font-semibold tracking-normal tabular-nums", toneTextClasses[metric.tone])}>
+        <p
+          className={cn(
+            "font-semibold tracking-normal tabular-nums",
+            compactValue ? "text-xl leading-tight" : "font-mono text-2xl",
+            toneTextClasses[metric.tone],
+          )}
+        >
           {metric.value}
         </p>
         <p className="mt-2 text-xs leading-snug text-muted-foreground">{metric.detail}</p>
@@ -71,7 +79,7 @@ function RiskZonePanel({
   monitor,
 }: {
   barWidth: number;
-  monitor: ReturnType<typeof buildRiskGuardBetaMonitor>;
+  monitor: ReturnType<typeof buildRiskGuardMonitor>;
 }) {
   return (
     <div>
@@ -113,33 +121,38 @@ function RiskZonePanel({
 function MonitorBoundaryCard({
   monitor,
 }: {
-  monitor: ReturnType<typeof buildRiskGuardBetaMonitor>;
+  monitor: ReturnType<typeof buildRiskGuardMonitor>;
 }) {
   const rows = [
     {
       icon: BookOpenCheckIcon,
       label: "Control",
       text: "El trader mantiene el control operativo.",
-      tone: "safe" as RiskGuardBetaMonitorTone,
+      tone: "safe" as RiskGuardMonitorTone,
     },
     {
       icon: ShieldAlertIcon,
-      label: "EA",
-      text: "Bloqueo técnico pendiente de activar.",
-      tone: "warning" as RiskGuardBetaMonitorTone,
+      label: "MT5",
+      text:
+        monitor.terminal.protectionState === "pending"
+          ? "Pendiente de confirmación del EA."
+          : monitor.terminal.protectionLabel,
+      tone: monitor.terminal.tone,
     },
     {
       icon: ClockIcon,
       label: "Siguiente",
-      text: "Revisar margen diario y eventos recientes.",
-      tone: "muted" as RiskGuardBetaMonitorTone,
+      text: monitor.terminal.policyHash
+        ? `Hash ${monitor.terminal.policyHash.slice(0, 8)} - ${monitor.terminal.lastAckLabel}`
+        : "Guardar política y confirmar en MT5.",
+      tone: monitor.terminal.policyHashMatches ? "safe" : "muted" as RiskGuardMonitorTone,
     },
   ];
 
   return (
     <Card className={riskCardClass}>
       <CardHeader>
-        <CardTitle>Frontera del monitor</CardTitle>
+        <CardTitle>Qué está activo</CardTitle>
       </CardHeader>
       <CardContent className="space-y-1 text-sm">
         {rows.map((row) => (
@@ -156,12 +169,24 @@ function MonitorBoundaryCard({
             Historial insuficiente para completar todas las métricas.
           </div>
         ) : null}
+        {monitor.terminal.firmCautionRequired ? (
+          <div className="mt-3 rounded-lg border border-risk/35 bg-risk/10 p-3 text-xs leading-5 text-risk">
+            Cerrar posiciones automáticamente puede afectar normas de fondeo. Úsalo solo tras revisar la firma y el examen.
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );
 }
 
-function RuleRow({ rule }: { rule: RiskGuardBetaMonitorRule }) {
+function RuleRow({ rule }: { rule: RiskGuardMonitorRule }) {
+  const statusLabel =
+    rule.status === "Bloqueo lógico"
+      ? "Bloquear entrada"
+      : rule.status === "Teórico"
+        ? "No activo"
+        : rule.status;
+
   return (
     <li className="grid gap-3 border-b border-border/60 py-3 last:border-b-0 md:grid-cols-[1.1fr_0.7fr_0.7fr_1.4fr] md:items-center">
       <div>
@@ -169,13 +194,13 @@ function RuleRow({ rule }: { rule: RiskGuardBetaMonitorRule }) {
         <p className="mt-1 text-xs text-muted-foreground md:hidden">{rule.detail}</p>
       </div>
       <p className="font-mono text-sm text-foreground">{rule.value}</p>
-      <p className={cn("text-sm font-medium", toneTextClasses[rule.tone])}>{rule.status}</p>
+      <p className={cn("text-sm font-medium", toneTextClasses[rule.tone])}>{statusLabel}</p>
       <p className="hidden text-sm text-muted-foreground md:block">{rule.detail}</p>
     </li>
   );
 }
 
-function EventRow({ event }: { event: RiskGuardBetaMonitorEvent }) {
+function EventRow({ event }: { event: RiskGuardMonitorEvent }) {
   return (
     <li className="flex items-center justify-between gap-3 border-b border-border/60 py-3 last:border-b-0">
       <div className="min-w-0">
@@ -189,10 +214,10 @@ function EventRow({ event }: { event: RiskGuardBetaMonitorEvent }) {
   );
 }
 
-export function RiskGuardBetaMonitorSection({
+export function RiskGuardMonitorSection({
   workspace,
-}: RiskGuardBetaMonitorSectionProps) {
-  const monitor = buildRiskGuardBetaMonitor(workspace);
+}: RiskGuardMonitorSectionProps) {
+  const monitor = buildRiskGuardMonitor(workspace);
   const policy = getRiskPolicyControls(workspace);
   const barWidth = Math.min(monitor.dailyUsagePct, 100);
   const accountLabel = monitor.account?.label ?? "Cuenta sin seleccionar";
@@ -208,14 +233,14 @@ export function RiskGuardBetaMonitorSection({
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-card/70 px-2 py-1 text-muted-foreground">
               <ShieldAlertIcon className="size-3.5" />
-              Bloqueo MT5 no activado
+              {monitor.terminal.activeEnforcementConfirmed ? "EA confirmado" : "MT5 solo lectura"}
             </span>
           </div>
           <h1 className="mt-3 font-heading text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
             Mesa de Riesgo
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Control de disciplina, límites y reglas de fondeo antes de añadir riesgo.
+            Control de disciplina, límites y pausas antes de añadir riesgo.
           </p>
         </div>
         <Link

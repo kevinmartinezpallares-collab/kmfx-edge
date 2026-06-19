@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildRiskGuardBetaMonitor,
+  buildRiskGuardMonitor,
   computeRecommendedRiskFromModel,
   computeRiskState,
   recommendedRiskPctForState,
@@ -95,7 +95,7 @@ describe("risk-engine", () => {
     expect(result.recommendedRiskPct).toBe(1);
   });
 
-  it("builds a read-only beta monitor from workspace data", () => {
+  it("builds a read-only risk monitor from workspace data", () => {
     const workspace = {
       ...wave1Workspace,
       risk: {
@@ -106,7 +106,7 @@ describe("risk-engine", () => {
         severity: "info",
       },
     } satisfies WorkspaceState;
-    const monitor = buildRiskGuardBetaMonitor(workspace);
+    const monitor = buildRiskGuardMonitor(workspace);
 
     expect(monitor.monitor).toMatchObject({
       active: true,
@@ -123,7 +123,63 @@ describe("risk-engine", () => {
     });
   });
 
-  it("escalates beta monitor thresholds without activating enforcement", () => {
+  it("shows confirmed EA ack without treating close-all as safe default", () => {
+    const confirmedWorkspace = {
+      ...wave1Workspace,
+      accounts: wave1Workspace.accounts.map((account, index) =>
+        index === 0
+          ? {
+              ...account,
+              riskGuard: {
+                accountTradeAllowed: true,
+                activeEnforcementConfirmed: true,
+                consentAccepted: true,
+                deletePendingOrdersEnabled: true,
+                enabled: true,
+                firmCautionRequired: false,
+                lastAckLabel: "Hace 1 min",
+                mode: "REACTIVE_GUARD",
+                policyHash: "abc123def456",
+                policyHashMatches: true,
+                protectionState: "reactive_entry_guard_confirmed",
+                reactiveClosePositionsEnabled: false,
+                terminalTradeAllowed: true,
+              },
+            }
+          : account,
+      ),
+    } satisfies WorkspaceState;
+
+    const confirmedMonitor = buildRiskGuardMonitor(confirmedWorkspace);
+
+    expect(confirmedMonitor.monitor.mt5BlockingActive).toBe(true);
+    expect(confirmedMonitor.terminal.protectionLabel).toBe("Bloqueo reactivo confirmado");
+    expect(confirmedMonitor.terminal.firmCautionRequired).toBe(false);
+
+    const closeAllMonitor = buildRiskGuardMonitor({
+      ...confirmedWorkspace,
+      accounts: confirmedWorkspace.accounts.map((account, index) =>
+        index === 0 && account.riskGuard
+          ? {
+              ...account,
+              riskGuard: {
+                ...account.riskGuard,
+                activeEnforcementConfirmed: false,
+                firmCautionRequired: true,
+                protectionState: "advanced_close_requires_firm_review",
+                reactiveClosePositionsEnabled: true,
+              },
+            }
+          : account,
+      ),
+    } satisfies WorkspaceState);
+
+    expect(closeAllMonitor.monitor.mt5BlockingActive).toBe(false);
+    expect(closeAllMonitor.terminal.firmCautionRequired).toBe(true);
+    expect(closeAllMonitor.terminal.protectionLabel).toBe("Cierre avanzado: revisar firma");
+  });
+
+  it("escalates risk monitor thresholds without activating enforcement", () => {
     const baseWorkspace = {
       ...wave1Workspace,
       risk: {
@@ -135,13 +191,13 @@ describe("risk-engine", () => {
     } satisfies WorkspaceState;
 
     expect(
-      buildRiskGuardBetaMonitor({
+      buildRiskGuardMonitor({
         ...baseWorkspace,
         risk: { ...baseWorkspace.risk, dailyDrawdownPct: 2.7 },
       }).status.key,
     ).toBe("critical");
 
-    const limitMonitor = buildRiskGuardBetaMonitor({
+    const limitMonitor = buildRiskGuardMonitor({
       ...baseWorkspace,
       risk: { ...baseWorkspace.risk, dailyDrawdownPct: 3 },
     });
@@ -149,12 +205,12 @@ describe("risk-engine", () => {
     expect(limitMonitor.status.key).toBe("limit_reached");
     expect(limitMonitor.monitor.mt5BlockingActive).toBe(false);
     expect(limitMonitor.rules.find((rule) => rule.id === "theoretical-limit")).toMatchObject({
-      status: "Teórico",
+      status: "No activo",
     });
   });
 
   it("marks missing balance or history as insufficient and keeps fallback limits pending", () => {
-    const monitor = buildRiskGuardBetaMonitor({
+    const monitor = buildRiskGuardMonitor({
       ...wave1Workspace,
       accounts: wave1Workspace.accounts.map((account, index) =>
         index === 0 ? { ...account, balance: 0 } : account,
@@ -197,7 +253,7 @@ describe("risk-engine", () => {
       label: "The Funding Pips 100K",
       server: "TFP-Server01",
     } satisfies typeof baseAccount;
-    const monitor = buildRiskGuardBetaMonitor({
+    const monitor = buildRiskGuardMonitor({
       ...wave1Workspace,
       accounts: [fundingPipsAccount],
       activeAccountId: fundingPipsAccount.id,
@@ -244,7 +300,7 @@ describe("risk-engine", () => {
       server: "Darwinex-Live",
     } satisfies typeof baseAccount;
 
-    const monitor = buildRiskGuardBetaMonitor({
+    const monitor = buildRiskGuardMonitor({
       ...wave1Workspace,
       accounts: [darwinexZeroAccount],
       activeAccountId: darwinexZeroAccount.id,
@@ -290,7 +346,7 @@ describe("risk-engine", () => {
       server: "TFP-Server01",
     } satisfies typeof baseAccount;
 
-    const monitor = buildRiskGuardBetaMonitor({
+    const monitor = buildRiskGuardMonitor({
       ...wave1Workspace,
       accounts: [fundingPipsAccount],
       activeAccountId: fundingPipsAccount.id,
