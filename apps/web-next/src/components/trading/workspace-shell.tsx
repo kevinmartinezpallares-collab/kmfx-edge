@@ -104,6 +104,7 @@ type PromoNotification = {
 
 const LOCATION_SEARCH_CHANGE_EVENT = "kmfx-location-search-change";
 const ACTIVE_WORKSPACE_ACCOUNT_COOKIE = "kmfx-active-account";
+const PROMO_NOTIFICATIONS_STORAGE_PREFIX = "kmfx-promo-notifications-read";
 const DASHBOARD_ONBOARDING_STORAGE_KEY = "kmfx-dashboard-onboarding-v1";
 const LIVE_HEALTHY_REFRESH_INTERVAL_MS = 60000;
 const LIVE_RECONNECT_REFRESH_INTERVAL_MS = 12000;
@@ -219,6 +220,24 @@ function getPromoNotifications(): PromoNotification[] {
       href: DARWINEX_ZERO_REFERRAL_URL,
     },
   ];
+}
+
+function getPromoNotificationsStorageKey(userEmail: string | undefined) {
+  const scope = String(userEmail || "anonymous").trim().toLowerCase() || "anonymous";
+  return `${PROMO_NOTIFICATIONS_STORAGE_PREFIX}:${scope}`;
+}
+
+function parseStoredPromoIds(value: string | null) {
+  if (!value) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string")
+      : [];
+  } catch {
+    return [];
+  }
 }
 
 function getNavBadge(
@@ -1199,16 +1218,25 @@ function TopbarNotifications({
   dismissedPromoIds,
   notifications,
   onDismiss,
+  onDismissAll,
   onRestore,
+  onRestoreAll,
 }: {
   dismissedPromoIds: string[];
   notifications: PromoNotification[];
   onDismiss: (promoId: string) => void;
+  onDismissAll: () => void;
   onRestore: (promoId: string) => void;
+  onRestoreAll: () => void;
 }) {
-  const visibleCount = notifications.filter(
+  const unreadNotifications = notifications.filter(
     (promo) => !dismissedPromoIds.includes(promo.id),
-  ).length;
+  );
+  const readNotifications = notifications.filter((promo) =>
+    dismissedPromoIds.includes(promo.id),
+  );
+  const unreadCount = unreadNotifications.length;
+  const hasReadNotifications = readNotifications.length > 0;
 
   return (
     <DropdownMenu>
@@ -1223,20 +1251,41 @@ function TopbarNotifications({
         }
       >
         <Bell data-icon="inline-start" />
-        {notifications.length ? (
+        {unreadCount ? (
           <span className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-4 text-primary-foreground">
-            {notifications.length}
+            {unreadCount}
           </span>
         ) : null}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-2">
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="px-1 pb-2 pt-1">
-            Notificaciones
-          </DropdownMenuLabel>
+          <div className="flex items-center justify-between gap-2 px-1 pb-2 pt-1">
+            <DropdownMenuLabel className="p-0">
+              Notificaciones
+            </DropdownMenuLabel>
+            {unreadCount ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={onDismissAll}
+              >
+                Marcar leídas
+              </Button>
+            ) : hasReadNotifications ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={onRestoreAll}
+              >
+                Restaurar
+              </Button>
+            ) : null}
+          </div>
         </DropdownMenuGroup>
         <div className="flex flex-col gap-2">
-          {notifications.map((promo) => {
+          {(unreadCount ? unreadNotifications : readNotifications).map((promo) => {
             const dismissed = dismissedPromoIds.includes(promo.id);
 
             return (
@@ -1257,7 +1306,7 @@ function TopbarNotifications({
                     </p>
                   </div>
                   <Badge variant="secondary" className="shrink-0 text-[10px]">
-                    {dismissed ? "Guardada" : "Sidebar"}
+                    {dismissed ? "Leída" : "Nueva"}
                   </Badge>
                 </div>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
@@ -1273,18 +1322,23 @@ function TopbarNotifications({
                       dismissed ? onRestore(promo.id) : onDismiss(promo.id)
                     }
                   >
-                    {dismissed ? "Mostrar" : "Ocultar"}
+                    {dismissed ? "Marcar nueva" : "Marcar leída"}
                   </Button>
                 </div>
               </div>
             );
           })}
+          {!notifications.length ? (
+            <div className="rounded-lg border border-border/70 bg-card/75 p-4 text-sm text-muted-foreground">
+              No hay notificaciones.
+            </div>
+          ) : null}
         </div>
         <DropdownMenuSeparator />
         <p className="px-1 pb-1 text-xs leading-5 text-muted-foreground">
-          {visibleCount
-            ? `${visibleCount} visibles en la cola de la sidebar.`
-            : "Todas guardadas para revisar desde aquí."}
+          {unreadCount
+            ? `${unreadCount} pendientes.`
+            : "Todas las notificaciones están leídas."}
         </p>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -1676,6 +1730,12 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
   );
   const [dismissedPromoIds, setDismissedPromoIds] = React.useState<string[]>([]);
   const [dashboardOnboardingOpen, setDashboardOnboardingOpen] = React.useState(false);
+  const promoNotificationsStorageKey = React.useMemo(
+    () => getPromoNotificationsStorageKey(workspace.meta.userEmail),
+    [workspace.meta.userEmail],
+  );
+  const [loadedPromoNotificationsStorageKey, setLoadedPromoNotificationsStorageKey] =
+    React.useState("");
   const activePromo = promoNotifications.find(
     (promo) => !dismissedPromoIds.includes(promo.id),
   );
@@ -1690,6 +1750,45 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
     () => getDashboardOnboardingStorageKey(workspace.meta.userEmail),
     [workspace.meta.userEmail],
   );
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    setLoadedPromoNotificationsStorageKey("");
+
+    try {
+      const storedIds = parseStoredPromoIds(
+        window.localStorage.getItem(promoNotificationsStorageKey),
+      );
+      const knownPromoIds = new Set(promoNotifications.map((promo) => promo.id));
+      setDismissedPromoIds(storedIds.filter((id) => knownPromoIds.has(id)));
+    } catch {
+      setDismissedPromoIds([]);
+    } finally {
+      setLoadedPromoNotificationsStorageKey(promoNotificationsStorageKey);
+    }
+  }, [promoNotifications, promoNotificationsStorageKey]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (loadedPromoNotificationsStorageKey !== promoNotificationsStorageKey) return;
+
+    try {
+      if (dismissedPromoIds.length) {
+        window.localStorage.setItem(
+          promoNotificationsStorageKey,
+          JSON.stringify(dismissedPromoIds),
+        );
+      } else {
+        window.localStorage.removeItem(promoNotificationsStorageKey);
+      }
+    } catch {
+      // Storage can be unavailable in hardened browsers; notifications still work in-session.
+    }
+  }, [
+    dismissedPromoIds,
+    loadedPromoNotificationsStorageKey,
+    promoNotificationsStorageKey,
+  ]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1756,8 +1855,16 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
     );
   }
 
+  function dismissAllPromos() {
+    setDismissedPromoIds(promoNotifications.map((promo) => promo.id));
+  }
+
   function restorePromo(promoId: string) {
     setDismissedPromoIds((current) => current.filter((id) => id !== promoId));
+  }
+
+  function restoreAllPromos() {
+    setDismissedPromoIds([]);
   }
 
   function setOnboardingSeen() {
@@ -1810,7 +1917,9 @@ export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
               dismissedPromoIds={dismissedPromoIds}
               notifications={promoNotifications}
               onDismiss={dismissPromo}
+              onDismissAll={dismissAllPromos}
               onRestore={restorePromo}
+              onRestoreAll={restoreAllPromos}
             />
             <ThemeSwitcher />
             <div className="lg:hidden">
