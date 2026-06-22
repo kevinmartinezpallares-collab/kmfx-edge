@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { animate, m as motion, useMotionValue } from "motion/react";
 import {
+  AlertTriangle,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -68,6 +69,10 @@ import {
 
 import type { AccountRow } from "@/lib/domain/accounts-selectors";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  KMFX_CONNECTOR_UPDATE_STEPS,
+  REQUIRED_KMFX_CONNECTOR_VERSION,
+} from "@/lib/domain/connector-version";
 import {
   formatCurrency,
   formatPercent,
@@ -385,6 +390,7 @@ const LOGO_GRADIENT_THEMES = [
 }>;
 
 function accountStatusLabel(account: AccountRow) {
+  if (account.connectorUpdateRequired) return "Actualizar EA";
   if (account.connectionTone === "connected") return "En vivo";
   if (account.connectionTone === "syncing") return "Sincronizando";
   if (account.connectionTone === "stale") return "Desactualizada";
@@ -626,6 +632,9 @@ function AccountConnectionDetail({ account }: { account: AccountRow }) {
     "La KMFX Key es única para esta cuenta MT5.",
   );
   const displayConnectionKey = connectionKey || connectionKeyPreview || "•••• •••• ••••";
+  const connectorVersionLabel = account.connectorVersion
+    ? `v${account.connectorVersion}`
+    : "versión no detectada";
 
   function connectionKeyErrorMessage(reason: string | undefined, fallback: string) {
     if (reason === "connection_key_not_available") {
@@ -795,6 +804,39 @@ function AccountConnectionDetail({ account }: { account: AccountRow }) {
                   {accountStatusLabel(account)}
                 </Badge>
               </div>
+              {account.connectorUpdateRequired ? (
+                <div className="rounded-2xl border border-amber-500/45 bg-amber-500/10 p-4 text-foreground">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-600">
+                      <AlertTriangle className="size-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold">
+                          Actualiza KMFX Connector
+                        </p>
+                        <Badge variant="secondary" className="rounded-full">
+                          Requiere v{REQUIRED_KMFX_CONNECTOR_VERSION}
+                        </Badge>
+                      </div>
+                      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                        Esta cuenta está usando {connectorVersionLabel}. Actualiza
+                        el EA lo antes posible para mantener la sincronización.
+                      </p>
+                      <ol className="mt-3 grid gap-2 text-xs leading-relaxed text-muted-foreground">
+                        {KMFX_CONNECTOR_UPDATE_STEPS.map((step, index) => (
+                          <li key={step} className="flex gap-2">
+                            <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-amber-500/45 text-[10px] font-semibold text-amber-600">
+                              {index + 1}
+                            </span>
+                            <span>{step}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
               <div className="rounded-2xl border border-border/60 bg-background/40 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">

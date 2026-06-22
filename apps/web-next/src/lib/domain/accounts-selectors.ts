@@ -36,7 +36,8 @@ export function getAccountRows(workspace: WorkspaceState): AccountRow[] {
         account.planAccess === "limited" ||
         account.connectionTone === "stale" ||
         account.connectionTone === "warning" ||
-        account.connectionTone === "danger",
+        account.connectionTone === "danger" ||
+        Boolean(account.connectorUpdateRequired),
       accountKindLabel: isFunding
         ? isChallenge
           ? "Reto prop"

@@ -537,6 +537,38 @@ describe("createWorkspaceFromLiveSnapshot", () => {
     );
   });
 
+  it("marks accounts with outdated KMFX Connector versions for attention", () => {
+    const workspace = createWorkspaceFromLiveSnapshot(
+      {
+        accounts: [
+          {
+            account_id: "outdated-connector-account",
+            display_name: "Darwinex MT5",
+            broker: "Tradeslide Trading Tech Limited",
+            login: "40***26",
+            server: "Darwinex-Live",
+            status: "active",
+            last_sync_at: "2026-06-22T08:00:00Z",
+            dashboard_payload: {
+              balance: 100000,
+              connector_version: "2.90",
+              equity: 100000,
+            },
+          },
+        ],
+      },
+      "live",
+    );
+    const overview = getAccountsOverview(workspace);
+
+    expect(workspace.accounts[0]).toMatchObject({
+      connectorUpdateRequired: true,
+      connectorVersion: "2.90",
+    });
+    expect(overview.attentionCount).toBe(1);
+    expect(overview.rows[0]?.needsAttention).toBe(true);
+  });
+
   it("keeps the Darwinex fixture rich enough for one-year product review", () => {
     const fixture = fixtureSnapshot as RawLiveAccountsSnapshot;
     const activePayload = fixture.accounts?.[0]?.dashboard_payload;

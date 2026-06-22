@@ -28,6 +28,8 @@ export type TradingAccount = {
   openPositionsCount: number;
   connectionState: ConnectionState;
   connectionTone: ConnectionTone;
+  connectorUpdateRequired?: boolean;
+  connectorVersion?: string;
   lastSyncLabel: string;
   isFunded: boolean;
   planAccess: "active" | "limited";

@@ -18,6 +18,10 @@ import type {
 } from "@/lib/contracts/trade";
 import type { WorkspaceState } from "@/lib/contracts/workspace-state";
 import {
+  normalizeConnectorVersion,
+  requiresKmfxConnectorUpdate,
+} from "@/lib/domain/connector-version";
+import {
   formatCurrency,
   formatPercent,
   formatSignedCurrency,
@@ -1144,6 +1148,12 @@ function mapRiskGuardAck(account: RawLiveSnapshotAccount): TradingAccount["riskG
 
 function mapAccount(account: RawLiveSnapshotAccount): TradingAccount {
   const payload = account.dashboard_payload || {};
+  const connectorVersion = normalizeConnectorVersion(
+    account.connector_version ??
+      account.connectorVersion ??
+      payload.connector_version ??
+      payload.connectorVersion,
+  );
   const sanitizeAccountText = (value: string, fallback: string) => {
     const sanitized = value
       .replace(/\bMT5\s+Demo\b/gi, "MT5")
@@ -1182,6 +1192,8 @@ function mapAccount(account: RawLiveSnapshotAccount): TradingAccount {
     openPositionsCount: toFiniteNumber(payload.openPositionsCount),
     connectionState: resolveConnectionState(account),
     connectionTone: resolveConnectionTone(account),
+    connectorUpdateRequired: requiresKmfxConnectorUpdate(connectorVersion),
+    connectorVersion,
     lastSyncLabel: formatSyncLabel(account.last_sync_at),
     isFunded: inferIsFunded(account),
     planAccess: inferPlanAccess(account),

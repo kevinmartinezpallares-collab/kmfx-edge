@@ -60,6 +60,8 @@ export type RawLiveDashboardPayload = {
   server?: string;
   platform?: string;
   mode?: string;
+  connector_version?: string;
+  connectorVersion?: string;
   balance?: number;
   equity?: number;
   floatingPnl?: number;
@@ -231,6 +233,8 @@ export type RawLiveSnapshotAccount = {
   login?: string | number;
   server?: string;
   connection_mode?: string;
+  connector_version?: string;
+  connectorVersion?: string;
   status?: string;
   last_sync_at?: string;
   is_default?: boolean;
