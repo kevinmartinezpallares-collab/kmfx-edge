@@ -548,7 +548,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
-    def test_link_account_regenerates_legacy_missing_plaintext_key_for_pending_account(self) -> None:
+    def test_link_account_regenerates_legacy_missing_plaintext_key_for_previously_synced_pending_account(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service
             store_path = os.path.join(temp_dir, "accounts.json")
@@ -578,6 +578,8 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 with open(store_path, "r", encoding="utf-8") as handle:
                     legacy_persisted = json.load(handle)
                 legacy_persisted["accounts"][0]["connection_key_sealed"] = ""
+                legacy_persisted["accounts"][0]["last_sync_at"] = "2026-06-22T08:00:00+00:00"
+                legacy_persisted["accounts"][0]["first_sync_at"] = "2026-06-22T08:00:00+00:00"
                 with open(store_path, "w", encoding="utf-8") as handle:
                     json.dump(legacy_persisted, handle)
 
@@ -678,7 +680,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
-    def test_link_account_rejects_revoked_existing_key(self) -> None:
+    def test_link_account_regenerates_revoked_existing_pending_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service
             store_path = os.path.join(temp_dir, "accounts.json")
@@ -713,17 +715,17 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                     response = asyncio.run(connector_api.link_account(request))
                 body = json.loads(response.body.decode("utf-8"))
 
-                self.assertEqual(409, response.status_code)
-                self.assertFalse(body["ok"])
-                self.assertEqual("connection_key_revoked", body["reason"])
-                self.assertEqual(created.account_id, body["details"]["account_id"])
-                self.assertEqual(
-                    mask_connection_key("revoked-darwinex-key"),
-                    body["details"]["connection_key_preview"],
-                )
+                self.assertEqual(200, response.status_code)
+                self.assertTrue(body["ok"])
+                self.assertEqual(created.account_id, body["account_id"])
+                self.assertTrue(body["connection_key"])
+                self.assertNotEqual("revoked-darwinex-key", body["connection_key"])
                 self.assertTrue(connector_api.account_service.is_connection_key_revoked_any_user("revoked-darwinex-key"))
                 self.assertIsNone(
                     connector_api.account_service.get_account_by_api_key_any_user("revoked-darwinex-key")
+                )
+                self.assertIsNotNone(
+                    connector_api.account_service.get_account_by_api_key_any_user(body["connection_key"])
                 )
             finally:
                 connector_api.account_service = previous_service

@@ -6996,42 +6996,65 @@ async def link_account_from_payload(request: Request, payload: dict[str, Any]) -
             if connection_key and account_service.is_connection_key_revoked_any_user(connection_key):
                 existing_key_revoked = True
             if existing_key_revoked:
-                return connector_json_response(
-                    {
-                        "ok": False,
-                        "reason": "connection_key_revoked",
-                        "details": {
-                            "account_id": account_id,
-                            "connection_key_preview": getattr(existing_account, "connection_key_preview", "") or mask_connection_key(connection_key),
+                regenerated_account = account_service.regenerate_connection_key(account_id)
+                if regenerated_account is not None:
+                    existing_account = regenerated_account
+                    connection_key = safe_str(getattr(existing_account, "api_key", ""))
+                    log.info(
+                        "ACCOUNT link regenerated revoked pending key | account_id=%s user_id=%s connection_key=%s",
+                        account_id,
+                        user_id,
+                        mask_connection_key(connection_key),
+                    )
+                    emit_audit_event(
+                        "regenerate_key",
+                        context=auth_context,
+                        user_id=user_id,
+                        account_id=account_id,
+                        details={
+                            "source": "accounts_link",
+                            "reason": "revoked_pending_key",
+                            "connection_mode": connection_mode,
+                            "platform": platform,
+                            "connection_key_preview": mask_connection_key(connection_key),
                         },
-                        "timestamp": now_iso(),
-                    },
-                    status_code=409,
-                )
-            if not connection_key:
-                if can_regenerate_missing_pending_connection_key(existing_account):
-                    regenerated_account = account_service.regenerate_connection_key(account_id)
-                    if regenerated_account is not None:
-                        existing_account = regenerated_account
-                        connection_key = safe_str(getattr(existing_account, "api_key", ""))
-                        log.info(
-                            "ACCOUNT link repaired missing pending key | account_id=%s user_id=%s connection_key=%s",
-                            account_id,
-                            user_id,
-                            mask_connection_key(connection_key),
-                        )
-                        emit_audit_event(
-                            "repair_connection_key",
-                            context=auth_context,
-                            user_id=user_id,
-                            account_id=account_id,
-                            details={
-                                "source": "accounts_link",
-                                "connection_mode": connection_mode,
-                                "platform": platform,
-                                "connection_key_preview": mask_connection_key(connection_key),
+                    )
+                if not connection_key:
+                    return connector_json_response(
+                        {
+                            "ok": False,
+                            "reason": "connection_key_revoked",
+                            "details": {
+                                "account_id": account_id,
+                                "connection_key_preview": getattr(existing_account, "connection_key_preview", "") or mask_connection_key(connection_key),
                             },
-                        )
+                            "timestamp": now_iso(),
+                        },
+                        status_code=409,
+                    )
+            if not connection_key:
+                regenerated_account = account_service.regenerate_connection_key(account_id)
+                if regenerated_account is not None:
+                    existing_account = regenerated_account
+                    connection_key = safe_str(getattr(existing_account, "api_key", ""))
+                    log.info(
+                        "ACCOUNT link repaired missing pending key | account_id=%s user_id=%s connection_key=%s",
+                        account_id,
+                        user_id,
+                        mask_connection_key(connection_key),
+                    )
+                    emit_audit_event(
+                        "repair_connection_key",
+                        context=auth_context,
+                        user_id=user_id,
+                        account_id=account_id,
+                        details={
+                            "source": "accounts_link",
+                            "connection_mode": connection_mode,
+                            "platform": platform,
+                            "connection_key_preview": mask_connection_key(connection_key),
+                        },
+                    )
                 if not connection_key:
                     return connector_json_response(
                         {
