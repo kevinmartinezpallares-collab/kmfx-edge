@@ -5,7 +5,7 @@ const connectorFilename = ["KMFX", "Connector.ex5"].join("");
 
 export const connectorArtifact = {
   filename: connectorFilename,
-  sha256: "0e69a257e07aff98230f21564e098de4bd344137fbb9fcc29e2d093d43f285a8",
+  sha256: "0cf1f96a795f34d5d42344a325e9247320deedc522226ac54afbcf6b39d859ac",
   url: `${artifactOrigin}/${connectorFilename}`,
   path: connectorFilename,
   contentType: "application/octet-stream",

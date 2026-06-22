@@ -50,7 +50,7 @@ from .state_store import LauncherStateStore
 ROOT = app_root()
 UI_PATH = resource_path("launcher", "ui", "index.html")
 LAUNCHER_VERSION = "1.0.0"
-DEFAULT_CONNECTOR_VERSION = "2.80"
+DEFAULT_CONNECTOR_VERSION = "2.91"
 APP_ICON_PATH = resource_path("assets", "logos", "kmfx-edge-glass-mark-1024.png")
 STATUS_CACHE_TTL_SECONDS = 18
 INSTALLED_LINK_SYNC_TTL_SECONDS = 45

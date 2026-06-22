@@ -11,14 +11,14 @@ const artifactOrigin = "https://kmfxedge.com";
 export const launcherArtifacts = {
   "KMFX-Launcher-macOS.zip": {
     filename: "KMFX-Launcher-macOS.zip",
-    sha256: "35b3bd87ee73aea4f70ec26842c192f2eeb359c6f34f0fb2966187d52c27acee",
+    sha256: "e04b9cded8b16a089adbb6d9801db8c2e194baf4bc116810b8b912f497661573",
     url: `${artifactOrigin}/downloads/KMFX-Launcher-macOS.zip`,
     path: "downloads/KMFX-Launcher-macOS.zip",
     contentType: "application/zip",
   },
   "KMFX-Launcher-Windows.exe": {
     filename: "KMFX-Launcher-Windows.exe",
-    sha256: "27f6e33f988c25f4d96d8707de54bfe5521e10bdd2ab7639714f03cbe1b28dff",
+    sha256: "2ed54f02251e55d5dd91c57852414c545148016353fc9fcfbbab6cc79761c01a",
     url: `${artifactOrigin}/downloads/KMFX-Launcher-Windows.exe`,
     path: "downloads/KMFX-Launcher-Windows.exe",
     contentType: "application/vnd.microsoft.portable-executable",
