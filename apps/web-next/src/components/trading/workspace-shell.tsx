@@ -59,7 +59,6 @@ import {
 } from "@/lib/domain/navigation";
 import { getAccountsOverview } from "@/lib/domain/accounts-selectors";
 import type { RiskGuardAlert } from "@/lib/domain/risk-alerts";
-import { buildReviewPriorityRows } from "@/lib/domain/review-selectors";
 import { countClosedTradeExecutions } from "@/lib/domain/trades-selectors";
 import { cn } from "@/lib/utils";
 import {
@@ -260,10 +259,6 @@ function getNavBadge(
   if (href === "/analytics") return workspace.analytics.currentPeriod;
   if (href === "/trades") {
     return String(countClosedTradeExecutions(workspace.trades));
-  }
-  if (href === "/notes") {
-    const reviewCount = buildReviewPriorityRows(workspace).length;
-    return reviewCount > 0 ? String(reviewCount) : item.badge;
   }
   if (href === "/calendar") {
     const activeDays = workspace.analytics.daily.length;
