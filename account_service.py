@@ -1324,7 +1324,7 @@ class AccountService:
                 account.updated_at = now
                 target = account
                 log.info(
-                    "[KMFX][ACCOUNT_LIFECYCLE] account_id=%s user_id=%s status=pending_link event=admin_regenerate_key key=%s",
+                    "[KMFX][ACCOUNT_LIFECYCLE] account_id=%s user_id=%s status=pending_link event=regenerate_key key=%s",
                     account.account_id,
                     account.user_id,
                     mask_connection_key(new_key),
