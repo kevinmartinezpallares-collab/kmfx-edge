@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.89                                              |
+//| KMFXConnector v2.91                                              |
 //| KMFX Edge - MT5 connector publico de solo sincronizacion         |
 //|                                                                  |
 //| Backend = snapshot operativo y telemetría de riesgo              |
@@ -13,12 +13,12 @@
 //| operaciones. No solicita contraseña del broker.                  |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.89"
+#property version   "2.91"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.90"
+#define KMFX_CONNECTOR_VERSION "2.91"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -2075,13 +2075,27 @@ bool KMFXAccountMetricsReadyForSync()
    long login=(long)AccountInfoInteger(ACCOUNT_LOGIN);
    double balance=AccountInfoDouble(ACCOUNT_BALANCE);
    double equity=AccountInfoDouble(ACCOUNT_EQUITY);
+   bool terminal_connected=(bool)TerminalInfoInteger(TERMINAL_CONNECTED);
 
    if(login<=0)
-      return false;
+     return false;
    if(!MathIsValidNumber(balance) || !MathIsValidNumber(equity))
-      return false;
+     return false;
    if(balance<=0.0 && equity<=0.0)
-      return false;
+     {
+      if(!terminal_connected)
+         return false;
+      KMFXLogStatus(
+         StringFormat(
+            "MT5 informa balance/equity 0. Sincronizando snapshot parcial para conservar la conexion. login=%I64d server=%s balance=%.2f equity=%.2f",
+            login,
+            AccountInfoString(ACCOUNT_SERVER),
+            balance,
+            equity
+         ),
+         60
+      );
+     }
    return true;
   }
 
