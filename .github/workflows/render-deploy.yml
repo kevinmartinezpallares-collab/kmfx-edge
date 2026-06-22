@@ -8,8 +8,8 @@ on:
         required: true
         default: "srv-d79k3b75r7bs73fspuu0"
       commit_id:
-        description: "Git commit SHA to deploy"
-        required: true
+        description: "Optional Git commit SHA to deploy; blank deploys the service latest"
+        required: false
       clear_cache:
         description: "Clear Render build cache"
         required: true
@@ -43,8 +43,10 @@ jobs:
           args=(
             --action deploy
             --service-id "${{ inputs.service_id }}"
-            --commit-id "${{ inputs.commit_id }}"
           )
+          if [ -n "${{ inputs.commit_id }}" ]; then
+            args+=(--commit-id "${{ inputs.commit_id }}")
+          fi
           if [ "${{ inputs.clear_cache }}" = "true" ]; then
             args+=(--clear-cache)
           fi
