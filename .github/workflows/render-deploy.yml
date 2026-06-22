@@ -1,0 +1,51 @@
+name: Render Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      service_id:
+        description: "Render service id"
+        required: true
+        default: "srv-d79k3b75r7bs73fspuu0"
+      commit_id:
+        description: "Git commit SHA to deploy"
+        required: true
+      clear_cache:
+        description: "Clear Render build cache"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: render-deploy-${{ inputs.service_id }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy Render service
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Trigger Render deploy
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          args=(
+            --action deploy
+            --service-id "${{ inputs.service_id }}"
+            --commit-id "${{ inputs.commit_id }}"
+          )
+          if [ "${{ inputs.clear_cache }}" = "true" ]; then
+            args+=(--clear-cache)
+          fi
+          python3 scripts/render_suspend_service.py "${args[@]}"
