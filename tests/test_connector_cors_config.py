@@ -3987,7 +3987,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("billing_past_due", body["reason"])
         self.assertEqual("billing_attention", body["details"]["billing_access"])
 
-    def test_user_plan_cannot_regenerate_stable_connection_key(self) -> None:
+    def test_user_plan_can_regenerate_own_connection_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service
             connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
@@ -4014,8 +4014,12 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 connector_api.account_service = previous_service
 
         body = json.loads(response.body.decode("utf-8"))
-        self.assertEqual(403, response.status_code)
-        self.assertEqual("stable_key_recovery_required", body["reason"])
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["ok"])
+        self.assertEqual(account.account_id, body["account_id"])
+        self.assertTrue(body["connection_key"])
+        self.assertNotEqual(account.api_key, body["connection_key"])
+        self.assertEqual("pending_link", body["status"])
 
     def test_product_entitlement_helper_blocks_missing_export_entitlement(self) -> None:
         response = connector_api.product_entitlement_denial(

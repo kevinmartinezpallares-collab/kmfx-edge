@@ -50,6 +50,7 @@ import {
   Eye,
   MoreHorizontal,
   Pencil,
+  RefreshCw,
   Rocket,
   Trash2,
 } from "lucide-react";
@@ -613,17 +614,41 @@ function AccountDetailMetric({
 }
 
 function AccountConnectionDetail({ account }: { account: AccountRow }) {
+  const router = useRouter();
   const funding = account.funding;
   const [connectionKey, setConnectionKey] = useState("");
-  const [keyStatus, setKeyStatus] = useState<"idle" | "loading" | "ready" | "error" | "copied">(
-    "idle",
-  );
+  const [connectionKeyPreview, setConnectionKeyPreview] = useState("");
+  const [canRegenerateKey, setCanRegenerateKey] = useState(false);
+  const [keyStatus, setKeyStatus] = useState<
+    "idle" | "loading" | "ready" | "error" | "copied" | "regenerating"
+  >("idle");
   const [keyMessage, setKeyMessage] = useState(
     "La KMFX Key es única para esta cuenta MT5.",
   );
+  const displayConnectionKey = connectionKey || connectionKeyPreview || "•••• •••• ••••";
+
+  function connectionKeyErrorMessage(reason: string | undefined, fallback: string) {
+    if (reason === "connection_key_not_available") {
+      return "No se puede recuperar esta key antigua. Regenera una nueva key para esta cuenta.";
+    }
+    if (reason === "billing_required" || reason === "entitlement_required") {
+      return "Tu plan actual no permite generar conexiones MT5.";
+    }
+    if (reason === "billing_past_due") {
+      return "Regulariza la suscripción para regenerar la KMFX Key.";
+    }
+    if (reason === "rate_limited") {
+      return "Demasiados intentos seguidos. Espera un momento y vuelve a intentarlo.";
+    }
+    if (reason === "account_not_found") {
+      return "No se encontró esta cuenta en tu workspace.";
+    }
+    return fallback;
+  }
 
   async function revealConnectionKey() {
     setKeyStatus("loading");
+    setCanRegenerateKey(false);
     setKeyMessage("Recuperando key segura...");
     try {
       const response = await fetch(
@@ -636,21 +661,77 @@ function AccountConnectionDetail({ account }: { account: AccountRow }) {
         reason?: string;
       };
       if (!response.ok || !payload.connection_key) {
-        const unavailable =
-          payload.reason === "connection_key_not_available"
-            ? "No se puede recuperar esta key antigua. Genera una nueva conexión para esta cuenta."
-            : "No se pudo recuperar la KMFX Key. Revisa sesión, plan y permisos.";
-        setConnectionKey(payload.connection_key_preview ?? "");
+        setConnectionKey("");
+        setConnectionKeyPreview(payload.connection_key_preview ?? "");
+        setCanRegenerateKey(payload.reason === "connection_key_not_available");
         setKeyStatus("error");
-        setKeyMessage(unavailable);
+        setKeyMessage(
+          connectionKeyErrorMessage(
+            payload.reason,
+            "No se pudo recuperar la KMFX Key. Revisa sesión, plan y permisos.",
+          ),
+        );
         return;
       }
       setConnectionKey(payload.connection_key);
+      setConnectionKeyPreview(payload.connection_key_preview ?? "");
+      setCanRegenerateKey(false);
       setKeyStatus("ready");
       setKeyMessage("Key lista para copiar y pegar en el EA de esta cuenta.");
     } catch {
+      setCanRegenerateKey(false);
       setKeyStatus("error");
       setKeyMessage("No se pudo contactar con la API para recuperar la key.");
+    }
+  }
+
+  async function regenerateConnectionKey() {
+    setKeyStatus("regenerating");
+    setKeyMessage("Regenerando una KMFX Key nueva para esta cuenta...");
+    try {
+      const response = await fetch(
+        `/api/kmfx/accounts/${encodeURIComponent(account.id)}/regenerate-key`,
+        {
+          cache: "no-store",
+          method: "POST",
+        },
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        auth_required?: boolean;
+        connection_key?: string;
+        connection_key_preview?: string;
+        reason?: string;
+      };
+
+      if (response.status === 401 || payload.auth_required) {
+        router.push("/login?next=/accounts");
+        return;
+      }
+
+      if (!response.ok || !payload.connection_key) {
+        setConnectionKey("");
+        setConnectionKeyPreview(payload.connection_key_preview ?? connectionKeyPreview);
+        setCanRegenerateKey(true);
+        setKeyStatus("error");
+        setKeyMessage(
+          connectionKeyErrorMessage(
+            payload.reason,
+            "No se pudo regenerar la KMFX Key. Revisa sesión, plan y permisos.",
+          ),
+        );
+        return;
+      }
+
+      setConnectionKey(payload.connection_key);
+      setConnectionKeyPreview(payload.connection_key_preview ?? "");
+      setCanRegenerateKey(false);
+      setKeyStatus("ready");
+      setKeyMessage("Nueva KMFX Key generada. Cópiala y pégala en el EA de esta cuenta.");
+      router.refresh();
+    } catch {
+      setCanRegenerateKey(true);
+      setKeyStatus("error");
+      setKeyMessage("No se pudo contactar con la API para regenerar la key.");
     }
   }
 
@@ -719,23 +800,37 @@ function AccountConnectionDetail({ account }: { account: AccountRow }) {
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground">KMFX Key</p>
                     <p className="mt-2 truncate font-mono text-sm text-muted-foreground">
-                      {connectionKey || "•••• •••• ••••"}
+                      {displayConnectionKey}
                     </p>
                   </div>
                   <button
                     type="button"
-                    onClick={connectionKey ? copyConnectionKey : revealConnectionKey}
-                    disabled={keyStatus === "loading"}
+                    onClick={
+                      canRegenerateKey
+                        ? regenerateConnectionKey
+                        : connectionKey
+                          ? copyConnectionKey
+                          : revealConnectionKey
+                    }
+                    disabled={keyStatus === "loading" || keyStatus === "regenerating"}
                     className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-accent disabled:cursor-wait disabled:opacity-60"
                   >
-                    <Copy className="size-3.5" />
+                    {canRegenerateKey ? (
+                      <RefreshCw className="size-3.5" />
+                    ) : (
+                      <Copy className="size-3.5" />
+                    )}
                     {keyStatus === "loading"
                       ? "Cargando"
-                      : keyStatus === "copied"
-                        ? "Copiada"
-                        : connectionKey
-                          ? "Copiar"
-                          : "Ver key"}
+                      : keyStatus === "regenerating"
+                        ? "Regenerando"
+                        : keyStatus === "copied"
+                          ? "Copiada"
+                          : canRegenerateKey
+                            ? "Regenerar key"
+                            : connectionKey
+                              ? "Copiar"
+                              : "Ver key"}
                   </button>
                 </div>
                 <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
