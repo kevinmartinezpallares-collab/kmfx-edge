@@ -647,22 +647,22 @@ function portfolioRuleBadgeLabel(row: {
   ruleSource: "Definidas" | "Heredadas" | "Revisar";
   type: "Fondeo" | "Darwinex" | "Real";
 }) {
-  if (row.ruleSource === "Definidas") return "Regla definida";
-  if (row.ruleSource === "Heredadas") return "Límite heredado";
-  if (row.type === "Real" || row.type === "Darwinex") return "Capital propio";
+  if (row.ruleSource === "Definidas") return "Reglas propias";
+  if (row.ruleSource === "Heredadas") return "Reglas de fondeo";
+  if (row.type === "Real" || row.type === "Darwinex") return "Cuenta real";
 
-  return "Política pendiente";
+  return "Configurar reglas";
 }
 
 function formatPortfolioRole(role: string) {
   const labels: Record<string, string> = {
-    lead: "Líder",
-    follower: "Seguidora",
-    challenge: "Reto",
-    payout_protection: "Protección de cobro",
-    experimental: "Experimental",
-    own_capital: "Capital propio",
-    requires_review: "Revisar",
+    lead: "Cuenta principal",
+    follower: "Cuenta secundaria",
+    challenge: "Reto de fondeo",
+    payout_protection: "Cuenta fondeada",
+    experimental: "Pruebas",
+    own_capital: "Cuenta real propia",
+    requires_review: "Definir tipo",
   };
 
   return labels[role] ?? role;
@@ -1051,7 +1051,7 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
     portfolioCommandHref === "/risk" ? "Abrir Mesa de Riesgo" : "Ver cuentas";
   const decisionContextRows = [
     {
-      label: "Riesgo abierto",
+      label: "Riesgo total abierto",
       value: formatPercent(workspace.risk.totalOpenRiskPct),
       detail: `Límite ${formatPercent(workspace.risk.heatLimitPct)}`,
     },
@@ -1084,7 +1084,7 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
           : "Sin cierres en el periodo",
     },
     {
-      label: "Riesgo abierto",
+      label: "Riesgo total abierto",
       value: formatPercent(workspace.risk.totalOpenRiskPct, 2),
       barValue: heatShare,
       target: null,
@@ -1288,7 +1288,7 @@ function useCapitalReferenceModel(workspace: WorkspaceState) {
       note: "Sobre capital visible",
     },
     {
-      label: "Riesgo abierto",
+      label: "Riesgo total abierto",
       value: formatPercent(workspace.risk.totalOpenRiskPct),
       note: `Límite ${formatPercent(workspace.risk.heatLimitPct)}`,
     },
@@ -2007,7 +2007,7 @@ function renderCapitalReferenceSection(
                       </Avatar>
                       <div className="rounded-full border border-white/10 bg-background/60 px-3 py-1.5 text-right text-xs font-medium text-foreground shadow-lg backdrop-blur-md">
                         {row.allocationPct.toFixed(1)}%
-                        <span className="ml-1 text-muted-foreground">asignado</span>
+                        <span className="ml-1 text-muted-foreground">del portfolio</span>
                       </div>
                     </div>
                   </div>
@@ -2018,7 +2018,7 @@ function renderCapitalReferenceSection(
                         {row.account.label}
                       </p>
                       <p className="mt-2 truncate text-xs text-muted-foreground">
-                        {companyName} / {row.type} / {row.role}
+                        {companyName} · {row.type} · {row.role}
                       </p>
                     </div>
 
@@ -2039,18 +2039,18 @@ function renderCapitalReferenceSection(
                         </p>
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs text-muted-foreground">Riesgo</p>
+                        <p className="text-xs text-muted-foreground">Riesgo por trade</p>
                         <p className="mt-1 text-sm font-medium text-foreground">
                           {row.riskBudgetPct === null
-                            ? "Revisar"
+                            ? "No definido"
                             : formatPercent(row.riskBudgetPct)}
                         </p>
                       </div>
                       <div className="min-w-0 text-right">
-                        <p className="text-xs text-muted-foreground">Riesgo abierto</p>
+                        <p className="text-xs text-muted-foreground">Máx. riesgo abierto</p>
                         <p className="mt-1 truncate text-sm font-medium text-foreground">
                           {row.maxHeatPct === null
-                            ? "Sin límite"
+                            ? "No definido"
                             : formatPercent(row.maxHeatPct)}
                         </p>
                       </div>
