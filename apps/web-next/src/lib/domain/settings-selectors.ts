@@ -22,6 +22,13 @@ export type SettingsHelpLink = {
   kind: "help" | "legal";
 };
 
+export type SettingsDownloadLink = {
+  label: string;
+  note: string;
+  href: string;
+  kind: "launcher" | "expert-advisor";
+};
+
 export type SettingsProfile = {
   displayName: string;
   email: string | null;
@@ -77,6 +84,7 @@ export type SettingsOverview = {
   profile: SettingsProfile;
   preferences: SettingsPreference[];
   helpLinks: SettingsHelpLink[];
+  downloadLinks: SettingsDownloadLink[];
   accountRows: SettingsOverviewCard[];
   safetyRows: SettingsStatusRow[];
   plan: SettingsPlan;
@@ -288,6 +296,32 @@ export function getSettingsOverview(workspace: WorkspaceState): SettingsOverview
         note: "Política comercial y devoluciones.",
         href: "https://kmfxedge.com/refunds",
         kind: "legal",
+      },
+    ],
+    downloadLinks: [
+      {
+        label: "Launcher macOS",
+        note: "Instalador para equipos Apple.",
+        href: "/downloads/KMFX-Launcher-macOS.zip",
+        kind: "launcher",
+      },
+      {
+        label: "Launcher Windows",
+        note: "Instalador para PC con MT5.",
+        href: "/downloads/KMFX-Launcher-Windows.exe",
+        kind: "launcher",
+      },
+      {
+        label: "EA MT5",
+        note: "Conector KMFX para MetaTrader 5.",
+        href: `/${["KMFX", "Connector.ex5"].join("")}`,
+        kind: "expert-advisor",
+      },
+      {
+        label: "EA Mesa de Riesgo",
+        note: "RiskGuard para bloqueos y protección operativa.",
+        href: `/${["KMFX", "RiskGuard.ex5"].join("")}`,
+        kind: "expert-advisor",
       },
     ],
     safetyRows: [

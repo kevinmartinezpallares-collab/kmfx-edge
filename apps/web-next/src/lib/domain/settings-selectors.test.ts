@@ -127,4 +127,21 @@ describe("getSettingsOverview", () => {
       "https://kmfxedge.com/refunds",
     ]);
   });
+
+  it("keeps launcher and EA downloads available from settings", () => {
+    const overview = getSettingsOverview(wave1Workspace);
+
+    expect(overview.downloadLinks.map((link) => link.label)).toEqual([
+      "Launcher macOS",
+      "Launcher Windows",
+      "EA MT5",
+      "EA Mesa de Riesgo",
+    ]);
+    expect(overview.downloadLinks.map((link) => link.href)).toEqual([
+      "/downloads/KMFX-Launcher-macOS.zip",
+      "/downloads/KMFX-Launcher-Windows.exe",
+      "/KMFXConnector.ex5",
+      "/KMFXRiskGuard.ex5",
+    ]);
+  });
 });

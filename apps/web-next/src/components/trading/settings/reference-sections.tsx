@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   CircleDollarSign,
   CreditCard,
+  Download,
   ExternalLink,
   FileText,
   Globe2,
@@ -449,6 +450,7 @@ type SettingsOverview = ReturnType<typeof getSettingsOverview>;
 type SettingsProfile = SettingsOverview["profile"];
 type SettingsPreference = SettingsOverview["preferences"][number];
 type SettingsHelpLink = SettingsOverview["helpLinks"][number];
+type SettingsDownloadLink = SettingsOverview["downloadLinks"][number];
 type SettingsAccessRow = {
   icon: typeof ShieldCheck;
   label: string;
@@ -708,6 +710,79 @@ function SettingsHelpLegalBar({ helpLinks }: { helpLinks: SettingsHelpLink[] }) 
         })}
       </div>
     </div>
+  );
+}
+
+function SettingsDownloadsCard({
+  downloadLinks,
+  downloadsReady,
+}: {
+  downloadLinks: SettingsDownloadLink[];
+  downloadsReady: boolean;
+}) {
+  return (
+    <Card className="col-span-full border-border/70 bg-card/70">
+      <CardHeader className="pb-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle>Descargas</CardTitle>
+            <CardDescription>
+              Launcher y EA siempre a mano para instalar o reinstalar KMFX Edge.
+            </CardDescription>
+          </div>
+          <Badge variant={downloadsReady ? "secondary" : "outline"}>
+            {downloadsReady ? "Plan activo" : "Requiere plan"}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {downloadLinks.map((download) => (
+            <div
+              key={download.href}
+              className="flex min-w-0 flex-col justify-between gap-4 rounded-lg border border-border/70 bg-background/35 p-4"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card/70">
+                    <Download className="size-4 text-muted-foreground" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-foreground">
+                      {download.label}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {download.kind === "launcher" ? "Launcher" : "Expert Advisor"}
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                  {download.note}
+                </p>
+              </div>
+
+              {downloadsReady ? (
+                <a
+                  className={cn(
+                    buttonVariants({ size: "sm", variant: "outline" }),
+                    "w-full justify-center bg-card/50",
+                  )}
+                  href={download.href}
+                >
+                  <Download data-icon="inline-start" />
+                  Descargar
+                </a>
+              ) : (
+                <Button disabled size="sm" variant="outline">
+                  <Download data-icon="inline-start" />
+                  Descargar
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -2090,6 +2165,11 @@ export function SettingsReferenceSection({ workspace }: { workspace: WorkspaceSt
         />
 
         <SettingsAccessCard accessRows={accessRows} />
+
+        <SettingsDownloadsCard
+          downloadLinks={settingsOverview.downloadLinks}
+          downloadsReady={settingsOverview.plan.managementReady}
+        />
 
         <SettingsHelpLegalBar helpLinks={settingsOverview.helpLinks} />
       </div>

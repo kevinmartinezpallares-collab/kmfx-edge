@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { requestConnectionAccess } from "@/lib/api/connection-access";
-import { connectorArtifact } from "@/lib/downloads/connector-artifact";
+import { eaArtifacts } from "@/lib/downloads/connector-artifact";
 import { serveLocalDownloadArtifact } from "@/lib/downloads/serve-local-artifact";
 
 export const runtime = "nodejs";
@@ -26,8 +26,9 @@ export async function GET(
   { params }: { params: Promise<{ artifact: string }> },
 ) {
   const { artifact } = await params;
+  const downloadArtifact = eaArtifacts.find((item) => item.filename === artifact);
 
-  if (artifact !== connectorArtifact.filename) {
+  if (!downloadArtifact) {
     return new NextResponse(null, { status: 404 });
   }
 
@@ -36,5 +37,5 @@ export async function GET(
     return redirectForAccess(request, access.reason);
   }
 
-  return serveLocalDownloadArtifact(connectorArtifact);
+  return serveLocalDownloadArtifact(downloadArtifact);
 }
