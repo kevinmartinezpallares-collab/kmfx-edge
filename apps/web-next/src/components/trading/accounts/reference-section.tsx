@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { WorkspaceState } from "@/lib/contracts/workspace-state";
+import type { TradingAccount } from "@/lib/contracts/account";
 import { resolveConnectionAccess } from "@/lib/billing/connection-access";
 import { getAccountsOverview } from "@/lib/domain/accounts-selectors";
 import { formatCurrency } from "@/lib/formatters/numbers";
@@ -83,6 +84,7 @@ const INITIAL_ACCOUNTS_UI_STATE: AccountsUiState = {
   isAddAccountOpen: false,
   linkState: INITIAL_LINK_STATE,
 };
+const CONNECTION_CHECK_RETRY_DELAYS_MS = [0, 900, 1600, 2400] as const;
 
 function accountsUiReducer(
   state: AccountsUiState,
@@ -283,6 +285,41 @@ function formatSyncCheckLabel(value: string | undefined) {
 
   const diffDays = Math.round(diffHours / 24);
   return `Hace ${diffDays} d`;
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function hasCompletedSync(account: PendingAccountStatus) {
+  const rawStatus = String(account.status || account.lifecycle_status || "").toLowerCase();
+
+  return (
+    rawStatus === "active" ||
+    rawStatus === "connected" ||
+    Boolean(account.last_sync_at || account.first_sync_at)
+  );
+}
+
+function hasPendingConnectionError(account: PendingAccountStatus) {
+  const rawStatus = String(account.status || account.lifecycle_status || "").toLowerCase();
+
+  return (
+    rawStatus === "error" ||
+    Boolean(account.last_error_code || account.last_error_message)
+  );
+}
+
+function buildConnectionConfirmedMessage({
+  lastSyncLabel,
+  login,
+}: {
+  lastSyncLabel?: string;
+  login?: string;
+}) {
+  return `Conexión confirmada${login ? ` para MT5 ${login}` : ""}${
+    lastSyncLabel ? ` - ${lastSyncLabel}` : ""
+  }. Actualizando dashboard...`;
 }
 
 type PageMotionProps = {
@@ -919,6 +956,30 @@ function useAccountsReferenceModel(workspace: WorkspaceState) {
   const linkPending = linkState.status === "pending";
   const connectionReady = connectionAccess.status === "ready";
 
+  function confirmAccountConnection(message: string) {
+    dispatchAccountsUi({
+      connectionCheck: {
+        message,
+        status: "connected",
+      },
+      type: "setConnectionCheck",
+    });
+    void fetch("/api/kmfx/accounts/refresh", { method: "POST" }).catch(() => undefined);
+    router.refresh();
+    window.setTimeout(() => {
+      dispatchAccountsUi({ open: false, type: "setAddAccountOpen" });
+    }, 900);
+  }
+
+  function findConfirmedWorkspaceAccount(accountId: string): TradingAccount | undefined {
+    return accountRows.find(
+      (account) =>
+        account.id === accountId &&
+        account.connectionState !== "pending" &&
+        account.connectionState !== "error",
+    );
+  }
+
   React.useEffect(
     () => () => {
       connectionAccessControllerRef.current?.abort();
@@ -1111,6 +1172,17 @@ function useAccountsReferenceModel(workspace: WorkspaceState) {
       return;
     }
 
+    const currentAccount = findConfirmedWorkspaceAccount(linkState.accountId);
+    if (currentAccount) {
+      confirmAccountConnection(
+        buildConnectionConfirmedMessage({
+          lastSyncLabel: currentAccount.lastSyncLabel,
+          login: currentAccount.login,
+        }),
+      );
+      return;
+    }
+
     dispatchAccountsUi({
       connectionCheck: {
         message: "Comprobando si el EA ya envió la primera sincronización...",
@@ -1120,69 +1192,73 @@ function useAccountsReferenceModel(workspace: WorkspaceState) {
     });
 
     try {
-      const response = await fetch(
-        `/api/kmfx/accounts/pending?account_id=${encodeURIComponent(linkState.accountId)}`,
-        { cache: "no-store" },
-      );
-      const payload = await response.json().catch(() => ({}));
+      for (const [index, delayMs] of CONNECTION_CHECK_RETRY_DELAYS_MS.entries()) {
+        if (delayMs > 0) {
+          await wait(delayMs);
+          dispatchAccountsUi({
+            connectionCheck: {
+              message: "Esperando la confirmación de MT5...",
+              status: "checking",
+            },
+            type: "setConnectionCheck",
+          });
+        }
 
-      if (response.status === 401 || payload?.auth_required) {
-        router.push("/login?next=/accounts");
-        return;
-      }
+        const response = await fetch(
+          `/api/kmfx/accounts/pending?account_id=${encodeURIComponent(linkState.accountId)}`,
+          { cache: "no-store" },
+        );
+        const payload = await response.json().catch(() => ({}));
 
-      const account = Array.isArray(payload?.accounts)
-        ? (payload.accounts[0] as PendingAccountStatus | undefined)
-        : undefined;
+        if (response.status === 401 || payload?.auth_required) {
+          router.push("/login?next=/accounts");
+          return;
+        }
 
-      if (!response.ok || !account) {
-        dispatchAccountsUi({
-          connectionCheck: {
-            message:
-              "Todavía no aparece esta conexión. Revisa que la KMFX Key esté pegada en el EA correcto.",
-            status: "waiting",
-          },
-          type: "setConnectionCheck",
-        });
-        return;
-      }
+        const account = Array.isArray(payload?.accounts)
+          ? (payload.accounts[0] as PendingAccountStatus | undefined)
+          : undefined;
 
-      const rawStatus = String(account.status || account.lifecycle_status || "").toLowerCase();
-      const hasError =
-        rawStatus === "error" ||
-        Boolean(account.last_error_code || account.last_error_message);
-      const hasSync =
-        rawStatus === "active" ||
-        rawStatus === "connected" ||
-        Boolean(account.last_sync_at || account.first_sync_at);
-      const lastSyncLabel = formatSyncCheckLabel(account.last_sync_at);
-      const login = account.login || account.mt5_login;
+        if (!response.ok || !account) {
+          if (index < CONNECTION_CHECK_RETRY_DELAYS_MS.length - 1) {
+            continue;
+          }
 
-      if (hasError) {
-        dispatchAccountsUi({
-          connectionCheck: {
-            message:
-              account.last_error_message ||
-              "MT5 respondió con error. Revisa WebRequest, Algo Trading y el campo KMFXKey del EA.",
-            status: "error",
-          },
-          type: "setConnectionCheck",
-        });
-        return;
-      }
+          void fetch("/api/kmfx/accounts/refresh", { method: "POST" }).catch(() => undefined);
+          router.refresh();
+          dispatchAccountsUi({
+            connectionCheck: {
+              message:
+                "No aparece como pendiente. Estoy actualizando el dashboard; si ya la ves conectada, puedes cerrar este asistente.",
+              status: "waiting",
+            },
+            type: "setConnectionCheck",
+          });
+          return;
+        }
 
-      if (hasSync) {
-        dispatchAccountsUi({
-          connectionCheck: {
-            message: `Conexión confirmada${login ? ` para MT5 ${login}` : ""}${
-              lastSyncLabel ? ` - ${lastSyncLabel}` : ""
-            }.`,
-            status: "connected",
-          },
-          type: "setConnectionCheck",
-        });
-        router.refresh();
-        return;
+        if (hasPendingConnectionError(account)) {
+          dispatchAccountsUi({
+            connectionCheck: {
+              message:
+                account.last_error_message ||
+                "MT5 respondió con error. Revisa WebRequest, Algo Trading y el campo KMFXKey del EA.",
+              status: "error",
+            },
+            type: "setConnectionCheck",
+          });
+          return;
+        }
+
+        if (hasCompletedSync(account)) {
+          confirmAccountConnection(
+            buildConnectionConfirmedMessage({
+              lastSyncLabel: formatSyncCheckLabel(account.last_sync_at),
+              login: account.login || account.mt5_login,
+            }),
+          );
+          return;
+        }
       }
 
       dispatchAccountsUi({
