@@ -42,6 +42,16 @@ STORAGE_REPORT_METRIC_KEYS = (
     "worstTrade",
     "source",
 )
+ACCOUNT_PROFILE_CLASSES = {"own", "real", "demo", "challenge", "evaluation", "funded"}
+ACCOUNT_PROFILE_LABELS = {
+    "own": "Cuenta propia",
+    "real": "Cuenta real",
+    "demo": "Demo",
+    "challenge": "Reto",
+    "evaluation": "Fase 2",
+    "funded": "Cuenta fondeada",
+}
+FUNDING_PROFILE_ACCOUNT_TYPES = {"challenge", "funded", "evaluation"}
 
 
 def _env_flag(name: str, *, default: bool = False) -> bool:
@@ -223,6 +233,10 @@ def compact_dashboard_payload_from_payload(payload: dict[str, Any] | None) -> di
             compact[key] = value
     if report_metrics:
         compact["reportMetrics"] = report_metrics
+    for key in ("accountProfile", "account_profile", "fundingProfile"):
+        value = safe_payload.get(key)
+        if isinstance(value, dict):
+            compact[key] = deepcopy(value)
     return {key: value for key, value in compact.items() if value not in ("", None)}
 
 
@@ -412,6 +426,74 @@ def _clean_alias(alias: str) -> str:
     if cleaned and not VALID_ALIAS_RE.fullmatch(cleaned):
         raise ValueError("invalid_alias")
     return cleaned
+
+
+def _clean_short_label(value: Any, *, max_length: int = 80) -> str:
+    cleaned = str(value or "").strip()
+    if len(cleaned) > max_length:
+        raise ValueError("invalid_label")
+    return cleaned
+
+
+def _clean_account_profile(profile: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(profile, dict):
+        return None
+
+    account_class = str(
+        profile.get("account_class") or profile.get("accountClass") or "",
+    ).strip()
+    if account_class not in ACCOUNT_PROFILE_CLASSES:
+        raise ValueError("invalid_account_profile")
+
+    badge_label = _clean_short_label(
+        profile.get("badge_label")
+        or profile.get("badgeLabel")
+        or ACCOUNT_PROFILE_LABELS[account_class],
+    )
+
+    return {
+        "account_class": account_class,
+        "badge_label": badge_label or ACCOUNT_PROFILE_LABELS[account_class],
+        "source": "manual" if str(profile.get("source") or "").strip() == "manual" else "auto",
+    }
+
+
+def _clean_funding_profile(profile: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(profile, dict):
+        return None
+
+    account_type = str(profile.get("account_type") or profile.get("accountType") or "").strip()
+    if account_type not in FUNDING_PROFILE_ACCOUNT_TYPES:
+        raise ValueError("invalid_funding_profile")
+
+    phase_label = _clean_short_label(profile.get("phase_label") or profile.get("phaseLabel"))
+    clean_profile: dict[str, Any] = {
+        "account_type": account_type,
+        "phase_label": phase_label or ACCOUNT_PROFILE_LABELS.get(account_type, "Reto"),
+    }
+
+    for key in (
+        "firm",
+        "playbook_label",
+        "payout_cadence_label",
+        "next_payout_label",
+    ):
+        value = _clean_short_label(profile.get(key))
+        if value:
+            clean_profile[key] = value
+
+    for key in (
+        "objective_pct",
+        "current_progress_pct",
+        "consistency_pct",
+        "recommended_risk_pct",
+        "reset_cost_usd",
+    ):
+        value = _first_finite_number(profile.get(key))
+        if value is not None:
+            clean_profile[key] = value
+
+    return clean_profile
 
 
 def _identity_tuple(account: Account) -> tuple[str, str, str, str]:
@@ -1336,6 +1418,59 @@ class AccountService:
                     mask_connection_key(new_key),
                 )
                 break
+        self.store.save_accounts(accounts)
+        return deepcopy(target) if target else None
+
+    def update_account_display_profile(
+        self,
+        account_id: str,
+        *,
+        alias: str | None = None,
+        account_profile: dict[str, Any] | None = None,
+        clear_account_profile: bool = False,
+        funding_profile: dict[str, Any] | None = None,
+        clear_funding_profile: bool = False,
+    ) -> Account | None:
+        cleaned_alias = _clean_alias(alias or "") if alias is not None else ""
+        clean_account_profile = _clean_account_profile(account_profile)
+        clean_funding_profile = _clean_funding_profile(funding_profile)
+
+        accounts = self.store.list_accounts()
+        target: Account | None = None
+        now = _now_utc()
+        for account in accounts:
+            if account.account_id == account_id and not _is_deleted(account):
+                if alias is not None:
+                    if not cleaned_alias:
+                        raise ValueError("missing_alias")
+                    account.alias = cleaned_alias
+                    account.nickname = cleaned_alias
+
+                latest_payload = deepcopy(account.latest_payload or {})
+                if clear_account_profile:
+                    latest_payload.pop("accountProfile", None)
+                    latest_payload.pop("account_profile", None)
+                elif clean_account_profile is not None:
+                    clean_account_profile["updated_at"] = now.isoformat()
+                    latest_payload["accountProfile"] = deepcopy(clean_account_profile)
+                    latest_payload["account_profile"] = deepcopy(clean_account_profile)
+
+                if clear_funding_profile:
+                    latest_payload.pop("fundingProfile", None)
+                elif clean_funding_profile is not None:
+                    clean_funding_profile["updated_at"] = now.isoformat()
+                    latest_payload["fundingProfile"] = deepcopy(clean_funding_profile)
+
+                account.latest_payload = latest_payload
+                account.updated_at = now
+                target = account
+                log.info(
+                    "[KMFX][ACCOUNT_LIFECYCLE] account_id=%s user_id=%s event=update_account_display_profile",
+                    account.account_id,
+                    account.user_id,
+                )
+                break
+
         self.store.save_accounts(accounts)
         return deepcopy(target) if target else None
 

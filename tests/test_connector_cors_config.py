@@ -651,6 +651,45 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
+    def test_authenticated_user_can_update_account_label_and_card_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            store_path = os.path.join(temp_dir, "accounts.json")
+            connector_api.account_service = AccountService(JsonFileAccountStore(store_path))
+            try:
+                created = connector_api.account_service.create_pending_account(
+                    user_id="user-123",
+                    alias="Nueva cuenta MT5",
+                )
+                request = self._request(
+                    host="127.0.0.1",
+                    headers={"x-kmfx-user-id": "user-123"},
+                    json_body={
+                        "alias": "Darwinex real",
+                        "accountProfile": {
+                            "accountClass": "challenge",
+                            "badgeLabel": "Reto de fondeo",
+                            "source": "manual",
+                        },
+                    },
+                )
+
+                response = asyncio.run(
+                    connector_api.update_own_account(created.account_id, request)
+                )
+                body = json.loads(response.body.decode("utf-8"))
+                accounts = connector_api.account_service.list_accounts("user-123")
+                profile = accounts[0].latest_payload["accountProfile"]
+
+                self.assertEqual(200, response.status_code)
+                self.assertTrue(body["ok"])
+                self.assertEqual("Darwinex real", body["display_name"])
+                self.assertEqual("Darwinex real", accounts[0].alias)
+                self.assertEqual("challenge", profile["account_class"])
+                self.assertEqual("Reto de fondeo", profile["badge_label"])
+            finally:
+                connector_api.account_service = previous_service
+
     def test_link_account_blocks_authenticated_free_live_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service

@@ -79,6 +79,31 @@ class AccountServiceTests(unittest.TestCase):
         self.assertEqual([second.account_id], default_ids)
         self.assertNotEqual(first.account_id, default_ids[0])
 
+    def test_update_account_display_profile_updates_alias_and_card_label(self) -> None:
+        created = self.service.create_pending_account(
+            user_id="user-123",
+            alias="Nueva cuenta MT5",
+        )
+
+        updated = self.service.update_account_display_profile(
+            created.account_id,
+            alias="Darwinex real",
+            account_profile={
+                "accountClass": "challenge",
+                "badgeLabel": "Reto de fondeo",
+                "source": "manual",
+            },
+        )
+        accounts = self.service.list_accounts("user-123")
+        profile = accounts[0].latest_payload.get("accountProfile")
+
+        self.assertIsNotNone(updated)
+        self.assertEqual("Darwinex real", accounts[0].alias)
+        self.assertEqual("Darwinex real", accounts[0].nickname)
+        self.assertEqual("challenge", profile["account_class"])
+        self.assertEqual("Reto de fondeo", profile["badge_label"])
+        self.assertEqual("manual", profile["source"])
+
     def test_accounts_snapshot_includes_all_operational_accounts(self) -> None:
         first = self.service.ingest_account_snapshot(
             user_id="user-123",
